@@ -63,9 +63,9 @@ def sample_tables(tmp_path):
         with ipc.new_stream(sink, schema) as writer:
             writer.write_batch(batch)
 
-    # 3. Feather
+    # 3. Feather v2 (written via pyarrow.feather with version=2 or default)
     p_feather = tmp_path / "sample.feather"
-    feather.write_feather(table, str(p_feather))
+    feather.write_feather(table, str(p_feather), version=2)
 
     # 4. ORC
     p_orc = tmp_path / "sample.orc"
@@ -81,7 +81,6 @@ def sample_tables(tmp_path):
 
 def test_lazy_imports():
     """Importing columnar_interchange must not import pyarrow at module level."""
-    # Test via clean subprocess
     import subprocess
     cmd = [
         sys.executable,
@@ -125,6 +124,75 @@ def test_extract_arrow_file(sample_tables):
         )
 
 
+def test_duplicate_field_names(tmp_path):
+    """Arrow schemas with duplicate field names must produce unique Unit IDs and origin refs."""
+    import pyarrow as pa
+    import pyarrow.ipc as ipc
+
+    dup_schema = pa.schema([
+        pa.field("metric", pa.int64()),
+        pa.field("metric", pa.float64()),
+        pa.field("metric", pa.string()),
+    ])
+    p = tmp_path / "dup.arrow"
+    with pa.OSFile(str(p), "wb") as sink:
+        with ipc.new_file(sink, dup_schema) as writer:
+            pass
+
+    extraction = extract_arrow_file(p)
+    field_units = [u for u in extraction.units if u.origin.ref.startswith("field:")]
+    assert len(field_units) == 3
+    unit_ids = [u.id for u in field_units]
+    assert len(set(unit_ids)) == 3, "Duplicate field names must have unique Unit IDs"
+
+    refs = [u.origin.ref for u in field_units]
+    assert refs == ["field:0:metric", "field:1:metric", "field:2:metric"]
+
+    table_unit = [u for u in extraction.units if u.origin.ref == "schema:table"][0]
+    assert len(extraction.relations) == 3
+    for f_unit in field_units:
+        assert any(r.src == table_unit.id and r.dst == f_unit.id for r in extraction.relations)
+
+
+def test_feather_v1_declined(tmp_path):
+    """Feather v1 files must be declined with a typed unsupported subtype message."""
+    p = tmp_path / "v1.feather"
+    p.write_bytes(b"FEA1" + b"\x00" * 100 + b"FEA1")
+
+    with pytest.raises(InvalidColumnarData, match="Feather v1 requires table array materialization"):
+        extract_columnar_interchange(p)
+
+
+def test_fail_closed_unknown_and_spoofed_bytes(tmp_path):
+    """Spoofed suffixes on unknown bytes must fail closed."""
+    p_fake_arrow = tmp_path / "fake.arrow"
+    p_fake_arrow.write_bytes(b"SPOOFED_UNKNOWN_BYTES_1234567890")
+
+    with pytest.raises(InvalidColumnarData, match="failed closed"):
+        detect_columnar_kind(p_fake_arrow)
+
+    p_fake_orc = tmp_path / "fake.orc"
+    p_fake_orc.write_bytes(b"NOT_REALLY_ORC_HEADER_OR_FOOTER")
+
+    with pytest.raises(InvalidColumnarData, match="failed closed"):
+        detect_columnar_kind(p_fake_orc)
+
+
+def test_error_message_scrubbing_no_leak(tmp_path):
+    """Parser errors must not leak private directory paths in exception text."""
+    secret_dir = tmp_path / "private_user_secret_data_directory"
+    secret_dir.mkdir()
+    corrupt_file = secret_dir / "corrupt.arrow"
+    corrupt_file.write_bytes(b"ARROW1\x00\x00INVALID_HEADER_GARBAGE_PAYLOAD")
+
+    with pytest.raises(InvalidColumnarData) as exc_info:
+        extract_arrow_file(corrupt_file)
+
+    msg = str(exc_info.value)
+    assert "private_user_secret_data_directory" not in msg
+    assert "corrupt.arrow:" in msg
+
+
 def test_extract_arrow_stream(sample_tables):
     path = sample_tables["arrow_stream"]
     assert detect_columnar_kind(path) == "arrow-stream"
@@ -141,7 +209,7 @@ def test_extract_arrow_stream(sample_tables):
     assert len(field_units) == 4
 
 
-def test_extract_feather(sample_tables):
+def test_extract_feather_v2(sample_tables):
     path = sample_tables["feather"]
     assert detect_columnar_kind(path) == "feather"
 

@@ -14,6 +14,7 @@ Invariants enforced:
 - Every emitted Unit, Relation, and Gap is strictly addressable with exact origins.
 - Emits Role.UNKNOWN exclusively.
 - Never emits raw table rows, column cell values, or unbudgeted payload bytes.
+- Never calls read_table, read_feather, get_batch, read_all, or any materializing API.
 - All heavy dependencies (pyarrow) are imported lazily inside the extractor.
 - Enforces strict bounds on file sizes, field counts, batch/stripe counts, and metadata bytes.
 - Scrubs parser exceptions to prevent private paths or binary buffer leaks.
@@ -39,8 +40,6 @@ _MAX_FILE_BYTES = 8 * 1024 * 1024 * 1024  # 8 GB
 _MAX_FIELDS = 1024
 _MAX_METADATA_KEYS = 256
 _MAX_METADATA_VALUE_BYTES = 4096
-_MAX_BATCHES_PROFILED = 256
-_MAX_STRIPES_PROFILED = 256
 _MAX_TEXT_CHARS = 1024
 _HASH_CHUNK_BYTES = 1024 * 1024
 
@@ -50,12 +49,12 @@ class InvalidColumnarData(ValueError):
 
     tier = 3
 
-    def __init__(self, path: Path, kind: str, detail: str) -> None:
+    def __init__(self, path: Path | str, kind: str, detail: str) -> None:
         self.path = Path(path)
         self.kind = kind
-        self.detail = detail
+        self.detail = _bounded_text(detail, 200)
         # Scrub full local directory path from the message string
-        super().__init__(f"{self.path.name}: invalid {kind}: {detail}")
+        super().__init__(f"{self.path.name}: invalid {kind}: {self.detail}")
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,6 +74,20 @@ def _bounded_text(value: object, limit: int = _MAX_TEXT_CHARS) -> str:
     if len(text) <= limit:
         return text
     return text[: max(0, limit - 1)] + "…"
+
+
+def _scrub_error_message(exc: BaseException, phase: str, filename: str) -> str:
+    """Produce a bounded, stable, scrubbed error description without private paths or binary buffer dumps."""
+    cls_name = exc.__class__.__name__
+    raw = str(exc).splitlines()[0] if str(exc) else ""
+    parts = []
+    for token in raw.split():
+        if "/" in token or "\\" in token:
+            token = Path(token).name if "/" in token else token
+        parts.append(token)
+    cleaned = " ".join(parts)
+    bounded = _bounded_text(cleaned, 160)
+    return f"{phase} failed ({cls_name}): {bounded}"
 
 
 def _safe_metadata_dict(
@@ -105,15 +118,16 @@ def _safe_metadata_dict(
 # Magic and structural detection
 # ---------------------------------------------------------------------------
 def detect_columnar_kind(path: str | Path) -> str:
-    """Detect whether a file is Arrow IPC File, Arrow Stream, Feather, or ORC.
+    """Detect whether a file is Arrow IPC File, Arrow Stream, Feather v2, or ORC.
 
     Detection uses verified byte structures rather than file suffix alone.
+    Fails closed on unknown bytes.
     """
     path = Path(path)
     try:
         size = path.stat().st_size
     except OSError as exc:
-        raise InvalidColumnarData(path, "columnar", str(exc)) from exc
+        raise InvalidColumnarData(path, "columnar", f"stat error: {_bounded_text(str(exc), 80)}") from exc
 
     if size == 0:
         raise InvalidColumnarData(path, "columnar", "file is empty")
@@ -129,31 +143,43 @@ def detect_columnar_kind(path: str | Path) -> str:
             f.seek(max(0, size - 16))
             footer = f.read(16)
 
-    # 1. Feather v1 magic: 'FEA1' at start and end
+    # 1. Feather v1 magic: 'FEA1' at start or end
     if header.startswith(b"FEA1") or footer.endswith(b"FEA1"):
-        return "feather"
+        return "feather-v1"
 
-    # 2. Arrow IPC File (including Feather v2): starts with 'ARROW1\0\0' or starts/ends with 'ARROW1'
+    # 2. Arrow IPC File (including Feather v2): starts with 'ARROW1' or ends with 'ARROW1'
     if header.startswith(b"ARROW1") or footer.endswith(b"ARROW1"):
         if path.suffix.lower() == ".feather":
             return "feather"
         return "arrow-file"
 
-    # 3. Apache ORC magic: 'ORC' at start (offset 0) or ending with Postscript magic 'ORC'
+    # 3. Apache ORC magic: 'ORC' at start (offset 0) or ending with Postscript 'ORC'
     if header.startswith(b"ORC") or footer.endswith(b"ORC") or (len(footer) >= 4 and footer[-4:-1] == b"ORC"):
         return "orc"
 
-    # 4. Arrow IPC Stream: starts with 0xFFFFFFFF (continuation) or valid stream message
-    if header.startswith(b"\xff\xff\xff\xff") or path.suffix.lower() in {".arrows", ".ipc", ".stream"}:
+    # 4. Arrow IPC Stream: starts with 0xFFFFFFFF (continuation)
+    if header.startswith(b"\xff\xff\xff\xff"):
         return "arrow-stream"
 
-    # Default to arrow-file if .arrow suffix, otherwise try stream
-    if path.suffix.lower() in {".arrow", ".feather"}:
-        return "arrow-file"
-    if path.suffix.lower() in {".orc"}:
-        return "orc"
+    # 5. Check if it is a valid Arrow IPC stream by attempting a probe on stream header
+    if size >= 8:
+        try:
+            import pyarrow.ipc as ipc
+            import pyarrow.lib as pa_lib
+            with path.open("rb") as stream_f:
+                reader = ipc.open_stream(stream_f)
+                if reader.schema is not None:
+                    return "arrow-stream"
+        except (pa_lib.ArrowInvalid, OSError, ValueError):
+            pass
+        except Exception:
+            pass
 
-    return "arrow-stream"
+    raise InvalidColumnarData(
+        path,
+        "columnar",
+        "unrecognized or unsupported columnar interchange signature (failed closed)",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -164,7 +190,7 @@ def _begin(path: Path, kind: str) -> _ReadContext:
     try:
         info = path.stat()
     except OSError as exc:
-        raise InvalidColumnarData(path, kind, str(exc)) from exc
+        raise InvalidColumnarData(path, kind, f"stat error: {_bounded_text(str(exc), 80)}") from exc
 
     if not stat.S_ISREG(info.st_mode):
         raise InvalidColumnarData(path, kind, "input is not a regular file")
@@ -185,7 +211,7 @@ def _begin(path: Path, kind: str) -> _ReadContext:
                 byte_count += len(chunk)
                 digest.update(chunk)
     except OSError as exc:
-        raise InvalidColumnarData(path, kind, str(exc)) from exc
+        raise InvalidColumnarData(path, kind, f"read error: {_bounded_text(str(exc), 80)}") from exc
 
     identity = (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns)
     if byte_count != info.st_size or _identity(path) != identity:
@@ -212,8 +238,6 @@ def _begin(path: Path, kind: str) -> _ReadContext:
                     "file_bytes": _MAX_FILE_BYTES,
                     "fields": _MAX_FIELDS,
                     "metadata_keys": _MAX_METADATA_KEYS,
-                    "batches_profiled": _MAX_BATCHES_PROFILED,
-                    "stripes_profiled": _MAX_STRIPES_PROFILED,
                 },
             },
         }
@@ -319,7 +343,7 @@ def _extract_arrow_schema_units(
             ref="schema:table",
         )
 
-    # 2. Field units
+    # 2. Field units (index-qualified to handle duplicate field names unambiguously)
     for idx, field in enumerate(schema):
         if idx >= _MAX_FIELDS:
             context.result.add_gap(
@@ -331,15 +355,15 @@ def _extract_arrow_schema_units(
         f_meta = _safe_metadata_dict(getattr(field, "metadata", None))
         f_type_str = str(field.type)
         f_name = str(field.name)
-        f_content = f"Field {f_name}: type={f_type_str}, nullable={field.nullable}"
+        f_content = f"Field {idx} ({f_name}): type={f_type_str}, nullable={field.nullable}"
 
         field_unit = Unit(
             source=source,
             modality=Modality.SCHEMA,
             content=f_content,
-            origin=Origin(source, f"field:{quote(f_name, safe='-._~')}"),
+            origin=Origin(source, f"field:{idx}:{quote(f_name, safe='-._~')}"),
             role=Role.UNKNOWN,
-            structure=("table", context.path.name, f_name),
+            structure=("table", context.path.name, f"{idx}:{f_name}"),
             salience=0.7,
             meta={
                 "index": idx,
@@ -366,6 +390,7 @@ def extract_arrow_file(path: str | Path) -> Extraction:
     context = _begin(path, "arrow-file")
     try:
         import pyarrow.ipc as ipc
+        import pyarrow.lib as pa_lib
     except ModuleNotFoundError as exc:
         raise ImportError(
             "Arrow IPC support requires pyarrow; install it with: pip install pyarrow"
@@ -375,8 +400,12 @@ def extract_arrow_file(path: str | Path) -> Extraction:
         reader = ipc.open_file(context.path)
         schema = reader.schema
         num_batches = reader.num_record_batches
+    except pa_lib.ArrowInvalid as exc:
+        scrubbed = _scrub_error_message(exc, "arrow ipc file header/footer parse", context.path.name)
+        raise InvalidColumnarData(context.path, "arrow-file", scrubbed) from exc
     except Exception as exc:
-        raise InvalidColumnarData(context.path, "arrow-file", str(exc)) from exc
+        scrubbed = _scrub_error_message(exc, "arrow ipc file read", context.path.name)
+        raise InvalidColumnarData(context.path, "arrow-file", scrubbed) from exc
 
     _extract_arrow_schema_units(
         context,
@@ -393,16 +422,22 @@ def extract_arrow_stream(path: str | Path) -> Extraction:
     context = _begin(path, "arrow-stream")
     try:
         import pyarrow.ipc as ipc
+        import pyarrow.lib as pa_lib
     except ModuleNotFoundError as exc:
         raise ImportError(
             "Arrow IPC support requires pyarrow; install it with: pip install pyarrow"
         ) from exc
 
     try:
-        reader = ipc.open_stream(context.path)
-        schema = reader.schema
+        with context.path.open("rb") as stream_f:
+            reader = ipc.open_stream(stream_f)
+            schema = reader.schema
+    except pa_lib.ArrowInvalid as exc:
+        scrubbed = _scrub_error_message(exc, "arrow ipc stream parse", context.path.name)
+        raise InvalidColumnarData(context.path, "arrow-stream", scrubbed) from exc
     except Exception as exc:
-        raise InvalidColumnarData(context.path, "arrow-stream", str(exc)) from exc
+        scrubbed = _scrub_error_message(exc, "arrow ipc stream read", context.path.name)
+        raise InvalidColumnarData(context.path, "arrow-stream", scrubbed) from exc
 
     _extract_arrow_schema_units(
         context,
@@ -413,44 +448,46 @@ def extract_arrow_stream(path: str | Path) -> Extraction:
 
 
 def extract_feather(path: str | Path) -> Extraction:
-    """Extract metadata from a Feather format file (v1 or v2)."""
+    """Extract metadata from Feather format file (Feather v2 supported; v1 declined)."""
     path = Path(path)
+    try:
+        with path.open("rb") as f:
+            magic = f.read(4)
+    except OSError as exc:
+        raise InvalidColumnarData(path, "feather", f"read error: {_bounded_text(str(exc), 80)}") from exc
+
+    if magic == b"FEA1":
+        raise InvalidColumnarData(
+            path,
+            "feather",
+            "unsupported subtype: Feather v1 requires table array materialization; only Feather v2 metadata inspection is supported",
+        )
+
     context = _begin(path, "feather")
     try:
-        import pyarrow.feather as feather
         import pyarrow.ipc as ipc
+        import pyarrow.lib as pa_lib
     except ModuleNotFoundError as exc:
         raise ImportError(
             "Feather support requires pyarrow; install it with: pip install pyarrow"
         ) from exc
 
-    schema = None
-    row_count = None
-    batch_count = None
-
     try:
-        # First try opening as Arrow IPC file (Feather v2)
-        try:
-            reader = ipc.open_file(context.path)
-            schema = reader.schema
-            batch_count = reader.num_record_batches
-        except Exception:
-            # Fall back to reading feather metadata
-            table_meta = feather.read_table(context.path)
-            schema = table_meta.schema
-            row_count = table_meta.num_rows
+        reader = ipc.open_file(context.path)
+        schema = reader.schema
+        num_batches = reader.num_record_batches
+    except pa_lib.ArrowInvalid as exc:
+        scrubbed = _scrub_error_message(exc, "feather v2 ipc header parse", context.path.name)
+        raise InvalidColumnarData(context.path, "feather", scrubbed) from exc
     except Exception as exc:
-        raise InvalidColumnarData(context.path, "feather", str(exc)) from exc
-
-    if schema is None:
-        raise InvalidColumnarData(context.path, "feather", "could not parse schema")
+        scrubbed = _scrub_error_message(exc, "feather metadata read", context.path.name)
+        raise InvalidColumnarData(context.path, "feather", scrubbed) from exc
 
     _extract_arrow_schema_units(
         context,
         schema,
-        kind_label="Feather",
-        row_count=row_count,
-        batch_count=batch_count,
+        kind_label="Feather v2",
+        batch_count=num_batches,
     )
     return _finish(context)
 
@@ -472,7 +509,8 @@ def extract_orc(path: str | Path) -> Extraction:
         nstripes = orc_file.nstripes
         nrows = orc_file.nrows
     except Exception as exc:
-        raise InvalidColumnarData(context.path, "orc", str(exc)) from exc
+        scrubbed = _scrub_error_message(exc, "orc metadata parse", context.path.name)
+        raise InvalidColumnarData(context.path, "orc", scrubbed) from exc
 
     _extract_arrow_schema_units(
         context,
@@ -485,22 +523,22 @@ def extract_orc(path: str | Path) -> Extraction:
 
 
 def extract_columnar_interchange(path: str | Path) -> Extraction:
-    """Unified entry point for Arrow IPC File, Arrow Stream, Feather, and ORC."""
+    """Unified entry point for Arrow IPC File, Arrow Stream, Feather v2, and ORC."""
     path = Path(path)
     kind = detect_columnar_kind(path)
-    if kind == "arrow-file":
-        try:
-            return extract_arrow_file(path)
-        except Exception:
-            return extract_arrow_stream(path)
+    if kind == "feather-v1":
+        raise InvalidColumnarData(
+            path,
+            "feather",
+            "unsupported subtype: Feather v1 requires table array materialization; only Feather v2 metadata inspection is supported",
+        )
+    elif kind == "arrow-file":
+        return extract_arrow_file(path)
     elif kind == "feather":
         return extract_feather(path)
     elif kind == "orc":
         return extract_orc(path)
     elif kind == "arrow-stream":
-        try:
-            return extract_arrow_stream(path)
-        except Exception:
-            return extract_arrow_file(path)
+        return extract_arrow_stream(path)
     else:
-        return extract_arrow_file(path)
+        raise InvalidColumnarData(path, "columnar", f"unsupported columnar kind {kind!r}")
