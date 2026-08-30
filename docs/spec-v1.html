@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="AutoTLDR project documentation.">
+<title>AutoTLDR v1 Build Spec</title>
+<link rel="icon" href="../assets/autotldr_logo_transparent.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,400&display=swap">
+<style>
+/* Standalone skeleton. The artifact runtime supplies these; a file on disk
+   does not. */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; }
+img { max-width: 100%; height: auto; }
+[hidden] { display: none !important; }
+
+:root {
+  --paper:#fbfaf6; --card:#ffffff; --sunk:#f2f0e9; --line:#e0ddd2; --line-hard:#c4c0b2;
+  --ink:#14212b; --ink-2:#405260; --ink-3:#77858f;
+  --amber:#a3560f; --amber-soft:#f5e6d3;
+  --deep:#1c4f63; --deep-soft:#dcebef;
+  --go:#2f6b4f; --go-soft:#dcece3;
+  --shadow:0 1px 2px rgba(20,33,43,.05), 0 10px 30px -18px rgba(20,33,43,.28);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper:#0f171e; --card:#16212a; --sunk:#1c2831; --line:#2a3944; --line-hard:#405260;
+    --ink:#eef1f2; --ink-2:#b3c0c8; --ink-3:#7f8f9a;
+    --amber:#e5a25c; --amber-soft:#3d2711;
+    --deep:#7fc4dc; --deep-soft:#14323d;
+    --go:#78c79e; --go-soft:#14301f;
+    --shadow:0 1px 2px rgba(0,0,0,.45), 0 10px 30px -18px rgba(0,0,0,.7);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper:#0f171e; --card:#16212a; --sunk:#1c2831; --line:#2a3944; --line-hard:#405260;
+  --ink:#eef1f2; --ink-2:#b3c0c8; --ink-3:#7f8f9a;
+  --amber:#e5a25c; --amber-soft:#3d2711;
+  --deep:#7fc4dc; --deep-soft:#14323d;
+  --go:#78c79e; --go-soft:#14301f;
+  --shadow:0 1px 2px rgba(0,0,0,.45), 0 10px 30px -18px rgba(0,0,0,.7);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family:"Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+  font-size:15px; line-height:1.6; -webkit-font-smoothing:antialiased;
+}
+.wrap { max-width:1060px; margin:0 auto; padding:0 clamp(16px,4vw,44px) 100px; }
+
+.hero { padding: clamp(40px,7vw,76px) 0 34px; display:flex; flex-direction:column; gap:18px; }
+.kicker { font-family:"JetBrains Mono",monospace; font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--amber); }
+h1 { font-family:"Newsreader",Georgia,serif; font-size:clamp(34px,6vw,58px); line-height:1.04; letter-spacing:-.022em; font-weight:500; margin:0; text-wrap:balance; }
+.lede { font-family:"Newsreader",Georgia,serif; font-size:clamp(16px,2.2vw,20px); line-height:1.6; color:var(--ink-2); max-width:60ch; margin:0; }
+.scope { display:flex; flex-wrap:wrap; gap:7px; }
+.pill { font-family:"JetBrains Mono",monospace; font-size:11px; padding:5px 10px; border-radius:3px; background:var(--sunk); border:1px solid var(--line); color:var(--ink-2); }
+.pill.on { background:var(--go-soft); border-color:var(--go); color:var(--go); }
+.pill.off { background:var(--card); color:var(--ink-3); text-decoration:line-through; text-decoration-thickness:1px; }
+
+.term { background:var(--ink); color:var(--paper); border-radius:5px; padding:18px 20px; overflow-x:auto;
+  font-family:"JetBrains Mono",monospace; font-size:12.5px; line-height:1.85; box-shadow:var(--shadow); }
+.term .p{color:#6fadc3;user-select:none} .term .c{color:#e5a25c} .term .cm{color:#7f8f9a;font-style:italic}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .term{background:#080f14;border:1px solid var(--line)} }
+:root[data-theme="dark"] .term{background:#080f14;border:1px solid var(--line)}
+
+section { padding-top:56px; }
+.part { font-family:"JetBrains Mono",monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3); margin-bottom:9px; }
+h2 { font-family:"Newsreader",Georgia,serif; font-size:clamp(26px,3.8vw,36px); line-height:1.14; letter-spacing:-.018em; font-weight:500; margin:0 0 15px; text-wrap:balance; }
+h3 { font-size:16px; font-weight:600; margin:34px 0 10px; letter-spacing:-.006em; }
+.prose { font-family:"Newsreader",Georgia,serif; font-size:16.5px; line-height:1.68; color:var(--ink-2); max-width:66ch; }
+.prose p { margin:0 0 14px; }
+.prose strong { color:var(--ink); font-weight:600; }
+code,.mono { font-family:"JetBrains Mono",ui-monospace,monospace; font-size:.86em; }
+.prose code, td code { background:var(--sunk); border:1px solid var(--line); border-radius:3px; padding:.1em .34em; color:var(--ink); }
+
+.modes { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:16px; margin:22px 0 0; }
+.mode { background:var(--card); border:1px solid var(--line); border-radius:5px; padding:20px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:12px; }
+.mode .tag { font-family:"JetBrains Mono",monospace; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); }
+.mode h4 { margin:0; font-size:17px; font-weight:600; }
+.mode p { margin:0; font-size:13.5px; line-height:1.55; color:var(--ink-2); }
+.mode .term { font-size:11.5px; padding:14px 16px; }
+
+.tablewrap { overflow-x:auto; border:1px solid var(--line); border-radius:5px; background:var(--card); margin:16px 0 0; box-shadow:var(--shadow); }
+table { border-collapse:collapse; width:100%; min-width:620px; }
+thead th { background:var(--sunk); font-family:"JetBrains Mono",monospace; font-size:10px; font-weight:500; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); text-align:left; padding:9px 13px; border-bottom:1px solid var(--line-hard); white-space:nowrap; }
+tbody td { padding:11px 13px; border-bottom:1px solid var(--line); vertical-align:top; font-size:13.5px; line-height:1.5; }
+tbody tr:last-child td { border-bottom:0; }
+tbody tr:hover { background:var(--sunk); }
+td.k { font-weight:600; color:var(--ink); white-space:nowrap; }
+td.v { color:var(--ink-2); }
+td.v strong { color:var(--ink); font-weight:600; }
+td.n { color:var(--ink-3); font-size:12.5px; }
+.hl { background:var(--amber-soft); }
+
+.callout { border-left:3px solid var(--accent,var(--amber)); background:var(--sunk); padding:19px 22px; border-radius:0 5px 5px 0; margin:24px 0; }
+.callout p { margin:0; font-family:"Newsreader",Georgia,serif; font-size:16px; line-height:1.62; color:var(--ink); }
+.callout p + p { margin-top:12px; }
+.callout.verdict { border-left-color:var(--deep); background:var(--deep-soft); }
+
+ol.steps { counter-reset:s; list-style:none; padding:0; margin:20px 0 0; display:grid; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:5px; overflow:hidden; }
+ol.steps li { counter-increment:s; background:var(--card); padding:16px 20px 16px 56px; position:relative; font-size:14.5px; line-height:1.56; color:var(--ink-2); }
+ol.steps li::before { content:counter(s); position:absolute; left:20px; top:16px; font-family:"JetBrains Mono",monospace; font-size:12px; font-weight:700; color:var(--amber); }
+ol.steps li b { color:var(--ink); font-weight:600; }
+ol.steps li .cost { font-family:"JetBrains Mono",monospace; font-size:10.5px; color:var(--go); letter-spacing:.05em; }
+ol.steps li .cost.pay { color:var(--amber); }
+
+.forks { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px; margin:22px 0 0; }
+.fork { background:var(--card); border:1px solid var(--amber); border-radius:5px; padding:20px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:9px; }
+.fork .tag { font-family:"JetBrains Mono",monospace; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--amber); }
+.fork h4 { margin:0; font-size:15.5px; font-weight:600; }
+.fork p { margin:0; font-size:13.5px; line-height:1.55; color:var(--ink-2); }
+.fork p strong { color:var(--ink); }
+
+hr.rule { border:0; border-top:1px solid var(--line); margin:58px 0 0; }
+footer { margin-top:58px; padding-top:22px; border-top:1px solid var(--line); font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--ink-3); line-height:1.75; }
+@media (prefers-reduced-motion: reduce){ *{transition:none!important} }
+
+/* Document nav, added for the standalone build. */
+.docnav {
+  border-bottom: 1px solid var(--line);
+  background: var(--card);
+}
+.docnav__inner {
+  max-width: 1140px; margin: 0 auto;
+  padding: 12px clamp(16px, 4vw, 44px);
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+}
+.docnav__brand {
+  display: flex; align-items: center; gap: 9px;
+  font-family: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 600; font-size: 14px; letter-spacing: -.01em;
+  color: var(--ink); text-decoration: none;
+}
+.docnav__brand img { width: 22px; height: 22px; }
+.docnav__links { display: flex; gap: 4px; flex-wrap: wrap; margin-left: auto; }
+.docnav__links a {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11.5px; letter-spacing: .02em;
+  padding: 5px 10px; border-radius: 3px;
+  color: var(--ink-2); text-decoration: none;
+  border: 1px solid transparent;
+}
+.docnav__links a:hover { color: var(--ink); border-color: var(--line-hard); }
+.docnav__links a[aria-current="page"] {
+  color: var(--amber); border-color: var(--amber); background: var(--amber-soft);
+}
+.docnav__links a:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.canonical {
+  max-width: 1140px; margin: 0 auto;
+  padding: 10px clamp(16px, 4vw, 44px) 0;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px; color: var(--ink-3);
+}
+.canonical a { color: var(--ink-2); }
+@media print {
+  .docnav, .canonical, .filterbar { display: none; }
+  .tablewrap { overflow: visible; box-shadow: none; break-inside: avoid; }
+  section { break-inside: avoid-page; }
+}
+</style>
+</head>
+<body>
+<nav class="docnav">
+  <div class="docnav__inner">
+    <a class="docnav__brand" href="../README.md">
+      <img src="../assets/autotldr_logo_transparent.png" alt="">
+      <span>AutoTLDR&nbsp;docs</span>
+    </a>
+    <div class="docnav__links">
+      <a href="vision.md">Vision</a>
+      <a href="matrix.html">Matrix</a>
+      <a href="spec-v1.html" aria-current="page">Spec v1</a>
+      <a href="decisions.md">Decisions</a>
+    </div>
+  </div>
+</nav>
+<p class="canonical">Rendered companion to <a href="spec-v1.md">spec-v1.md</a>, which is canonical. If the two disagree, the Markdown wins.</p>
+<div class="wrap">
+
+<header class="hero">
+  <div class="kicker">Build specification · v1 · 30 August 2026</div>
+  <h1>The mixed folder,<br>fused and cited.</h1>
+  <p class="lede">Point AutoTLDR at a folder of mixed text documents and it tells you what the collection is, how the pieces relate, and where every claim came from.</p>
+  <div class="scope">
+    <span class="pill on">Tier 0 · text-shaped</span>
+    <span class="pill on">Tier 1 · document-shaped</span>
+    <span class="pill on">Tier 2 · collections</span>
+    <span class="pill on">Tier 3 · data-shaped</span>
+    <span class="pill off">Tier 4 · visual</span>
+    <span class="pill off">Tier 5 · temporal</span>
+    <span class="pill off">Tier 6 · opaque</span>
+  </div>
+</header>
+
+<section>
+  <div class="part">Part 1</div>
+  <h2>Two modes, one engine</h2>
+  <div class="modes">
+    <div class="mode">
+      <span class="tag">Mode 1</span>
+      <h4>Invoke</h4>
+      <div class="term">
+<span class="p">$</span> autotldr report.pdf
+<span class="p">$</span> autotldr ./project
+<span class="p">$</span> autotldr ./project <span class="c">--ask</span> <span class="cm">"what did we measure"</span>
+<span class="p">$</span> autotldr https://docs.example.com/guide</div>
+      <p>Synchronous. Feels like <code>cat</code> for Tier 0, a couple of seconds for Tiers 1–3. Writes to stdout by default. This is the tool.</p>
+    </div>
+    <div class="mode">
+      <span class="tag">Mode 2</span>
+      <h4>Watch</h4>
+      <div class="term">
+<span class="p">$</span> autotldr watch ./inbox <span class="c">--out</span> bundle
+<span class="p">$</span> autotldr watch <span class="c">--status</span>
+<span class="p">$</span> autotldr watch <span class="c">--stop</span> ./inbox</div>
+      <p>A daemon monitors registered folders. Drop a file in and an artifact appears without anyone asking. Re-fusion runs on a debounce, so twelve files dropped produce one rebuild. This is the service.</p>
+    </div>
+  </div>
+  <div class="callout">
+    <p><strong>This is what the "auto" means.</strong> Invoke mode is a tool and there are other tools. Watch mode turns a directory into a self-summarizing corpus, and it is the differentiated half.</p>
+  </div>
+</section>
+
+<hr class="rule">
+
+<section>
+  <div class="part">Part 2</div>
+  <h2>Stack decisions</h2>
+
+  <h3>Language: Python, distributed with uv</h3>
+  <div class="prose">
+    <p>The entire extraction ecosystem this depends on is Python: MarkItDown, Docling, openpyxl, pypdf, pymupdf, python-docx, nbformat, tree-sitter bindings, h5py, trafilatura. Rust would give a faster cold start and a static binary, and would cost most of year one reimplementing extractors that already exist and are maintained.</p>
+    <p><strong>The cost, named.</strong> Python startup is the one thing that can make this feel unlike a Unix tool, so the mitigation is not optional. Every extractor is lazy-imported; <code>autotldr notes.md</code> must never import Docling, h5py, or a tokenizer. The entry path imports argparse, pathlib and sqlite3 and nothing else until the router has decided what the input is.</p>
+  </div>
+  <div class="callout">
+    <p><strong>Budget: under 120ms to first output for a Tier 0 file.</strong> A tested contract, not an aspiration. If it regresses, that is a build failure. The migration path, if it ever comes to that, is a Rust core calling Python extractors as subprocesses, and the CLI contract is designed so that swap is invisible to callers.</p>
+  </div>
+
+  <h3>Store: SQLite as the durable store, DuckDB as a compute engine</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Component</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr><td class="k">SQLite, WAL mode</td><td class="v">The durable store: semantic units, relations, folder state, job queue, content-addressed cache</td></tr>
+      <tr><td class="k">FTS5</td><td class="v">Lexical index over unit content. BM25 out of the box</td></tr>
+      <tr><td class="k">sqlite-vec</td><td class="v">Vector index over unit embeddings, in the same file</td></tr>
+      <tr><td class="k">Recursive CTEs</td><td class="v">The relation graph. Unit-to-unit, formula dependencies, import edges</td></tr>
+      <tr class="hl"><td class="k">DuckDB</td><td class="v"><strong>Invoked transiently to profile a data file. Never a persistent store.</strong> It reads CSV, Parquet, JSON and Excel directly off disk with zero ingestion, so Tier 3 profiling is a query rather than a parse-and-load pipeline</td></tr>
+    </tbody>
+  </table></div>
+  <div class="prose">
+    <p>One durable file per project at <code>.autotldr/store.db</code>. Opens in microseconds. Concurrent readers alongside the daemon's writer, which is exactly what WAL mode is for. DuckDB is spun up, asked a question, and closed, so its single-writer limitation never bites.</p>
+  </div>
+
+  <h3>The SurrealDB verdict</h3>
+  <div class="prose">
+    <p><strong>What is genuinely attractive.</strong> SurrealDB 3.0 went GA in February 2026 with $44M raised and one engine covering document, graph, relational, full-text and vector through a single query language and a single transaction. For a system whose representation is explicitly a graph of typed units with both lexical and vector retrieval, that is the shape of the problem. Its live-query feature is a natural fit for the watch daemon. Architecturally it is the most elegant answer on the table.</p>
+  </div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Why not for v1</th><th>Detail</th></tr></thead>
+    <tbody>
+      <tr><td class="k">No zero-ingestion file reading</td><td class="v">Tiers 0–3 are mostly <em>files</em>. DuckDB querying an XLSX in place is a structural advantage SurrealDB has no answer to, and it is worth more here than multi-model unification</td></tr>
+      <tr><td class="k">Vector indexing still maturing</td><td class="v">SurrealDB describes the 3.0 indexing work as a foundation for future specialized indexes, vector among them. Building the retrieval core on a roadmap item is avoidable risk</td></tr>
+      <tr><td class="k">No independent embedded benchmarks</td><td class="v">Nearly all published technical detail traces back to SurrealDB's own material, and the funding is openly earmarked for hardening reliability and performance. That is candid, and it is the wrong place for a foundational bet in month one</td></tr>
+      <tr><td class="k">Startup cost</td><td class="v">A CLI that must answer in 120ms cannot afford an engine designed to also run distributed clusters</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout verdict">
+    <p><strong>When to revisit, concretely.</strong> If the watch daemon grows into a persistent multi-folder service with live subscriptions and cross-project queries, SurrealDB's live queries and unified model become a real advantage over hand-rolling that on SQLite. The storage layer stays behind one interface so this remains a swap rather than a rewrite. Revisit at the point where the daemon, not the CLI, is the primary entry point.</p>
+  </div>
+  <div class="prose">
+    <p><strong>Ruled out and why.</strong> LanceDB is excellent at vectors and solves a problem we do not have at v1 scale. Kùzu is the right call if graph traversal becomes the bottleneck, and recursive CTEs over a few thousand units will not be that. Postgres with pgvector needs a server, which is disqualifying for a Unix tool, and Chroma and Qdrant are servers for the same reason.</p>
+  </div>
+
+  <h3>Extraction: a router, not a converter</h3>
+  <div class="prose"><p>No single extractor wins across formats, and accuracy gaps above 20% between parsers on complex layouts are normal. So AutoTLDR routes.</p></div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Input</th><th>Extractor</th><th>Why this one</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Markdown, txt, rST</td><td class="v">Native parse</td><td class="n">Structure is already there</td></tr>
+      <tr><td class="k">Source code</td><td class="v">tree-sitter</td><td class="n">Symbols and signatures, not text</td></tr>
+      <tr><td class="k">JSON, YAML, TOML, XML</td><td class="v">Structural induction</td><td class="n">Schema is the semantics</td></tr>
+      <tr><td class="k">CSV, Parquet</td><td class="v">DuckDB profiling</td><td class="n">Zero-copy. Statistics, not rows</td></tr>
+      <tr class="hl"><td class="k">XLSX</td><td class="v"><strong>openpyxl on the formula layer</strong></td><td class="n"><strong>Never through a markdown converter. The formula graph is the meaning and conversion destroys it</strong></td></tr>
+      <tr><td class="k">DOCX</td><td class="v">python-docx</td><td class="n">Native structure, tracked changes, comments</td></tr>
+      <tr><td class="k">PDF, simple</td><td class="v">pymupdf text layer</td><td class="n">Fast path. Most PDFs</td></tr>
+      <tr><td class="k">PDF, table-heavy</td><td class="v">Docling, opt-in via <code>--deep</code></td><td class="n">Accurate and slow. Earn the wait</td></tr>
+      <tr><td class="k">HTML, URL</td><td class="v">llms.txt probe, then trafilatura</td><td class="n">Check for a served summary before crawling</td></tr>
+      <tr><td class="k">Notebooks</td><td class="v">nbformat</td><td class="n">Cells, outputs, and their pairing</td></tr>
+      <tr><td class="k">HDF5, NetCDF</td><td class="v">h5py, netCDF4</td><td class="n">Structure and attributes, never values</td></tr>
+    </tbody>
+  </table></div>
+  <div class="prose">
+    <p>Two rules the router enforces. <strong>Native format beats conversion:</strong> routing an XLSX through a PDF-oriented pipeline throws away exactly the structure that carries the meaning, and the same holds for DOCX comments and notebook outputs. <strong>The fast path is the default:</strong> <code>--deep</code> opts into the slow accurate extractor, and a user who has not asked to wait does not wait.</p>
+  </div>
+
+  <h3>Models, and the one thing that must be proven first</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Job</th><th>v1 approach</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Structure extraction</td><td class="v"><strong>No model.</strong> Parsers, all tiers</td></tr>
+      <tr><td class="k">Schema and statistics</td><td class="v"><strong>No model.</strong> DuckDB and profiling</td></tr>
+      <tr><td class="k">Formula graph</td><td class="v"><strong>No model.</strong> openpyxl dependency walk</td></tr>
+      <tr><td class="k">Role tagging</td><td class="v">Rules and heuristics first, small local model where rules fail</td></tr>
+      <tr><td class="k">Embeddings for fusion</td><td class="v">Local Qwen3-Embedding, small variant, ONNX</td></tr>
+      <tr><td class="k">Folder-level synthesis</td><td class="v">Local 3–4B, or a configured OpenAI-compatible endpoint</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout">
+    <p><strong>The honest position on role tagging.</strong> Distinguishing a claim from a caveat from an assumption is the load-bearing capability of the whole representation, and a 3B model may simply not be reliable at it. Current guidance puts 1.5B–3B as the floor for extraction work and Qwen3.5 4B as the CPU sweet spot, but that is general guidance, not evidence about this task.</p>
+    <p>So role tagging gets an eval before it gets an implementation: 200 hand-labeled spans across five formats, scored against rules-only, a 4B local model, and a frontier model as ceiling. If rules-only lands close to the 4B, v1 ships with rules and stays fully offline and instant. If neither approaches the ceiling, the taxonomy shrinks to whatever <em>is</em> reliably extractable, and the product claim shrinks with it.</p>
+    <p><strong>Nothing in Tiers 0–3 requires a model to produce a useful result.</strong> That is why this scope was the right pick: v1 degrades to a genuinely valuable tool even with every model turned off.</p>
+  </div>
+</section>
+
+<hr class="rule">
+
+<section>
+  <div class="part">Part 3</div>
+  <h2>The representation</h2>
+  <div class="prose"><p>Every unit carries an <code>origin</code>, and it is format-specific by design. This is the invariant that makes the whole thing trustworthy: a claim you can click back to its exact source is a claim you do not have to go verify by hand.</p></div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Source</th><th><code>origin</code></th><th>Source</th><th><code>origin</code></th></tr></thead>
+    <tbody>
+      <tr><td class="k">Markdown, txt</td><td class="v"><code>line:120-134</code></td><td class="k">XLSX</td><td class="v"><code>Sheet2!C14</code></td></tr>
+      <tr><td class="k">PDF</td><td class="v"><code>page:7#span:3</code></td><td class="k">DOCX</td><td class="v"><code>para:44</code></td></tr>
+      <tr><td class="k">Source code</td><td class="v"><code>src/auth.py:88</code></td><td class="k">Notebook</td><td class="v"><code>cell:12#output:0</code></td></tr>
+      <tr><td class="k">HDF5</td><td class="v"><code>/run3/pressure</code></td><td class="k">URL</td><td class="v"><code>…#section-id</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>What a run emits</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Field</th><th>Contents</th></tr></thead>
+    <tbody>
+      <tr><td class="k">subject</td><td class="v">What was pointed at</td></tr>
+      <tr><td class="k">summary</td><td class="v">What this collection is, in three sentences</td></tr>
+      <tr><td class="k">units</td><td class="v">Selected, budgeted, ordered</td></tr>
+      <tr><td class="k">relations</td><td class="v">The graph among them</td></tr>
+      <tr class="hl"><td class="k">gaps</td><td class="v"><strong>What the sources never documented.</strong> A first-class field, not an afterthought. "No file in this folder documents why the threshold is 0.7" is a finding</td></tr>
+      <tr><td class="k">manifest</td><td class="v">Inputs, hashes, versions, timings, model use</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<hr class="rule">
+
+<section>
+  <div class="part">Part 4</div>
+  <h2>Fusion, the actual wedge</h2>
+  <div class="prose">
+    <p>Per-file summarization is a commodity. <strong>Fusing a folder into one representation is what nobody does</strong>, and it is why this scope was chosen. Concretely, for a folder holding a paper, a spreadsheet of results, and the code that produced them, four linking signals run cheapest first.</p>
+  </div>
+  <ol class="steps">
+    <li><b>Literal reference.</b> A filename, path, URL, DOI or citation key in one file naming another. Exact, high precision, catches most real links. <span class="cost">no model</span></li>
+    <li><b>Identifier co-occurrence.</b> A column header <code>tput_mbps</code>, a symbol <code>measure_throughput()</code>, and a caption "Throughput (Mb/s)". Normalized token matching over identifiers. <span class="cost">no model</span></li>
+    <li><b>Structural correspondence.</b> A results table whose column count and row labels match a dataset's schema. A figure numbered to match a notebook cell's output. Cheap and surprisingly strong. <span class="cost">no model</span></li>
+    <li><b>Semantic similarity.</b> Embedding proximity across files, as the fallback for concepts sharing no tokens. The only signal that costs a model and the only one that produces false positives, so it carries the lowest confidence and is always reported as inferred. <span class="cost pay">embeddings</span></li>
+  </ol>
+  <div class="prose">
+    <p>Signals 1 through 3 run with no model at all. If the eval shows they carry most of the value, v1 fusion is fully offline and deterministic, which would be a real product advantage rather than a limitation.</p>
+  </div>
+
+  <h3>What fusion emits</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Output</th><th>What it is</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Collection statement</td><td class="v">What this folder is for, grounded in its contents</td></tr>
+      <tr><td class="k">Relation graph</td><td class="v">Which file produced which, which claim rests on which data, which code implements which method</td></tr>
+      <tr class="hl"><td class="k">Contradictions</td><td class="v"><strong>The paper says n=40, the CSV has 38 rows.</strong> The single most valuable output the tool can produce, and it falls directly out of having both in one representation</td></tr>
+      <tr><td class="k">Orphans</td><td class="v">Files nothing else references. Often the stale draft nobody deleted</td></tr>
+      <tr><td class="k">Gaps</td><td class="v">Concepts referenced but never defined anywhere in the collection</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout">
+    <p>Contradiction detection is the demo. It is also the thing that requires no clever summarization, only a shared representation and a comparison.</p>
+  </div>
+</section>
+
+<hr class="rule">
+
+<section>
+  <div class="part">Part 5</div>
+  <h2>The watch daemon</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Concern</th><th>Decision</th></tr></thead>
+    <tbody>
+      <tr><td class="k">FS events</td><td class="v"><code>watchdog</code>, cross-platform, with a polling fallback for network mounts</td></tr>
+      <tr><td class="k">Re-trigger storms</td><td class="v">Content-hash comparison. A re-save with identical bytes does nothing</td></tr>
+      <tr><td class="k">Batch drops</td><td class="v">Debounce window, default 30s. Twelve files dropped produce one fusion</td></tr>
+      <tr><td class="k">Where artifacts land</td><td class="v"><code>.autotldr/</code> beside the folder, never scattered next to sources unless asked</td></tr>
+      <tr><td class="k">Partial writes</td><td class="v">Wait for size and mtime to settle before reading</td></tr>
+      <tr><td class="k">Failure</td><td class="v">Logged to the store, surfaced by <code>--status</code>. One bad file never stalls the folder</td></tr>
+      <tr class="hl"><td class="k">Daemon required?</td><td class="v"><strong>No. Invoke mode never needs the daemon running.</strong> A tool that requires a background service to answer a question is not a Unix tool</td></tr>
+      <tr><td class="k">Contention</td><td class="v">Daemon writes, CLI reads, WAL handles it</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<hr class="rule">
+
+<section>
+  <div class="part">Part 6</div>
+  <h2>Build order</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Stage</th><th>Scope</th><th>Gate</th></tr></thead>
+    <tbody>
+      <tr class="hl"><td class="k">0</td><td class="v">Role-tagging eval. 200 labeled spans, five formats, three arms</td><td class="n">Decides whether the role taxonomy survives, and how much of it</td></tr>
+      <tr class="hl"><td class="k">1</td><td class="v">Representation spike. A PDF paper, an XLSX model, a folder of markdown. Extraction only</td><td class="n">One representation holds all three, or it gets redesigned now</td></tr>
+      <tr><td class="k">2</td><td class="v">Invoke mode, Tiers 0 and 1. ansi, md, json, jsonl. Budget, cite, exit codes, startup contract</td><td class="n">It feels like a Unix tool</td></tr>
+      <tr><td class="k">3</td><td class="v">Fusion. Signals 1–3, collection statement, contradictions, orphans, gaps</td><td class="n">The wedge works on a real folder</td></tr>
+      <tr><td class="k">4</td><td class="v">Tiers 2 and 3. Directory and repo, XLSX formula graph, data profiling</td><td class="n">The underserved tier, and the strongest demo</td></tr>
+      <tr><td class="k">5</td><td class="v">Watch daemon</td><td class="n">The "auto" is real</td></tr>
+      <tr><td class="k">6</td><td class="v">html and pdf output, claim-to-source linking</td><td class="n">The output is shareable</td></tr>
+      <tr><td class="k">7</td><td class="v">MCP with Tasks, SKILL.md, A2A card</td><td class="n">Agents adopt it without bespoke work</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout">
+    <p>Stages 0 and 1 are two weeks combined, and they are the ones that decide whether the rest is worth building. Every prior plan skipped both and went straight to specifying architecture, which is why there were six plans and no code.</p>
+  </div>
+</section>
+
+<hr class="rule">
+
+<section>
+  <div class="part">Part 7</div>
+  <h2>Open forks</h2>
+  <div class="prose"><p>Two decisions made provisionally, both cheap to settle now and expensive to reverse later.</p></div>
+  <div class="forks">
+    <div class="fork">
+      <span class="tag">Fork 1</span>
+      <h4>Is the watch daemon in the first release?</h4>
+      <p>It is the differentiated half and roughly two weeks that overlap with nothing else. Invoke-only ships a usable tool in five weeks; including watch makes it seven and makes the first release tell a complete story.</p>
+      <p><strong>I lean toward including it</strong>, because "auto" is in the name and a tool without it is a worse version of things that already exist.</p>
+    </div>
+    <div class="fork">
+      <span class="tag">Fork 2</span>
+      <h4>What artifact does a watched folder produce?</h4>
+      <p>A single rolling <code>FOLDER.tldr.md</code> that gets rewritten; a per-file artifact plus a folder roll-up; or a versioned history so you can see how the collection's story changed as files arrived.</p>
+      <p><strong>I lean toward per-file plus roll-up</strong> for v1, with versioning deferred. The third is the most interesting and the most work.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Spec source at SPEC-v1.md · capability matrix at MATRIX.md · six prior plans preserved untracked in archive/<br>
+  Stack research: SurrealDB 3.0 GA Feb 2026 · DuckDB and Lance integration · Docling, MarkItDown and Unstructured comparisons · Qwen3.5 and Gemma 4 CPU-local guidance
+</footer>
+
+</div>
+</body>
+</html>

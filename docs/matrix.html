@@ -1,0 +1,861 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="AutoTLDR project documentation.">
+<title>AutoTLDR Product Matrix</title>
+<link rel="icon" href="../assets/autotldr_logo_transparent.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,400&display=swap">
+<style>
+/* Standalone skeleton. The artifact runtime supplies these; a file on disk
+   does not. */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; }
+img { max-width: 100%; height: auto; }
+[hidden] { display: none !important; }
+
+:root {
+  --paper:      #fbfaf6;
+  --card:       #ffffff;
+  --sunk:       #f2f0e9;
+  --line:       #e0ddd2;
+  --line-hard:  #c4c0b2;
+
+  --ink:        #14212b;
+  --ink-2:      #405260;
+  --ink-3:      #77858f;
+
+  --amber:      #a3560f;
+  --amber-soft: #f5e6d3;
+  --deep:       #1c4f63;
+  --deep-soft:  #dcebef;
+
+  --t0: #4a7f92;
+  --t1: #3f7286;
+  --t2: #35657a;
+  --t3: #2b586e;
+  --t4: #a3560f;
+  --t5: #8a4310;
+  --t6: #5d5a51;
+
+  --accent:     var(--amber);
+  --shadow:     0 1px 2px rgba(20,33,43,.05), 0 10px 30px -18px rgba(20,33,43,.28);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper:      #0f171e;
+    --card:       #16212a;
+    --sunk:       #1c2831;
+    --line:       #2a3944;
+    --line-hard:  #405260;
+
+    --ink:        #eef1f2;
+    --ink-2:      #b3c0c8;
+    --ink-3:      #7f8f9a;
+
+    --amber:      #e5a25c;
+    --amber-soft: #3d2711;
+    --deep:       #7fc4dc;
+    --deep-soft:  #14323d;
+
+    --t0: #7fb8cc;
+    --t1: #6fadc3;
+    --t2: #5fa2ba;
+    --t3: #4f96b1;
+    --t4: #e5a25c;
+    --t5: #d18f45;
+    --t6: #9a978c;
+
+    --shadow:     0 1px 2px rgba(0,0,0,.45), 0 10px 30px -18px rgba(0,0,0,.7);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper:      #0f171e;
+  --card:       #16212a;
+  --sunk:       #1c2831;
+  --line:       #2a3944;
+  --line-hard:  #405260;
+
+  --ink:        #eef1f2;
+  --ink-2:      #b3c0c8;
+  --ink-3:      #7f8f9a;
+
+  --amber:      #e5a25c;
+  --amber-soft: #3d2711;
+  --deep:       #7fc4dc;
+  --deep-soft:  #14323d;
+
+  --t0: #7fb8cc;
+  --t1: #6fadc3;
+  --t2: #5fa2ba;
+  --t3: #4f96b1;
+  --t4: #e5a25c;
+  --t5: #d18f45;
+  --t6: #9a978c;
+
+  --shadow:     0 1px 2px rgba(0,0,0,.45), 0 10px 30px -18px rgba(0,0,0,.7);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: 1140px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 44px) 100px; }
+
+/* ---------- Hero ---------- */
+.hero { padding: clamp(44px, 8vw, 88px) 0 40px; display: flex; flex-direction: column; gap: 22px; }
+.kicker {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--accent);
+}
+h1 {
+  font-family: "Newsreader", Georgia, serif;
+  font-size: clamp(38px, 7vw, 68px);
+  line-height: 1.02; letter-spacing: -.024em; font-weight: 500;
+  margin: 0; text-wrap: balance;
+}
+h1 em { font-style: italic; color: var(--accent); }
+.lede {
+  font-family: "Newsreader", Georgia, serif;
+  font-size: clamp(17px, 2.3vw, 21px); line-height: 1.58;
+  color: var(--ink-2); max-width: 58ch; margin: 0;
+}
+
+.term {
+  background: var(--ink); color: var(--paper);
+  border-radius: 5px; padding: 20px 22px; overflow-x: auto;
+  font-family: "JetBrains Mono", monospace; font-size: 13px; line-height: 1.85;
+  box-shadow: var(--shadow);
+}
+.term .p { color: var(--t0); user-select: none; }
+.term .c { color: var(--amber); }
+.term .f { color: var(--ink-3); }
+.term .cm { color: var(--ink-3); font-style: italic; }
+:root[data-theme="dark"] .term, :root:not([data-theme="light"]) .term { border: 1px solid var(--line); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .term { background: #080f14; } }
+:root[data-theme="dark"] .term { background: #080f14; }
+
+/* ---------- Sections ---------- */
+section { padding-top: 62px; }
+.part {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--ink-3); margin-bottom: 9px;
+}
+h2 {
+  font-family: "Newsreader", Georgia, serif;
+  font-size: clamp(27px, 4vw, 38px); line-height: 1.14; letter-spacing: -.018em;
+  font-weight: 500; margin: 0 0 16px; text-wrap: balance;
+}
+h3 {
+  font-size: 16px; font-weight: 600; letter-spacing: -.006em;
+  margin: 36px 0 10px;
+}
+.prose {
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 17px; line-height: 1.68; color: var(--ink-2); max-width: 66ch;
+}
+.prose p { margin: 0 0 15px; }
+.prose strong { color: var(--ink); font-weight: 600; }
+code, .mono { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: .86em; }
+.prose code {
+  background: var(--sunk); border: 1px solid var(--line);
+  border-radius: 3px; padding: .1em .36em; color: var(--ink);
+}
+
+/* ---------- Funnel ---------- */
+.funnel {
+  display: grid; grid-template-columns: 1fr auto 1fr auto 1fr;
+  align-items: center; gap: 14px;
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 5px; padding: 26px 22px; margin: 24px 0 8px;
+  box-shadow: var(--shadow);
+}
+.fcol { display: flex; flex-direction: column; gap: 7px; text-align: center; }
+.fcol .n {
+  font-family: "JetBrains Mono", monospace; font-size: 27px; font-weight: 700;
+  color: var(--ink); font-variant-numeric: tabular-nums; line-height: 1;
+}
+.fcol .n.hi { color: var(--accent); }
+.fcol .l {
+  font-family: "JetBrains Mono", monospace; font-size: 10px;
+  letter-spacing: .11em; text-transform: uppercase; color: var(--ink-3);
+}
+.fcol .d { font-size: 12.5px; color: var(--ink-2); line-height: 1.45; }
+.arrow { color: var(--line-hard); }
+@media (max-width: 720px) {
+  .funnel { grid-template-columns: 1fr; }
+  .arrow { transform: rotate(90deg); justify-self: center; }
+}
+
+/* ---------- Filter ---------- */
+.filterbar {
+  position: sticky; top: 0; z-index: 20;
+  background: color-mix(in srgb, var(--paper) 93%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+  margin-top: 30px; padding: 11px 0;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 7px;
+}
+.filterbar .lbl {
+  font-family: "JetBrains Mono", monospace; font-size: 10px;
+  letter-spacing: .13em; text-transform: uppercase; color: var(--ink-3); margin-right: 3px;
+}
+.chip {
+  font-family: "JetBrains Mono", monospace; font-size: 11px; font-weight: 500;
+  padding: 5px 10px; border-radius: 3px;
+  border: 1px solid var(--line-hard); background: var(--card); color: var(--ink-2);
+  cursor: pointer; transition: background .12s, color .12s, border-color .12s;
+}
+.chip:hover { border-color: var(--accent); }
+.chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.chip.tog[aria-pressed="true"] { background: var(--amber-soft); color: var(--amber); border-color: var(--amber); }
+.count {
+  margin-left: auto; font-family: "JetBrains Mono", monospace;
+  font-size: 11px; color: var(--ink-3); font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Tier blocks ---------- */
+.tier { margin-top: 38px; }
+.tier.hidden { display: none; }
+.tierhead { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.tno {
+  font-family: "JetBrains Mono", monospace; font-size: 11px; font-weight: 700;
+  letter-spacing: .1em; padding: 4px 9px; border-radius: 3px;
+  color: #fff; background: var(--tc);
+}
+:root[data-theme="dark"] .tno, :root:not([data-theme="light"]) .tno { color: #0f171e; }
+.tname { font-size: 19px; font-weight: 600; letter-spacing: -.01em; }
+.tnote {
+  font-family: "Newsreader", Georgia, serif; font-size: 15px;
+  color: var(--ink-2); margin: 8px 0 0; max-width: 68ch; line-height: 1.6;
+}
+
+.tablewrap {
+  overflow-x: auto; border: 1px solid var(--line); border-radius: 5px;
+  background: var(--card); margin: 15px 0 0; box-shadow: var(--shadow);
+}
+table { border-collapse: collapse; width: 100%; min-width: 720px; }
+thead th {
+  background: var(--sunk);
+  font-family: "JetBrains Mono", monospace; font-size: 10px; font-weight: 500;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3);
+  text-align: left; padding: 9px 13px; border-bottom: 1px solid var(--line-hard);
+  white-space: nowrap;
+}
+tbody td { padding: 11px 13px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 13.5px; line-height: 1.5; }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover { background: var(--sunk); }
+tbody tr.hidden { display: none; }
+td.fmt { font-weight: 600; color: var(--ink); min-width: 158px; }
+td.mean { color: var(--ink-2); min-width: 270px; }
+td.mean strong { color: var(--ink); font-weight: 600; }
+td.how { color: var(--ink-3); font-size: 12.5px; min-width: 168px; }
+td.flag { font-family: "JetBrains Mono", monospace; font-size: 11px; white-space: nowrap; }
+.yes { color: var(--t2); font-weight: 500; }
+.marg { color: var(--amber); font-weight: 500; }
+.nope { color: var(--ink-3); }
+.d1, .d2, .d3, .d4 { font-family: "JetBrains Mono", monospace; font-size: 10px; letter-spacing: .06em; padding: 3px 6px; border-radius: 3px; white-space: nowrap; }
+.d1 { background: var(--deep-soft); color: var(--deep); }
+.d2 { background: var(--sunk); color: var(--ink-2); }
+.d3 { background: var(--amber-soft); color: var(--amber); }
+.d4 { background: var(--amber-soft); color: var(--amber); font-weight: 700; }
+
+/* ---------- Cards ---------- */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(258px, 1fr)); gap: 14px; margin: 22px 0 6px; }
+.card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 5px;
+  padding: 20px; box-shadow: var(--shadow);
+  display: flex; flex-direction: column; gap: 9px;
+}
+.card h4 { margin: 0; font-size: 15.5px; font-weight: 600; letter-spacing: -.008em; }
+.card p { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--ink-2); }
+.card p strong { color: var(--ink); }
+.card .tag {
+  font-family: "JetBrains Mono", monospace; font-size: 10px;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3);
+}
+.card.pick { border-color: var(--accent); box-shadow: var(--shadow), 0 0 0 1px var(--accent); }
+
+/* ---------- Numbered list ---------- */
+ol.probs { counter-reset: p; list-style: none; padding: 0; margin: 22px 0 0; display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
+ol.probs li {
+  counter-increment: p; background: var(--card);
+  padding: 17px 20px 17px 58px; position: relative;
+  font-size: 14.5px; line-height: 1.58; color: var(--ink-2);
+}
+ol.probs li::before {
+  content: counter(p, decimal-leading-zero);
+  position: absolute; left: 20px; top: 17px;
+  font-family: "JetBrains Mono", monospace; font-size: 12px; font-weight: 700;
+  color: var(--accent); font-variant-numeric: tabular-nums;
+}
+ol.probs li b { color: var(--ink); font-weight: 600; }
+
+/* ---------- Callout ---------- */
+.callout {
+  border-left: 3px solid var(--accent); background: var(--sunk);
+  padding: 19px 22px; border-radius: 0 5px 5px 0; margin: 26px 0;
+}
+.callout p { margin: 0; font-family: "Newsreader", Georgia, serif; font-size: 16.5px; line-height: 1.62; color: var(--ink); }
+.callout p + p { margin-top: 13px; }
+
+hr.rule { border: 0; border-top: 1px solid var(--line); margin: 60px 0 0; }
+footer {
+  margin-top: 60px; padding-top: 22px; border-top: 1px solid var(--line);
+  font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--ink-3); line-height: 1.75;
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media (max-width: 640px) { .filterbar { position: static; } }
+
+/* Document nav, added for the standalone build. */
+.docnav {
+  border-bottom: 1px solid var(--line);
+  background: var(--card);
+}
+.docnav__inner {
+  max-width: 1140px; margin: 0 auto;
+  padding: 12px clamp(16px, 4vw, 44px);
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+}
+.docnav__brand {
+  display: flex; align-items: center; gap: 9px;
+  font-family: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 600; font-size: 14px; letter-spacing: -.01em;
+  color: var(--ink); text-decoration: none;
+}
+.docnav__brand img { width: 22px; height: 22px; }
+.docnav__links { display: flex; gap: 4px; flex-wrap: wrap; margin-left: auto; }
+.docnav__links a {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11.5px; letter-spacing: .02em;
+  padding: 5px 10px; border-radius: 3px;
+  color: var(--ink-2); text-decoration: none;
+  border: 1px solid transparent;
+}
+.docnav__links a:hover { color: var(--ink); border-color: var(--line-hard); }
+.docnav__links a[aria-current="page"] {
+  color: var(--amber); border-color: var(--amber); background: var(--amber-soft);
+}
+.docnav__links a:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.canonical {
+  max-width: 1140px; margin: 0 auto;
+  padding: 10px clamp(16px, 4vw, 44px) 0;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px; color: var(--ink-3);
+}
+.canonical a { color: var(--ink-2); }
+@media print {
+  .docnav, .canonical, .filterbar { display: none; }
+  .tablewrap { overflow: visible; box-shadow: none; break-inside: avoid; }
+  section { break-inside: avoid-page; }
+}
+</style>
+</head>
+<body>
+<nav class="docnav">
+  <div class="docnav__inner">
+    <a class="docnav__brand" href="../README.md">
+      <img src="../assets/autotldr_logo_transparent.png" alt="">
+      <span>AutoTLDR&nbsp;docs</span>
+    </a>
+    <div class="docnav__links">
+      <a href="vision.md">Vision</a>
+      <a href="matrix.html" aria-current="page">Matrix</a>
+      <a href="spec-v1.html">Spec v1</a>
+      <a href="decisions.md">Decisions</a>
+    </div>
+  </div>
+</nav>
+<p class="canonical">Rendered companion to <a href="matrix.md">matrix.md</a>, which is canonical. If the two disagree, the Markdown wins.</p>
+<div class="wrap">
+
+<header class="hero">
+  <div class="kicker">Product matrix · v2 · 30 August 2026</div>
+  <h1>Point it at anything.<br>Get back what it <em>means</em>.</h1>
+  <p class="lede">A single command-line tool that reads any format a person or an agent might hand it, extracts the semantics rather than the bytes, and renders the result into whatever shape the caller needs.</p>
+
+  <div class="term">
+<span class="p">$</span> autotldr paper.pdf                            <span class="cm"># read it, in the terminal</span>
+<span class="p">$</span> autotldr paper.pdf <span class="c">--out</span> html <span class="f">&gt;</span> brief.html    <span class="cm"># share it</span>
+<span class="p">$</span> autotldr ./repo <span class="c">--ask</span> <span class="f">"how does auth work"</span>    <span class="cm"># task-conditioned</span>
+<span class="p">$</span> autotldr model.xlsx <span class="c">--out</span> mermaid            <span class="cm"># the formula graph</span>
+<span class="p">$</span> autotldr *.pdf <span class="c">--out</span> jsonl <span class="f">|</span> jq <span class="f">'.claims[]'</span>   <span class="cm"># pipeline</span>
+<span class="p">$</span> autotldr standup.m4a <span class="c">--brief</span>                 <span class="cm"># decisions and owners</span></div>
+</header>
+
+<section>
+  <div class="part">Part 0</div>
+  <h2>The positioning</h2>
+  <div class="prose">
+    <p><code>file</code> tells you what something is. <code>pandoc</code> converts format A into format B. <strong>AutoTLDR tells you what something means, and renders that meaning into any shape.</strong></p>
+    <p>It is a Unix tool. It reads a path, a URL, or stdin. It writes to stdout or a file. It exits non-zero and says why. It composes.</p>
+    <p>Coding agents get this for free, because agents call bash. That is the entire integration story for the largest agent audience, and it costs nothing to serve. MCP and A2A exist for the agents that cannot shell out.</p>
+  </div>
+
+  <h3>Who it is for, in order</h3>
+  <div class="cards">
+    <div class="card"><span class="tag">Primary</span><h4>A person at a terminal</h4><p>Someone who has a thing and needs to know what is in it. Every design decision serves them first.</p></div>
+    <div class="card"><span class="tag">Free</span><h4>A coding agent shelling out</h4><p>The same interface with <code>--out json</code>. No integration work on either side.</p></div>
+    <div class="card"><span class="tag">Thin surface</span><h4>A non-shell agent</h4><p>MCP or A2A over the same core. A wrapper, never a second implementation.</p></div>
+    <div class="card"><span class="tag">Falls out</span><h4>A pipeline</h4><p>JSONL and exit codes. One semantic unit per line, streamable.</p></div>
+  </div>
+
+  <div class="callout">
+    <p>Design for the person and the rest follow. Design for the protocol first and you get something nobody uses, which is exactly what the 2025 plan did with its session API.</p>
+  </div>
+</section>
+
+<hr class="rule">
+
+<section>
+  <div class="part">Part 1</div>
+  <h2>The pivot that makes this buildable</h2>
+  <div class="prose">
+    <p>The prior plans treated crawl4ai, Repomix, Context7, gitingest and DeepWiki as competitors and spent pages on differentiation. That framing made the project unbuildable, because every one of them is better at its narrow job than a new project will be in year one.</p>
+    <p><strong>They are input adapters.</strong> AutoTLDR shells out to them, takes their output as raw material, and does the part none of them do.</p>
+  </div>
+
+  <div class="tablewrap"><table>
+    <thead><tr><th>Tool</th><th>What it is genuinely good at</th><th>Its role here</th></tr></thead>
+    <tbody>
+      <tr><td class="fmt">Repomix</td><td class="mean">Fast, git-aware repo flattening with secret stripping</td><td class="how">Repo adapter</td></tr>
+      <tr><td class="fmt">gitingest</td><td class="mean">URL-swap remote repo fetch</td><td class="how">Remote repo adapter</td></tr>
+      <tr><td class="fmt">crawl4ai</td><td class="mean">Robust JS-aware site crawling</td><td class="how">Web adapter</td></tr>
+      <tr><td class="fmt">Context7</td><td class="mean">Curated, version-resolved library documentation</td><td class="how">Docs adapter, where it has the library</td></tr>
+      <tr><td class="fmt">MarkItDown, pandoc</td><td class="mean">Format conversion into markdown</td><td class="how">Document adapter</td></tr>
+      <tr><td class="fmt">Docling</td><td class="mean">PDF layout and table structure recovery</td><td class="how">PDF adapter</td></tr>
+      <tr><td class="fmt">Whisper</td><td class="mean">Speech to text</td><td class="how">Audio adapter</td></tr>
+      <tr><td class="fmt">DuckDB</td><td class="mean">Instant query over tabular files</td><td class="how">Data adapter</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout">
+    <p>None of them produce a semantic representation. They produce bytes in a friendlier encoding. Repomix hands you 400k tokens of concatenated source. crawl4ai hands you clean markdown of two hundred pages. Whisper hands you a wall of transcript with no paragraph breaks.</p>
+    <p><strong>The work left over after all of them have run is the entire product.</strong></p>
+  </div>
+</section>
+
+<hr class="rule">
+
+<section>
+  <div class="part">Part 2</div>
+  <h2>The architecture bet</h2>
+  <div class="prose">
+    <p>The naive design for N input formats and M output formats is N×M converters. That is the trap that kills every format-universal tool.</p>
+  </div>
+
+  <div class="funnel">
+    <div class="fcol">
+      <span class="n">50+</span>
+      <span class="l">Input formats</span>
+      <span class="d">pdf · xlsx · repo · wav · hdf5 · mp4 · json · unknown binary</span>
+    </div>
+    <svg class="arrow" width="26" height="14" viewBox="0 0 26 14" aria-hidden="true"><path d="M0 7h22M17 2l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+    <div class="fcol">
+      <span class="n hi">1</span>
+      <span class="l">Representation</span>
+      <span class="d">Semantic units, structure, provenance, relations</span>
+    </div>
+    <svg class="arrow" width="26" height="14" viewBox="0 0 26 14" aria-hidden="true"><path d="M0 7h22M17 2l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+    <div class="fcol">
+      <span class="n">10</span>
+      <span class="l">Output shapes</span>
+      <span class="d">ansi · md · html · pdf · json · jsonl · bundle · mermaid</span>
+    </div>
+  </div>
+
+  <div class="prose">
+    <p>Adding an input costs one extractor and zero renderers. Adding an output costs one renderer and zero extractors. <strong>The intermediate representation is the whole company.</strong> Adapters are replaceable and renderers are cosmetic. If the representation is right, AutoTLDR outlives every tool it wraps. If it is wrong, nothing else matters.</p>
+  </div>
+
+  <h3>What a semantic unit has to carry</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Field</th><th>Why it exists</th></tr></thead>
+    <tbody>
+      <tr><td class="fmt"><code>content</code></td><td class="mean">The text or structured payload</td></tr>
+      <tr><td class="fmt"><code>modality</code></td><td class="mean">prose · code · table · figure · equation · utterance · record · schema</td></tr>
+      <tr><td class="fmt"><code>role</code></td><td class="mean"><strong>The differentiator.</strong> claim · definition · procedure · parameter · caveat · result · example · decision · assumption · limitation</td></tr>
+      <tr><td class="fmt"><code>origin</code></td><td class="mean">Addressable back-pointer: <code>page:12</code>, <code>Sheet2!C4:C40</code>, <code>src/a.py:88</code>, <code>00:14:32</code>, <code>/group/dataset</code></td></tr>
+      <tr><td class="fmt"><code>structure</code></td><td class="mean">Position in the source's own hierarchy: outline, tree, sheet, chapter, scene</td></tr>
+      <tr><td class="fmt"><code>relations</code></td><td class="mean">supports · contradicts · implements · derives-from · exemplifies</td></tr>
+      <tr><td class="fmt"><code>salience</code></td><td class="mean">Why this unit survived selection</td></tr>
+      <tr><td class="fmt"><code>confidence</code></td><td class="mean">How sure the extractor is, reported per modality</td></tr>
+      <tr><td class="fmt"><code>tokens</code></td><td class="mean">Cost to include it</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="prose">
+    <p>The <code>role</code> field is the bet within the bet. A tool that knows a sentence is a <em>caveat</em> rather than a <em>claim</em> can build outputs no keyword-based tool can. Everything downstream depends on roles being extractable and reliable.</p>
+  </div>
+
+  <h3>The invariant contract</h3>
+  <div class="prose"><p>Three rules that hold for every modality. They are the product's actual promise.</p></div>
+  <ol class="probs">
+    <li><b>Every claim is addressable.</b> No output sentence exists without an origin pointing back into the source. A claim that cannot be grounded is dropped, not softened.</li>
+    <li><b>Absence is reported.</b> If a source documents no rationale, the output says so instead of inventing it. "This spreadsheet has no documentation for its assumptions" is a finding, not a failure.</li>
+    <li><b>The budget is honored exactly.</b> <code>--budget 4000</code> returns at most 4000 tokens and states what it dropped and why.</li>
+  </ol>
+</section>
+
+<hr class="rule">
+
+<section>
+  <div class="part">Part 3</div>
+  <h2>Input surface</h2>
+  <div class="prose">
+    <p>Fifty-odd formats, tiered by <strong>extraction difficulty</strong> rather than popularity. The tiers are the build order.</p>
+    <p>The column that matters is the second one. <strong>"Summarize" means something different for every modality</strong>, and that is precisely why generic retrieval fails on most of this list.</p>
+  </div>
+
+  <div class="filterbar" role="group" aria-label="Filter input formats">
+    <span class="lbl">Tier</span>
+    <button class="chip" data-t="ALL" aria-pressed="true">ALL</button>
+    <button class="chip" data-t="0" aria-pressed="false">0</button>
+    <button class="chip" data-t="1" aria-pressed="false">1</button>
+    <button class="chip" data-t="2" aria-pressed="false">2</button>
+    <button class="chip" data-t="3" aria-pressed="false">3</button>
+    <button class="chip" data-t="4" aria-pressed="false">4</button>
+    <button class="chip" data-t="5" aria-pressed="false">5</button>
+    <button class="chip" data-t="6" aria-pressed="false">6</button>
+    <button class="chip tog" id="localonly" aria-pressed="false">RUNS LOCAL ONLY</button>
+    <span class="count" id="count">51 formats</span>
+  </div>
+
+  <div class="tier" data-tier="0" style="--tc: var(--t0)">
+    <div class="tierhead"><span class="tno">TIER 0</span><span class="tname">Text-shaped</span></div>
+    <p class="tnote">Deterministic parsing. No model needed for structure. Instant, offline, exact.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Format</th><th>What the TLDR actually is</th><th>Extraction</th><th>Local</th><th>Difficulty</th></tr></thead>
+      <tbody>
+        <tr data-local="1"><td class="fmt">Plain text</td><td class="mean">Topic structure, claims, entities</td><td class="how">Segmentation + role tagging</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d1">LOW</span></td></tr>
+        <tr data-local="1"><td class="fmt">Markdown, rST, AsciiDoc</td><td class="mean">Outline, definitions, procedures, code blocks</td><td class="how">Native structure + role tagging</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d1">LOW</span></td></tr>
+        <tr data-local="1"><td class="fmt">Source code</td><td class="mean">API surface, invariants, side effects, entry points</td><td class="how">tree-sitter symbols + signatures</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d1">LOW</span></td></tr>
+        <tr data-local="1"><td class="fmt">JSON, JSONL</td><td class="mean"><strong>Inferred schema</strong>, cardinality, enums, what varies against what is constant</td><td class="how">Structural induction over samples</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d1">LOW</span></td></tr>
+        <tr data-local="1"><td class="fmt">YAML, TOML, INI</td><td class="mean">Config surface, defaults, required against optional</td><td class="how">Schema induction + comment mining</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d1">LOW</span></td></tr>
+        <tr data-local="1"><td class="fmt">XML</td><td class="mean">Schema, namespaces, document type, repeated structures</td><td class="how">Structural induction</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d1">LOW</span></td></tr>
+        <tr data-local="1"><td class="fmt">CSV, TSV</td><td class="mean">Column semantics, types, units, ranges, nulls, outliers. Never row content</td><td class="how">Profiling</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d1">LOW</span></td></tr>
+        <tr data-local="1"><td class="fmt">Log files</td><td class="mean">Event vocabulary, error clusters, timeline, anomalies</td><td class="how">Template mining, Drain-style</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d2">MED</span></td></tr>
+        <tr data-local="1"><td class="fmt">Diff, patch</td><td class="mean">What changed semantically rather than textually; blast radius</td><td class="how">AST-diff over hunks</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d2">MED</span></td></tr>
+        <tr data-local="1"><td class="fmt">SQL schema</td><td class="mean">Entities, relationships, cardinality, constraints</td><td class="how">DDL parse to ER graph</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d1">LOW</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="tier" data-tier="1" style="--tc: var(--t1)">
+    <div class="tierhead"><span class="tno">TIER 1</span><span class="tname">Document-shaped</span></div>
+    <p class="tnote">Structure is recoverable, but layout introduces ambiguity.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Format</th><th>What the TLDR actually is</th><th>Extraction</th><th>Local</th><th>Difficulty</th></tr></thead>
+      <tbody>
+        <tr data-local="1"><td class="fmt">PDF, born-digital</td><td class="mean">Claim → evidence → method → limitation; figures with captions; equations</td><td class="how">Layout parse + role tagging</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d2">MED</span></td></tr>
+        <tr data-local="1"><td class="fmt">DOCX</td><td class="mean">Outline, tracked changes, comments, the argument being made</td><td class="how">OOXML parse</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d1">LOW</span></td></tr>
+        <tr data-local="1"><td class="fmt">HTML page, URL</td><td class="mean">Main content minus chrome; the page's actual assertion</td><td class="how">Boilerplate removal + role tagging</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d2">MED</span></td></tr>
+        <tr data-local="1"><td class="fmt">EPUB</td><td class="mean">Chapter arc, definitions, the through-line</td><td class="how">Native structure</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d1">LOW</span></td></tr>
+        <tr data-local="1"><td class="fmt">Jupyter notebook</td><td class="mean">Narrative, what was computed, and what the outputs showed</td><td class="how">Cell graph, code and outputs paired</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d2">MED</span></td></tr>
+        <tr data-local="1"><td class="fmt">LaTeX source</td><td class="mean">Structure, theorems, equations, citations, the unrendered truth</td><td class="how">Macro-aware parse</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d2">MED</span></td></tr>
+        <tr data-local="1"><td class="fmt">Email, mbox</td><td class="mean">Thread arc, decisions, open questions, who owes what to whom</td><td class="how">Thread reconstruction</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d2">MED</span></td></tr>
+        <tr data-local="1"><td class="fmt">Man pages, <code>--help</code></td><td class="mean">Flags, defaults, invocation grammar, common recipes</td><td class="how">Structured parse</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d1">LOW</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="tier" data-tier="2" style="--tc: var(--t2)">
+    <div class="tierhead"><span class="tno">TIER 2</span><span class="tname">Collection-shaped</span></div>
+    <p class="tnote">The unit is the corpus, not the file. Selection under budget is mandatory because the whole thing never fits.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Source</th><th>What the TLDR actually is</th><th>Extraction</th><th>Local</th><th>Difficulty</th></tr></thead>
+      <tbody>
+        <tr data-local="1"><td class="fmt">Git repo, local</td><td class="mean">Architecture, entry points, the golden path, the hazards</td><td class="how">Repomix + tree-sitter + selection</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d2">MED</span></td></tr>
+        <tr data-local="1"><td class="fmt">Git repo, remote</td><td class="mean">The same, without paying the clone cost</td><td class="how">gitingest or shallow clone</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d2">MED</span></td></tr>
+        <tr data-local="1"><td class="fmt">Directory tree</td><td class="mean">What this pile of files collectively is</td><td class="how">Per-file dispatch + roll-up</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d2">MED</span></td></tr>
+        <tr data-local="1"><td class="fmt">Documentation site</td><td class="mean">Concept map, task recipes, version-pinned API truth</td><td class="how">crawl4ai, or llms.txt where present</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d3">HIGH</span></td></tr>
+        <tr data-local="1"><td class="fmt">Archive (zip, tar)</td><td class="mean">Manifest semantics, what this bundle is for</td><td class="how">Recursive dispatch</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d2">MED</span></td></tr>
+        <tr data-local="1"><td class="fmt">Package (npm, PyPI, crate)</td><td class="mean">Public API at the <strong>installed version</strong>, and what broke since</td><td class="how">Registry + lockfile resolution</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d2">MED</span></td></tr>
+        <tr data-local="1"><td class="fmt">Issue or PR thread</td><td class="mean">The decision, the dissent, the resolution, what stayed unresolved</td><td class="how">Thread arc + role tagging</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d2">MED</span></td></tr>
+        <tr data-local="1"><td class="fmt">Chat export</td><td class="mean">Decisions, owners, open loops</td><td class="how">Turn segmentation + role tagging</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d3">HIGH</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="tier" data-tier="3" style="--tc: var(--t3)">
+    <div class="tierhead"><span class="tno">TIER 3</span><span class="tname">Data-shaped</span></div>
+    <p class="tnote">You never summarize the values. You summarize the structure, the statistics and the relationships. This tier holds the largest capability gap in the market.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Format</th><th>What the TLDR actually is</th><th>Extraction</th><th>Local</th><th>Difficulty</th></tr></thead>
+      <tbody>
+        <tr data-local="1"><td class="fmt">XLSX</td><td class="mean"><strong>The formula dependency graph.</strong> Inputs, assumptions, derived cells, outputs, circularity, and the hardcoded override someone buried in row 400</td><td class="how">Formula graph extraction + provenance</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d3">HIGH</span></td></tr>
+        <tr data-local="1"><td class="fmt">Parquet, Arrow</td><td class="mean">Schema, distributions, cardinality, partitioning, nulls</td><td class="how">Profiling via DuckDB</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d1">LOW</span></td></tr>
+        <tr data-local="1"><td class="fmt">SQLite, DB dump</td><td class="mean">ER model, hot tables, orphans, actual against declared constraints</td><td class="how">Schema + sampling</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d2">MED</span></td></tr>
+        <tr data-local="1"><td class="fmt">HDF5</td><td class="mean">Group hierarchy, dataset shapes, units, coordinate systems, attribute provenance</td><td class="how">Structural walk + attribute mining</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d2">MED</span></td></tr>
+        <tr data-local="1"><td class="fmt">NetCDF</td><td class="mean">Variables, dimensions, CF conventions, coverage, gaps</td><td class="how">CF-aware walk</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d2">MED</span></td></tr>
+        <tr data-local="1"><td class="fmt">Zarr</td><td class="mean">Chunking, compression, access-pattern implications</td><td class="how">Store walk</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d2">MED</span></td></tr>
+        <tr data-local="1"><td class="fmt">FITS</td><td class="mean">Instrument, observation parameters, world coordinate system</td><td class="how">Header semantics</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d2">MED</span></td></tr>
+        <tr data-local="1"><td class="fmt">GeoJSON, shapefile</td><td class="mean">Extent, geometry types, attribute schema, projection</td><td class="how">Geo profiling</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d2">MED</span></td></tr>
+        <tr data-local="1"><td class="fmt">Time series</td><td class="mean">Regimes, seasonality, breakpoints, gaps, anomalies</td><td class="how">Statistical decomposition</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d3">HIGH</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="tier" data-tier="4" style="--tc: var(--t4)">
+    <div class="tierhead"><span class="tno">TIER 4</span><span class="tname">Visual</span></div>
+    <p class="tnote">Needs a vision model. Slow, uncertain, and where per-result confidence reporting stops being optional.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Format</th><th>What the TLDR actually is</th><th>Extraction</th><th>Local</th><th>Difficulty</th></tr></thead>
+      <tbody>
+        <tr data-local="0"><td class="fmt">Diagram, flowchart</td><td class="mean"><strong>Nodes, edges, direction, labels.</strong> A graph, not a caption</td><td class="how">VLM to structured graph</td><td class="flag"><span class="marg">marginal</span></td><td class="flag"><span class="d3">HIGH</span></td></tr>
+        <tr data-local="0"><td class="fmt">Chart, plot</td><td class="mean">The trend, and the numbers behind it</td><td class="how">VLM to data table</td><td class="flag"><span class="marg">marginal</span></td><td class="flag"><span class="d3">HIGH</span></td></tr>
+        <tr data-local="1"><td class="fmt">Screenshot</td><td class="mean">What app, what state, what the user was doing</td><td class="how">VLM + OCR</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d2">MED</span></td></tr>
+        <tr data-local="1"><td class="fmt">Scanned PDF</td><td class="mean">Reading order recovered, then everything in Tier 1</td><td class="how">OCR + layout</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d3">HIGH</span></td></tr>
+        <tr data-local="1"><td class="fmt">PPTX, slides</td><td class="mean">The argument arc across slides, not bullet transcription</td><td class="how">Native parse + per-slide role</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d2">MED</span></td></tr>
+        <tr data-local="0"><td class="fmt">Photo</td><td class="mean">What is depicted, informational content only</td><td class="how">VLM</td><td class="flag"><span class="marg">marginal</span></td><td class="flag"><span class="d2">MED</span></td></tr>
+        <tr data-local="0"><td class="fmt">Whiteboard photo</td><td class="mean">The diagram, recovered as a graph</td><td class="how">OCR + VLM</td><td class="flag"><span class="nope">no</span></td><td class="flag"><span class="d4">V. HIGH</span></td></tr>
+        <tr data-local="0"><td class="fmt">UI mockup</td><td class="mean">Components, hierarchy, states, flow</td><td class="how">VLM</td><td class="flag"><span class="marg">marginal</span></td><td class="flag"><span class="d3">HIGH</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="tier" data-tier="5" style="--tc: var(--t5)">
+    <div class="tierhead"><span class="tno">TIER 5</span><span class="tname">Temporal</span></div>
+    <p class="tnote">Long and expensive. The reason async execution with a durable handle is not optional.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Format</th><th>What the TLDR actually is</th><th>Extraction</th><th>Local</th><th>Difficulty</th></tr></thead>
+      <tbody>
+        <tr data-local="1"><td class="fmt">Audio, meeting</td><td class="mean"><strong>Decisions, owners, deadlines, open questions.</strong> Not a transcript</td><td class="how">ASR + diarization + role tagging</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d3">HIGH</span></td></tr>
+        <tr data-local="1"><td class="fmt">Audio, lecture or podcast</td><td class="mean">Argument structure, claims, references made aloud</td><td class="how">ASR + segmentation</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d3">HIGH</span></td></tr>
+        <tr data-local="0"><td class="fmt">Video, talk</td><td class="mean">The argument, plus what the slides showed while it was made</td><td class="how">ASR + keyframe VLM</td><td class="flag"><span class="marg">marginal</span></td><td class="flag"><span class="d4">V. HIGH</span></td></tr>
+        <tr data-local="0"><td class="fmt">Screencast, tutorial</td><td class="mean">The procedure performed, written as steps</td><td class="how">ASR + on-screen text + action detection</td><td class="flag"><span class="nope">no</span></td><td class="flag"><span class="d4">V. HIGH</span></td></tr>
+        <tr data-local="0"><td class="fmt">Screen recording</td><td class="mean">What was done, and what changed as a result</td><td class="how">Frame diff + OCR</td><td class="flag"><span class="nope">no</span></td><td class="flag"><span class="d4">V. HIGH</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="tier" data-tier="6" style="--tc: var(--t6)">
+    <div class="tierhead"><span class="tno">TIER 6</span><span class="tname">Opaque</span></div>
+    <p class="tnote">The honest tier. Partial answers, clearly labeled as partial.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Format</th><th>What the TLDR actually is</th><th>Extraction</th><th>Local</th><th>Difficulty</th></tr></thead>
+      <tbody>
+        <tr data-local="1"><td class="fmt">Unknown binary</td><td class="mean">Format identification, structure inference, entropy map, embedded strings</td><td class="how">Magic bytes + heuristics</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d2">MED</span></td></tr>
+        <tr data-local="1"><td class="fmt">Executable, library</td><td class="mean">Exported symbols, linked dependencies, build provenance</td><td class="how">Symbol table walk</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d2">MED</span></td></tr>
+        <tr data-local="1"><td class="fmt">Firmware, disk image</td><td class="mean">Partition and filesystem layout, embedded artifacts</td><td class="how">Structural carve</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d3">HIGH</span></td></tr>
+        <tr data-local="1"><td class="fmt">Encrypted, protected</td><td class="mean">What it is, and that it cannot be read. Refuse honestly and name the reason</td><td class="how">Header inspection</td><td class="flag"><span class="yes">yes</span></td><td class="flag"><span class="d1">TRIVIAL</span></td></tr>
+        <tr data-local="0"><td class="fmt">Proprietary format</td><td class="mean">Best-effort structure with explicit uncertainty</td><td class="how">Heuristics + plugin hook</td><td class="flag"><span class="marg">varies</span></td><td class="flag"><span class="d3">HIGH</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<hr class="rule">
+
+<section>
+  <div class="part">Part 4</div>
+  <h2>Output surface</h2>
+  <div class="prose"><p>The same representation, rendered for whoever is asking.</p></div>
+
+  <div class="tablewrap"><table>
+    <thead><tr><th><code>--out</code></th><th>Consumer</th><th>Shape</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td class="fmt"><code>ansi</code> <span class="how">default</span></td><td class="how">Human, terminal</td><td class="mean">Progressive, syntax-aware, folded sections</td><td class="how">Streams as it works. Never dumps a wall</td></tr>
+      <tr><td class="fmt"><code>md</code></td><td class="how">Human editing, coding agent</td><td class="mean">Clean markdown with source anchors</td><td class="how">The lingua franca</td></tr>
+      <tr><td class="fmt"><code>html</code></td><td class="how">Human reading and sharing</td><td class="mean">Single self-contained file, navigable, links into source spans</td><td class="how">The shareable artifact</td></tr>
+      <tr><td class="fmt"><code>pdf</code></td><td class="how">Human archiving, citing</td><td class="mean">Paginated, numbered, references section</td><td class="how">Rendered from the HTML</td></tr>
+      <tr><td class="fmt"><code>json</code></td><td class="how">Agent</td><td class="mean">Full bundle, schema'd, versioned</td><td class="how">The complete representation projected</td></tr>
+      <tr><td class="fmt"><code>jsonl</code></td><td class="how">Pipeline</td><td class="mean">One semantic unit per line</td><td class="how">Pipes into jq, streamable</td></tr>
+      <tr><td class="fmt"><code>bundle</code></td><td class="how">Agent, durable</td><td class="mean">Directory: memory.md, reasoning.md, examples.md, manifest.json</td><td class="how">The three-dimensional shape</td></tr>
+      <tr><td class="fmt"><code>xml</code></td><td class="how">Agent, prompt-embedded</td><td class="mean">CXML-style tagged blocks</td><td class="how">For models that parse tags more reliably</td></tr>
+      <tr><td class="fmt"><code>mermaid</code></td><td class="how">Human and agent</td><td class="mean">Diagram of the structure found</td><td class="how">Repo graph, formula graph, ER model</td></tr>
+      <tr><td class="fmt"><code>quiet</code></td><td class="how">Script</td><td class="mean">Exit code plus one line</td><td class="how">For test and CI use</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Modifiers, orthogonal to format</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Flag</th><th>Effect</th></tr></thead>
+    <tbody>
+      <tr><td class="fmt"><code>--ask "&lt;question&gt;"</code></td><td class="mean">Task-conditions the selection. The pack answers <em>this</em>, not everything</td></tr>
+      <tr><td class="fmt"><code>--budget N</code></td><td class="mean">Hard token ceiling, and it reports what was dropped</td></tr>
+      <tr><td class="fmt"><code>--brief</code>, <code>--depth 1..5</code></td><td class="mean">One paragraph through exhaustive</td></tr>
+      <tr><td class="fmt"><code>--dimensions</code></td><td class="mean">Which of memory, reasoning, examples to emit</td></tr>
+      <tr><td class="fmt"><code>--cite</code></td><td class="mean">Span citations on every claim. On by default</td></tr>
+      <tr><td class="fmt"><code>--diff &lt;prior&gt;</code></td><td class="mean">What changed since the last run against this source</td></tr>
+      <tr><td class="fmt"><code>--focus &lt;subpath&gt;</code></td><td class="mean">Narrow to a sheet, directory, chapter or time range</td></tr>
+      <tr><td class="fmt"><code>--confidence-floor F</code></td><td class="mean">Drop units the extractor is unsure about</td></tr>
+      <tr><td class="fmt"><code>--watch</code></td><td class="mean">Re-run when the source changes</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout">
+    <p>The user-facing half of this product is not the extraction. It is that a person opens the HTML, immediately knows the three things that matter, and can drill from any claim to the exact page, cell, line or timestamp it came from.</p>
+    <p><strong>Every rendered claim is a link back into the source.</strong> For a spreadsheet that means clicking an assumption and landing on <code>Sheet2!C14</code>. For a meeting it means clicking a decision and hearing the fourteen seconds where it was made. That single property is what makes a summary trustworthy instead of a thing you have to go verify by hand.</p>
+  </div>
+</section>
+
+<hr class="rule">
+
+<section>
+  <div class="part">Part 5</div>
+  <h2>Distribution surface</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Surface</th><th>Who it serves</th><th>Cost</th><th>When</th></tr></thead>
+    <tbody>
+      <tr><td class="fmt">CLI</td><td class="mean">Humans, coding agents via bash, pipelines</td><td class="how">Core</td><td class="how">Day one. This is the product</td></tr>
+      <tr><td class="fmt">Library import</td><td class="mean">Embedders, notebook users</td><td class="how">Low</td><td class="how">Day one, falls out of the CLI</td></tr>
+      <tr><td class="fmt">MCP server</td><td class="mean">Non-shell agents. The 2026-07-28 Tasks extension returns a durable handle for Tier 4–6 jobs instead of timing out</td><td class="how">Low</td><td class="how">After the CLI is real</td></tr>
+      <tr><td class="fmt">A2A agent card</td><td class="mean">Agent-to-agent ecosystems, 150+ orgs on the Linux Foundation spec</td><td class="how">Low</td><td class="how">After MCP</td></tr>
+      <tr><td class="fmt">Agent Skill</td><td class="mean">Claude Code, Codex, Cursor and ~40 tools reading the same SKILL.md</td><td class="how">Trivial</td><td class="how">Alongside MCP</td></tr>
+      <tr><td class="fmt">Hosted API</td><td class="mean">Users who cannot run a 7B vision model or Whisper locally</td><td class="how">High</td><td class="how">Only if Tier 4–5 demand is proven</td></tr>
+      <tr><td class="fmt">Browser extension</td><td class="mean">Clip any page</td><td class="how">Med</td><td class="how">Later, if ever</td></tr>
+      <tr><td class="fmt">GUI</td><td class="mean">Non-terminal users</td><td class="how">High</td><td class="how">Not this product</td></tr>
+    </tbody>
+  </table></div>
+  <div class="prose">
+    <p>The Agent Skill is worth being precise about. It carries <em>instructions</em>, not execution: it tells an agent that AutoTLDR exists, when to reach for it, and what flags to pass. The execution is the CLI. That pairing is why a bash-first design covers the agent market almost for free.</p>
+  </div>
+</section>
+
+<hr class="rule">
+
+<section>
+  <div class="part">Part 6</div>
+  <h2>The hard problems, stated honestly</h2>
+  <ol class="probs">
+    <li><b>The representation is the bet, and it must be validated across dissimilar modalities early.</b> Building ten text-shaped extractors teaches nothing, because they all fit any schema. Build a PDF, a spreadsheet and an audio file in the first month. If one representation holds a claim from a paper, a formula dependency from a model and a decision from a meeting, the design is sound. If it does not, better to know in week four.</li>
+    <li><b>Role extraction is unproven at this scale.</b> Distinguishing a claim from a caveat from an assumption is easy for a strong model and unreliable for a 7B local one. The whole role field, and everything built on it, depends on this working. It needs an eval before it needs an implementation.</li>
+    <li><b>Tiers 4 and 5 break the latency contract.</b> <code>autotldr paper.pdf</code> should feel like <code>cat</code>. A one-hour video cannot. Two interaction models are required: synchronous for Tiers 0–3, and a job with a durable handle for Tiers 4–6. Deciding that at CLI-design time is cheap now and expensive in six months.</li>
+    <li><b>Local inference is the cost wall, not a feature.</b> Tiers 0–3 need no model at all for structure and a small one for roles. Tiers 4–5 need a vision model and ASR that many users cannot run. This is the natural free-versus-paid boundary, and it falls out of physics rather than from an arbitrary paywall.</li>
+    <li><b>Some semantics require domain knowledge.</b> A climate model spreadsheet and a financial model spreadsheet have different meanings for the same formula graph. This needs a plugin point for domain packs. It should exist as a seam from the beginning even if it stays empty for a year.</li>
+    <li><b>Quality will vary enormously by modality, and hiding that would be fatal.</b> A tool that is excellent on markdown and mediocre on scanned PDFs, and says so per result, is trustworthy. One that presents both with equal confidence is not.</li>
+  </ol>
+</section>
+
+<hr class="rule">
+
+<section>
+  <div class="part">Part 7</div>
+  <h2>Build order</h2>
+  <div class="prose"><p>Each stage is independently useful and shippable. Nothing here is throwaway.</p></div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Stage</th><th>Scope</th><th>What it proves</th><th>Weeks</th></tr></thead>
+    <tbody>
+      <tr><td class="fmt">0 · Spike the representation</td><td class="mean">Three deliberately dissimilar inputs: a PDF paper, an XLSX model, a WAV meeting. Extraction only, no renderers</td><td class="how">The representation survives contact with dissimilar modalities. Kill or redesign here</td><td class="flag">2</td></tr>
+      <tr><td class="fmt">1 · The Unix tool</td><td class="mean">Tiers 0 and 1 complete. ansi, md, json, jsonl. Budget and cite. Exit codes</td><td class="how">It feels like a real tool, and someone uses it twice</td><td class="flag">3</td></tr>
+      <tr><td class="fmt">2 · Make it shareable</td><td class="mean">html and pdf output. Claim-to-source linking</td><td class="how">The output is something people send to each other</td><td class="flag">2</td></tr>
+      <tr><td class="fmt">3 · Collections</td><td class="mean">Tier 2. Selection under budget. <code>--ask</code>. Adapters for Repomix, crawl4ai, gitingest</td><td class="how">Selection works when the corpus never fits</td><td class="flag">3</td></tr>
+      <tr><td class="fmt">4 · Data</td><td class="mean">Tier 3. Formula graph, schema profiling, scientific formats</td><td class="how">The most underserved tier, and the strongest demo</td><td class="flag">3</td></tr>
+      <tr><td class="fmt">5 · Agents</td><td class="mean">MCP with Tasks, SKILL.md, A2A card, bundle output</td><td class="how">Agents adopt it without a bespoke integration</td><td class="flag">2</td></tr>
+      <tr><td class="fmt">6 · Heavy modalities</td><td class="mean">Tiers 4 and 5. Async jobs, confidence reporting</td><td class="how">The vision, and the paid tier's justification</td><td class="flag">6+</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout">
+    <p>Stage 0 is the one that must not be skipped. Every prior plan skipped it and specified the architecture instead, which is why there are six plans and no code.</p>
+  </div>
+</section>
+
+<hr class="rule">
+
+<section>
+  <div class="part">Part 8</div>
+  <h2>The open question</h2>
+  <div class="prose">
+    <p>Everything above describes a category. Categories do not get adopted; specific wins do. The one decision I cannot make from the material is <strong>which single capability makes someone install this and tell a colleague</strong>. Each candidate changes the build order.</p>
+  </div>
+
+  <div class="cards">
+    <div class="card pick">
+      <span class="tag">Candidate 1 · recommended</span>
+      <h4>The spreadsheet nobody can read</h4>
+      <p><code>autotldr model.xlsx</code> returns the formula dependency graph, the assumptions, and the hardcoded override someone buried in row 400.</p>
+      <p><strong>Why:</strong> semantics fully recoverable without a model, the demo is immediate and visual, the pain is universal among analysts and scientists, and no competitor is close. It also validates the representation against the least text-shaped thing in Tiers 0–3, which is exactly what Stage 0 needs.</p>
+    </div>
+    <div class="card">
+      <span class="tag">Candidate 2</span>
+      <h4>The meeting that becomes decisions</h4>
+      <p><code>autotldr standup.m4a --brief</code> returns four decisions with owners and clickable timestamps.</p>
+      <p><strong>Trade:</strong> everyone has the pain, but the space is crowded and it lands in Tier 5, the slowest and most expensive tier, on day one.</p>
+    </div>
+    <div class="card">
+      <span class="tag">Candidate 3</span>
+      <h4>The mixed folder</h4>
+      <p>A directory holding a paper, its dataset and its code returns one bundle explaining how the three relate.</p>
+      <p><strong>Trade:</strong> genuinely nobody does cross-modal synthesis, and it is the hardest thing on this page to build.</p>
+    </div>
+    <div class="card">
+      <span class="tag">Candidate 4</span>
+      <h4>The version-pinned API answer</h4>
+      <p><code>--ask "how do I stream responses"</code> answered against the version in your lockfile, not the docs site's latest.</p>
+      <p><strong>Trade:</strong> narrow, deeply useful to the agent audience, attacks a real bug source, and sits closest to the crowded incumbents.</p>
+    </div>
+  </div>
+
+  <div class="callout">
+    <p>My read, stated once: <strong>the spreadsheet</strong>. It is the only candidate where the semantics are fully recoverable without a model, where the demo needs no explanation, and where nothing on the market is close. That is a recommendation, not a decision.</p>
+  </div>
+</section>
+
+<footer>
+  51 input formats across 7 tiers · 10 output shapes · 8 distribution surfaces.<br>
+  Matrix source at MATRIX.md. Six prior plans and the CLIO-framed analysis preserved untracked in archive/.
+</footer>
+
+</div>
+
+<script>
+(function () {
+  var chips = Array.prototype.slice.call(document.querySelectorAll(".chip[data-t]"));
+  var localBtn = document.getElementById("localonly");
+  var tiers = Array.prototype.slice.call(document.querySelectorAll(".tier"));
+  var rows = Array.prototype.slice.call(document.querySelectorAll(".tier tbody tr[data-local]"));
+  var countEl = document.getElementById("count");
+  var activeTier = "ALL";
+  var localOnly = false;
+
+  function apply() {
+    var shown = 0;
+    rows.forEach(function (r) {
+      var tier = r.closest(".tier").getAttribute("data-tier");
+      var tierOk = activeTier === "ALL" || tier === activeTier;
+      var localOk = !localOnly || r.getAttribute("data-local") === "1";
+      var ok = tierOk && localOk;
+      r.classList.toggle("hidden", !ok);
+      if (ok) shown++;
+    });
+    tiers.forEach(function (t) {
+      var any = t.querySelectorAll("tbody tr[data-local]:not(.hidden)").length > 0;
+      t.classList.toggle("hidden", !any);
+    });
+    countEl.textContent = shown + (localOnly || activeTier !== "ALL" ? " of 51 formats" : " formats");
+    chips.forEach(function (c) { c.setAttribute("aria-pressed", String(c.dataset.t === activeTier)); });
+    localBtn.setAttribute("aria-pressed", String(localOnly));
+  }
+
+  chips.forEach(function (c) {
+    c.addEventListener("click", function () {
+      activeTier = (activeTier === c.dataset.t && c.dataset.t !== "ALL") ? "ALL" : c.dataset.t;
+      apply();
+    });
+  });
+  localBtn.addEventListener("click", function () { localOnly = !localOnly; apply(); });
+
+  apply();
+})();
+</script>
+</body>
+</html>

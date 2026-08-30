@@ -74,9 +74,14 @@ Read them in this order.
 | Document | What it covers |
 | --- | --- |
 | [`docs/vision.md`](docs/vision.md) | The stable part. Product thesis, positioning, audience, the three invariants, and the non-goals |
-| [`docs/matrix.md`](docs/matrix.md) | The full product matrix: 51 input formats across 7 tiers, 10 output shapes, distribution surfaces, and what "summarize" actually means for each format |
-| [`docs/spec-v1.md`](docs/spec-v1.md) | v1 build spec: stack decisions and rationale, the representation, folder fusion, the watch daemon, and build order |
+| [`docs/matrix.md`](docs/matrix.md) · [html](docs/matrix.html) | The full product matrix: 51 input formats across 7 tiers, 10 output shapes, distribution surfaces, and what "summarize" actually means for each format |
+| [`docs/spec-v1.md`](docs/spec-v1.md) · [html](docs/spec-v1.html) | v1 build spec: stack decisions and rationale, the representation, folder fusion, the watch daemon, and build order |
 | [`docs/decisions.md`](docs/decisions.md) | Append-only decision log. What was chosen, why, what was rejected, and what would justify revisiting |
+
+The two `.html` pages are rendered companions to their Markdown, readable by
+opening the file. The matrix page filters its 51 formats by tier and by whether
+they run fully offline. Markdown stays canonical; if the two disagree, the
+Markdown wins.
 
 Six earlier planning documents are preserved untracked under `archive/`. They are
 superseded and kept only as a record of what was tried.
