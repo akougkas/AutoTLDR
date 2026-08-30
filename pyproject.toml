@@ -1,0 +1,35 @@
+[project]
+name = "autotldr"
+version = "0.1.0.dev0"
+description = "Point it at anything. Get back what it means, in the shape you asked for."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "Anthony Kougkas" }]
+
+# The base install stays deliberately tiny. Anything a single format needs lives
+# in an extra, and is lazy-imported at the point of use. `autotldr notes.md` must
+# never pay for a PDF parser it will not call. See docs/startup-contract.md.
+dependencies = []
+
+[project.optional-dependencies]
+pdf = ["pymupdf>=1.24"]
+office = ["openpyxl>=3.1"]
+# Everything a full desktop install wants.
+all = ["autotldr[pdf,office]"]
+
+[project.scripts]
+autotldr = "autotldr.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8.0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/autotldr"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

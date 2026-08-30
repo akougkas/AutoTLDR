@@ -1,3 +1,13 @@
+# Historical planning material, vendored reference code, and prior drafts.
+# Kept on disk for reference, never tracked.
+archive/
+
+# Cross-session and cross-agent coordination. Machine-local working state that
+# agents read on arrival and write on departure. Never tracked: it is scratch,
+# it goes stale, and anything durable belongs in docs/ instead.
+.agent/
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

@@ -1,92 +1,97 @@
-# AutoTLDR
+<p align="center">
+  <img src="assets/autotldr_logo_transparent.png" alt="AutoTLDR" width="180" />
+</p>
 
-![AutoTLDR Banner Placeholder](https://via.placeholder.com/1200x200?text=AutoTLDR+Banner)
+<h1 align="center">AutoTLDR</h1>
 
-**AutoTLDR gives any AI agent an instant understanding of anything.**
-
-In a world of information overload, understanding a new codebase, library, or scientific paper is a monumental task. You have to juggle dozens of tabs, cross-reference documentation with source code, and dig through issues just to get a basic mental model.
-
-AutoTLDR is a local-first, agent-native tool that automates this entire process. It ingests complex sources and synthesizes them into an interactive, explorable context bundle that agents can navigate and reason about.
-
-![AutoTLDR Demo GIF](https://raw.githubusercontent.com/akougkas/autotldr/main/assets/autotldr-demo.gif)
-
-*(This GIF would show a single command `uvx autotldr --repo ... --docs ...` launching the server, and then an agent interacting with it programmatically to explore the context.)*
-
-![AutoTLDR Demo GIF](https://raw.githubusercontent.com/akougkas/autotldr/main/assets/autotldr-demo.gif)
-*(This GIF will show a single command `uvx autotldr --repo ... --docs ...` running and instantly opening a stunning, interactive HTML report that links code, docs, and project metrics together.)*
+<p align="center"><strong>Point it at anything. Get back what it means, in the shape you asked for.</strong></p>
 
 ---
 
-## Core Principles
-
-*   **Agent-First:** Built from the ground up as a native **Model Context Protocol (MCP)** tool. Its primary interface is not for humans, but for autonomous agents to call and control.
-
-*   **Local-First & Private:** All data fetching, processing, and AI analysis happens on your machine. Your code, data, and queries never leave your control.
-
-*   **Open Standards:** Fully embraces MCP to ensure broad compatibility and prevent vendor lock-in. AutoTLDR is a bet on a decentralized, interoperable AI ecosystem.
-
-## Core Features
-
-* **Unified Context Document (UCD):** Generates a single, self-contained HTML file or a structured JSON/CXML output that intelligently merges code, documentation, and project activity.
-
-* **"Project Pulse" Dashboard:** Go beyond static code with a dynamic dashboard of project health, including issue velocity, PR-to-merge time, and hot topics in the community.
-
-* **Doc-to-Code Cross-Linker:** The magic that bridges theory and practice. Every function in the code links to its documentation, and every code example in the docs links to its source.
-
-* **AI-Powered "Key Insights":** An automated TL;DR on top of the TL;DR. Uses AI to identify the project's core purpose, its most critical files, and the "golden path" for new users.
-
-* **Interactive "Context-on-Demand":** For massive projects, an interactive mode serves a lightweight dashboard and lazy-loads deep-dive content on demand, giving you the speed of a SaaS app in a local CLI tool.
-
-## How It Works for Agents
-
-AutoTLDR runs as a local MCP server, exposing a powerful set of tools for your agent to use. The core interaction model is the **"File Handle" API**, which allows an agent to explore vast amounts of context without overwhelming its context window.
-
-```python
-# A pseudo-code example of an agent using AutoTLDR
-from my_agent_framework import MCPClient
-
-# The user starts the AutoTLDR server on their machine
-# > uvx autotldr
-
-# The agent connects to the local server
-client = MCPClient(port=...)
-
-# 1. Start a session and get the "file handle"
-initial_bundle = client.tools.call(
-    "autotldr.start_session",
-    repo_url="https://github.com/tiangolo/fastapi",
-    doc_url="https://fastapi.tiangolo.com/"
-)
-session_id = initial_bundle["session_id"]
-print(initial_bundle["key_insights"]["project_summary"])
-
-# 2. Explore the context using the session_id
-docs_root_uri = initial_bundle["root_index"]["docs"]["resource_uri"]
-doc_pages = client.tools.call("autotldr.list", session_id=session_id, resource_uri=docs_root_uri)
-
-# 3. Read a specific piece of content
-getting_started_content = client.tools.call("autotldr.read", session_id=session_id,
-    resource_uri=doc_pages[0]["uri"])
-```
-
-## Use Cases
-
-- **AI Agents:** Equip your agent with a powerful tool to gather deep, structured context for code generation, bug fixing, or project analysis.
-- **Developers:** Onboard to a new codebase in minutes, not days, by using the human-readable HTML output.
-- **Researchers:** Analyze the architecture and evolution of software projects at scale.
-- **Technical Writers:** Find discrepancies between documentation and source code automatically.
-
-## Getting Started (for Human Use)
-
-While built for agents, AutoTLDR can also generate a self-contained HTML report for human browsing.
+`file` tells you what something is. `pandoc` converts format A into format B.
+AutoTLDR tells you what something *means*, and renders that meaning into whatever
+shape the caller needs.
 
 ```bash
-# Run AutoTLDR and generate an HTML report
-uvx autotldr --repo https://github.com/tiangolo/fastapi --docs https://fastapi.tiangolo.com/ --output-html report.html
+autotldr report.pdf                          # read it, in the terminal
+autotldr ./project                           # a whole folder, fused into one view
+autotldr ./project --ask "what did we measure"
+autotldr model.xlsx --out json               # the formula graph, not the cells
+autotldr *.md --out jsonl | jq '.content'    # pipeline
 ```
 
-## Our Vision & Contributing
+It is a Unix tool. It reads a path, a URL, or stdin. It writes to stdout or a
+file. It exits non-zero and says why. Coding agents get it for free, because
+agents call bash.
 
-AutoTLDR is more than a tool; it's a new way of interacting with information. We envision a future where no complex topic is out of reach for humans or their AI counterparts.
+> **Status: pre-alpha.** The representation is being validated against dissimilar
+> formats before anything else is built. Nothing here is stable. See
+> [`docs/spec-v1.md`](docs/spec-v1.md) for what is being built and in what order.
 
-This is an ambitious open-source project. Check out our `PLAN.md` to see the full vision and how you can get involved.
+## What makes it different
+
+**It extracts semantics, not bytes.** "Summarize" means something different for
+every format, and treating them all as text is why generic retrieval fails on
+most of them:
+
+| You point it at | It gives you back |
+| --- | --- |
+| A spreadsheet | The formula dependency graph. Inputs, assumptions, derived values, circular references, and the number somebody hardcoded into a formula in row 400 |
+| A dataset | Schema, units, distributions, gaps. Never the values |
+| A paper | Claims, the evidence under them, the method, the limitations |
+| A repo | Architecture, entry points, the hazards |
+| A folder of all four | How they relate, and where they disagree |
+
+**Every claim is addressable.** No output sentence exists without a pointer back
+into its source: `page:7#span:3`, `Sheet2!C14`, `src/auth.py:88`, `line:120-134`.
+A summary you can verify is a summary you can trust.
+
+**Absence is a finding.** If a source documents no rationale, AutoTLDR says so
+rather than inventing one. "No file in this folder documents why the threshold is
+0.7" is useful output.
+
+**The competition is the toolchain.** Repomix, crawl4ai, Context7, Docling and
+Whisper are good at turning things into clean text, and AutoTLDR shells out to
+them. The work that is left over after they have all run is the product.
+
+## Install
+
+Not published yet. From a checkout:
+
+```bash
+uv venv && uv pip install -e ".[all]"
+```
+
+The base install has zero dependencies. Each format's parser lives in an extra
+and is lazy-imported at the point of use, so `autotldr notes.md` never pays for a
+PDF parser it will not call. Cold start for a Tier 0 file is held under 120ms by
+a test that fails the build if it regresses.
+
+## Documentation
+
+Read them in this order.
+
+| Document | What it covers |
+| --- | --- |
+| [`docs/vision.md`](docs/vision.md) | The stable part. Product thesis, positioning, audience, the three invariants, and the non-goals |
+| [`docs/matrix.md`](docs/matrix.md) | The full product matrix: 51 input formats across 7 tiers, 10 output shapes, distribution surfaces, and what "summarize" actually means for each format |
+| [`docs/spec-v1.md`](docs/spec-v1.md) | v1 build spec: stack decisions and rationale, the representation, folder fusion, the watch daemon, and build order |
+| [`docs/decisions.md`](docs/decisions.md) | Append-only decision log. What was chosen, why, what was rejected, and what would justify revisiting |
+
+Six earlier planning documents are preserved untracked under `archive/`. They are
+superseded and kept only as a record of what was tried.
+
+## Status
+
+Stage 1 of eight is complete: the representation is validated against three
+deliberately dissimilar formats. Stage 2 is the role-tagging eval, which is the
+largest open risk in the project. See
+[`docs/spec-v1.md`](docs/spec-v1.md#part-7-build-order) for the full order.
+
+```bash
+uv run pytest          # 27 tests
+```
+
+## License
+
+MIT. See [LICENSE](LICENSE).
