@@ -12,11 +12,12 @@ Invariants enforced:
 - Every emitted Unit, Relation, and Gap is strictly addressable with exact origins.
 - Emits Role.UNKNOWN exclusively.
 - Never emits raw array values, cell data, or unbudgeted binary payloads.
-- Never uses pickle or allow_pickle; object dtypes emit a named safety gap.
-- Pure stdlib implementation (struct, ast.literal_eval, zipfile); no numpy imported at module scope.
+- Never loads arrays or calls allow_pickle; object dtypes emit a named safety gap.
+- Pure stdlib parsing for headers; lazy numpy dtype helper only for checked itemsize calculation.
 - NPZ enforces strict security guards: rejects encrypted entries, duplicate members,
-  path traversal (../), excessive member counts, and decompression bomb ratios.
-- All file sizes, member counts, dimensions, and header bytes are strictly bounded.
+  path traversal (../), directory members, drive prefixes, zero-compressed bombs,
+  and decompression bomb ratios.
+- All file sizes, member counts, dimensions, payload extents, and header bytes are strictly bounded.
 - Scrubs parser exceptions to prevent private paths or binary buffer leaks.
 """
 
@@ -30,7 +31,7 @@ import stat
 import struct
 import zipfile
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Mapping
 from urllib.parse import quote
 
@@ -45,6 +46,7 @@ _MAX_NPZ_TOTAL_UNCOMPRESSED = 1024 * 1024 * 1024  # 1 GB
 _MAX_DECOMPRESSION_RATIO = 100.0
 _MAX_HEADER_BYTES = 64 * 1024  # 64 KB
 _MAX_STRUCTURED_FIELDS = 512
+_MAX_STRUCTURED_DEPTH = 8
 _MAX_DIMENSIONS = 32
 _MAX_TEXT_CHARS = 1024
 _HASH_CHUNK_BYTES = 1024 * 1024
@@ -56,11 +58,11 @@ class InvalidScientificArrayData(ValueError):
 
     tier = 3
 
-    def __init__(self, path: Path, kind: str, detail: str) -> None:
+    def __init__(self, path: Path | str, kind: str, detail: str) -> None:
         self.path = Path(path)
         self.kind = kind
-        self.detail = detail
-        super().__init__(f"{self.path.name}: invalid {kind}: {detail}")
+        self.detail = _bounded_text(detail, 200)
+        super().__init__(f"{self.path.name}: invalid {kind}: {self.detail}")
 
 
 @dataclass(frozen=True, slots=True)
@@ -79,19 +81,36 @@ def _bounded_text(value: object, limit: int = _MAX_TEXT_CHARS) -> str:
     text = " ".join(str(value).split())
     if len(text) <= limit:
         return text
-    return text[: max(0, limit - 1)] + "…"
+    return text[: max(0, limit - 1)] + "â¦"
+
+
+def _scrub_error_message(exc: BaseException, phase: str, filename: str) -> str:
+    """Produce a bounded, stable, scrubbed error description without private paths or binary buffer dumps."""
+    cls_name = exc.__class__.__name__
+    raw = str(exc).splitlines()[0] if str(exc) else ""
+    parts = []
+    for token in raw.split():
+        if "/" in token or "\\" in token:
+            token = Path(token).name if "/" in token else token
+        parts.append(token)
+    cleaned = " ".join(parts)
+    bounded = _bounded_text(cleaned, 160)
+    return f"{phase} failed ({cls_name}): {bounded}"
 
 
 # ---------------------------------------------------------------------------
 # Magic and structural detection
 # ---------------------------------------------------------------------------
 def detect_scientific_array_kind(path: str | Path) -> str:
-    """Detect whether a file is NumPy NPY or NPZ archive."""
+    """Detect whether a file is NumPy NPY or NPZ archive.
+
+    Fails closed on unknown or spoofed bytes.
+    """
     path = Path(path)
     try:
         size = path.stat().st_size
     except OSError as exc:
-        raise InvalidScientificArrayData(path, "array", str(exc)) from exc
+        raise InvalidScientificArrayData(path, "array", f"stat error: {_bounded_text(str(exc), 80)}") from exc
 
     if size == 0:
         raise InvalidScientificArrayData(path, "array", "file is empty")
@@ -103,17 +122,24 @@ def detect_scientific_array_kind(path: str | Path) -> str:
     with path.open("rb") as f:
         header = f.read(16)
 
+    # 1. Strong NPY magic: ÂNUMPY
     if header.startswith(_NPY_MAGIC):
         return "npy"
 
-    # ZIP magic for NPZ (PK or PK)
-    if header.startswith(b"PK\x03\x04") or header.startswith(b"PK\x05\x06") or path.suffix.lower() == ".npz":
-        return "npz"
+    # 2. NPZ is a ZIP archive containing .npy members
+    if header.startswith(b"PK\x03\x04") or header.startswith(b"PK\x05\x06"):
+        try:
+            with zipfile.ZipFile(path, mode="r") as zf:
+                # Check that at least one member exists or is valid ZIP
+                infolist = zf.infolist()
+                if any(m.filename.endswith(".npy") for m in infolist) or path.suffix.lower() == ".npz":
+                    return "npz"
+        except Exception:
+            pass
 
-    if path.suffix.lower() == ".npy":
-        return "npy"
-
-    return "npy"
+    raise InvalidScientificArrayData(
+        path, "array", "unrecognized or unsupported scientific array signature (failed closed)"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -124,7 +150,7 @@ def _begin(path: Path, kind: str) -> _ReadContext:
     try:
         info = path.stat()
     except OSError as exc:
-        raise InvalidScientificArrayData(path, kind, str(exc)) from exc
+        raise InvalidScientificArrayData(path, kind, f"stat error: {_bounded_text(str(exc), 80)}") from exc
 
     if not stat.S_ISREG(info.st_mode):
         raise InvalidScientificArrayData(path, kind, "input is not a regular file")
@@ -145,7 +171,7 @@ def _begin(path: Path, kind: str) -> _ReadContext:
                 byte_count += len(chunk)
                 digest.update(chunk)
     except OSError as exc:
-        raise InvalidScientificArrayData(path, kind, str(exc)) from exc
+        raise InvalidScientificArrayData(path, kind, f"read error: {_bounded_text(str(exc), 80)}") from exc
 
     identity = (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns)
     if byte_count != info.st_size or _identity(path) != identity:
@@ -172,6 +198,7 @@ def _begin(path: Path, kind: str) -> _ReadContext:
                     "file_bytes": _MAX_FILE_BYTES,
                     "header_bytes": _MAX_HEADER_BYTES,
                     "structured_fields": _MAX_STRUCTURED_FIELDS,
+                    "structured_depth": _MAX_STRUCTURED_DEPTH,
                     "npz_members": _MAX_NPZ_MEMBERS,
                 },
             },
@@ -219,8 +246,44 @@ def _finish(context: _ReadContext) -> Extraction:
 
 
 # ---------------------------------------------------------------------------
-# Bounded Header Parsing (NPY v1, v2, v3)
+# Bounded Header Parsing (NPY v1, v2, v3) & Dtype Validation
 # ---------------------------------------------------------------------------
+def _is_object_dtype_recursive(descr: Any, depth: int = 0) -> bool:
+    """Check if descr represents or contains Python object dtype ('|O')."""
+    if depth > _MAX_STRUCTURED_DEPTH:
+        return False
+    if isinstance(descr, str):
+        return descr.endswith("O") or descr == "O" or descr == "|O"
+    if isinstance(descr, (list, tuple)):
+        for item in descr:
+            if isinstance(item, (list, tuple)) and len(item) >= 2:
+                if _is_object_dtype_recursive(item[1], depth + 1):
+                    return True
+    return False
+
+
+def _get_dtype_info(descr: Any) -> tuple[int, bool]:
+    """Return (itemsize_in_bytes, has_object_flag) using lazy numpy dtype constructor."""
+    try:
+        import numpy as np
+        dt = np.dtype(descr)
+        return int(dt.itemsize), bool(dt.hasobject)
+    except Exception:
+        # Fallback for standard primitive types without numpy
+        if isinstance(descr, str):
+            if descr in ("|b1", "|u1", "|i1"):
+                return 1, False
+            if descr in ("<i2", ">i2", "<u2", ">u2"):
+                return 2, False
+            if descr in ("<i4", ">i4", "<u4", ">u4", "<f4", ">f4"):
+                return 4, False
+            if descr in ("<i8", ">i8", "<u8", ">u8", "<f8", ">f8"):
+                return 8, False
+            if descr in ("|O", "O"):
+                return 8, True
+        return 1, _is_object_dtype_recursive(descr)
+
+
 def _parse_npy_header_bytes(stream, max_read: int = _MAX_HEADER_BYTES) -> tuple[dict[str, Any], int, int, int]:
     """Parse NPY header from open binary stream without loading payload.
 
@@ -267,7 +330,7 @@ def _parse_npy_header_bytes(stream, max_read: int = _MAX_HEADER_BYTES) -> tuple[
     try:
         parsed = ast.literal_eval(header_str.strip())
     except (SyntaxError, ValueError) as exc:
-        raise ValueError(f"malformed NPY header dict syntax") from exc
+        raise ValueError("malformed NPY header dict syntax") from exc
 
     if not isinstance(parsed, dict):
         raise ValueError("NPY header is not a dictionary literal")
@@ -276,18 +339,41 @@ def _parse_npy_header_bytes(stream, max_read: int = _MAX_HEADER_BYTES) -> tuple[
         if req_key not in parsed:
             raise ValueError(f"missing required key {req_key!r} in NPY header")
 
+    # Strict type validations
+    shape = parsed["shape"]
+    if not isinstance(shape, (tuple, list)):
+        raise ValueError(f"NPY shape must be a tuple/list, got {type(shape).__name__}")
+    if len(shape) > _MAX_DIMENSIONS:
+        raise ValueError(f"NPY dimensionality {len(shape)} exceeds maximum {_MAX_DIMENSIONS}")
+    for dim in shape:
+        if isinstance(dim, bool) or not isinstance(dim, int) or dim < 0:
+            raise ValueError(f"NPY shape dimensions must be non-negative integers, got {dim!r}")
+
+    fortran_order = parsed["fortran_order"]
+    if not isinstance(fortran_order, bool):
+        raise ValueError(f"NPY fortran_order must be a boolean, got {type(fortran_order).__name__}")
+
     return parsed, v_maj, v_min, prefix_len + hlen
 
 
-def _is_object_dtype(descr: Any) -> bool:
-    if isinstance(descr, str):
-        return descr.endswith("O") or descr == "O" or descr == "|O"
-    if isinstance(descr, (list, tuple)):
-        for item in descr:
-            if isinstance(item, (list, tuple)) and len(item) >= 2:
-                if _is_object_dtype(item[1]):
-                    return True
-    return False
+def _validate_payload_extent(
+    total_available_bytes: int,
+    total_header_bytes: int,
+    shape: tuple[int, ...] | list[int],
+    itemsize: int,
+) -> None:
+    """Verify that the actual data payload extent is sufficient for the declared shape and dtype."""
+    total_elements = 1
+    for dim in shape:
+        total_elements *= dim
+
+    expected_payload = total_elements * itemsize
+    actual_payload = total_available_bytes - total_header_bytes
+
+    if actual_payload < expected_payload:
+        raise ValueError(
+            f"truncated array payload: expected at least {expected_payload} bytes for shape {list(shape)}, found {actual_payload} bytes"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -297,18 +383,30 @@ def extract_npy(path: str | Path) -> Extraction:
     """Extract array metadata from a NumPy NPY file."""
     path = Path(path)
     context = _begin(path, "npy")
+    file_size = context.path.stat().st_size
 
     try:
         with context.path.open("rb") as f:
             header, v_maj, v_min, total_hdr_len = _parse_npy_header_bytes(f)
     except Exception as exc:
-        raise InvalidScientificArrayData(context.path, "npy", str(exc)) from exc
+        scrubbed = _scrub_error_message(exc, "npy header parse", context.path.name)
+        raise InvalidScientificArrayData(context.path, "npy", scrubbed) from exc
 
-    source = str(context.path)
     shape = header["shape"]
     descr = header["descr"]
     fortran_order = bool(header["fortran_order"])
     ndim = len(shape)
+
+    itemsize, has_object = _get_dtype_info(descr)
+
+    # Validate payload extent
+    try:
+        _validate_payload_extent(file_size, total_hdr_len, shape, itemsize)
+    except ValueError as exc:
+        scrubbed = _scrub_error_message(exc, "payload validation", context.path.name)
+        raise InvalidScientificArrayData(context.path, "npy", scrubbed) from exc
+
+    source = str(context.path)
 
     # 1. Main Array Unit
     content_parts = [
@@ -343,7 +441,7 @@ def extract_npy(path: str | Path) -> Extraction:
     context.result.units.append(array_unit)
 
     # 2. Check for object dtype security risk
-    if _is_object_dtype(descr):
+    if has_object or _is_object_dtype_recursive(descr):
         context.result.add_gap(
             "Object dtype ('|O') contains pickled Python objects; payload inspection refused for security",
             ref="array",
@@ -365,10 +463,10 @@ def extract_npy(path: str | Path) -> Extraction:
                 field_unit = Unit(
                     source=source,
                     modality=Modality.SCHEMA,
-                    content=f"Field {f_name}: dtype={f_type}" + (f", shape={f_shape}" if f_shape else ""),
-                    origin=Origin(source, f"field:{quote(f_name, safe='-._~')}"),
+                    content=f"Field {idx} ({f_name}): dtype={f_type}" + (f", shape={f_shape}" if f_shape else ""),
+                    origin=Origin(source, f"field:{idx}:{quote(f_name, safe='-._~')}"),
                     role=Role.UNKNOWN,
-                    structure=("array", context.path.name, f_name),
+                    structure=("array", context.path.name, f"{idx}:{f_name}"),
                     salience=0.7,
                     meta={
                         "index": idx,
@@ -391,8 +489,26 @@ def extract_npy(path: str | Path) -> Extraction:
 
 
 # ---------------------------------------------------------------------------
-# NPZ Extractor
+# NPZ Extractor with Canonical Posix Path & Security Hardening
 # ---------------------------------------------------------------------------
+def _validate_npz_member_name(name: str) -> PurePosixPath:
+    if chr(0) in name:
+        raise ValueError(f"NUL byte in member name {name!r}")
+    if "\\" in name:
+        raise ValueError(f"backslash in member name {name!r}")
+    if name.startswith("/"):
+        raise ValueError(f"absolute path in member name {name!r}")
+    if name.endswith("/"):
+        raise ValueError(f"directory member {name!r} is unsupported in NPZ")
+    if ":" in name.split("/")[0]:
+        raise ValueError(f"drive-like prefix in member name {name!r}")
+
+    p = PurePosixPath(name)
+    if p.is_absolute() or any(part in (".", "..") for part in p.parts):
+        raise ValueError(f"path traversal or dot component in member name {name!r}")
+    return p
+
+
 def extract_npz(path: str | Path) -> Extraction:
     """Extract member inventory and array metadata from a NumPy NPZ archive."""
     path = Path(path)
@@ -402,7 +518,8 @@ def extract_npz(path: str | Path) -> Extraction:
     try:
         zf = zipfile.ZipFile(context.path, mode="r")
     except Exception as exc:
-        raise InvalidScientificArrayData(context.path, "npz", str(exc)) from exc
+        scrubbed = _scrub_error_message(exc, "npz zip open", context.path.name)
+        raise InvalidScientificArrayData(context.path, "npz", scrubbed) from exc
 
     with zf:
         infolist = zf.infolist()
@@ -437,16 +554,18 @@ def extract_npz(path: str | Path) -> Extraction:
         for member in infolist:
             fname = member.filename
 
+            # Hardened name check
+            try:
+                _validate_npz_member_name(fname)
+            except ValueError as exc:
+                raise InvalidScientificArrayData(
+                    context.path, "npz", f"security violation on member: {_bounded_text(str(exc), 100)}"
+                ) from exc
+
             # Security: check encrypted flag
             if member.flag_bits & 0x1:
                 raise InvalidScientificArrayData(
                     context.path, "npz", f"encrypted member {fname!r} is unsupported"
-                )
-
-            # Security: path traversal
-            if fname.startswith("/") or fname.startswith("..") or "/../" in fname or "\\..\\" in fname:
-                raise InvalidScientificArrayData(
-                    context.path, "npz", f"malicious zip path traversal: {fname!r}"
                 )
 
             # Security: duplicate entries
@@ -465,10 +584,16 @@ def extract_npz(path: str | Path) -> Extraction:
                     f"uncompressed size {total_uncompressed} exceeds limit {_MAX_NPZ_TOTAL_UNCOMPRESSED}",
                 )
 
+            # Security: zero-compressed non-empty bomb
+            if member.file_size > 0 and member.compress_size == 0:
+                raise InvalidScientificArrayData(
+                    context.path, "npz", f"zero-compressed non-empty member bomb: {fname!r}"
+                )
+
             # Decompression ratio check
             if member.compress_size > 0:
                 ratio = member.file_size / member.compress_size
-                if ratio > _MAX_DECOMPRESSION_RATIO and member.file_size > 1024 * 1024:
+                if ratio > _MAX_DECOMPRESSION_RATIO and member.file_size > 64 * 1024:
                     raise InvalidScientificArrayData(
                         context.path,
                         "npz",
@@ -476,43 +601,47 @@ def extract_npz(path: str | Path) -> Extraction:
                     )
 
             # Read only NPY header from member stream without loading payload
+            member_ref = f"member:{quote(fname, safe='-._~')}"
             try:
                 with zf.open(member, mode="r") as member_stream:
-                    hdr, v_maj, v_min, _ = _parse_npy_header_bytes(member_stream)
+                    hdr, v_maj, v_min, total_hdr_len = _parse_npy_header_bytes(member_stream)
+                    m_shape = hdr["shape"]
+                    m_descr = hdr["descr"]
+                    m_fortran = bool(hdr["fortran_order"])
+                    m_itemsize, m_has_obj = _get_dtype_info(m_descr)
+
+                    # Validate member payload extent
+                    _validate_payload_extent(member.file_size, total_hdr_len, m_shape, m_itemsize)
             except Exception as exc:
                 context.result.add_gap(
                     f"Member {fname!r} is not a valid NPY array: {_bounded_text(str(exc), 120)}",
-                    ref=f"member:{quote(fname, safe='-._~')}",
+                    ref=member_ref,
                 )
                 continue
 
-            shape = hdr["shape"]
-            descr = hdr["descr"]
-            fortran_order = bool(hdr["fortran_order"])
-            ndim = len(shape)
-
+            m_ndim = len(m_shape)
             member_desc = [
                 f"Array {fname}",
-                f"shape={list(shape)}",
-                f"ndim={ndim}",
-                f"dtype={descr if isinstance(descr, str) else 'structured'}",
-                f"order={'F' if fortran_order else 'C'}",
+                f"shape={list(m_shape)}",
+                f"ndim={m_ndim}",
+                f"dtype={m_descr if isinstance(m_descr, str) else 'structured'}",
+                f"order={'F' if m_fortran else 'C'}",
             ]
 
             member_unit = Unit(
                 source=source,
                 modality=Modality.SCHEMA,
                 content=", ".join(member_desc),
-                origin=Origin(source, f"member:{quote(fname, safe='-._~')}"),
+                origin=Origin(source, member_ref),
                 role=Role.UNKNOWN,
                 structure=("archive", context.path.name, fname),
                 salience=0.8,
                 meta={
                     "name": fname,
-                    "shape": list(shape),
-                    "ndim": ndim,
-                    "dtype": str(descr) if isinstance(descr, str) else "structured",
-                    "fortran_order": fortran_order,
+                    "shape": list(m_shape),
+                    "ndim": m_ndim,
+                    "dtype": str(m_descr) if isinstance(m_descr, str) else "structured",
+                    "fortran_order": m_fortran,
                     "uncompressed_bytes": member.file_size,
                 },
             )
@@ -527,10 +656,10 @@ def extract_npz(path: str | Path) -> Extraction:
             )
 
             # Safety gap for object dtype inside member
-            if _is_object_dtype(descr):
+            if m_has_obj or _is_object_dtype_recursive(m_descr):
                 context.result.add_gap(
                     f"Member {fname!r} has object dtype ('|O') with pickled objects; inspection refused",
-                    ref=f"member:{quote(fname, safe='-._~')}",
+                    ref=member_ref,
                 )
 
     return _finish(context)
