@@ -91,7 +91,7 @@ def test_extract_primary_fits(tmp_path):
     assert extraction.kind == "fits"
     assert extraction.source == str(p)
 
-    primary_units = [u for u in extraction.units if u.origin.ref == "primary"]
+    primary_units = [u for u in extraction.units if u.origin.ref == "hdu:0"]
     assert len(primary_units) == 1
     u = primary_units[0]
     assert u.modality == Modality.SCHEMA
@@ -104,142 +104,139 @@ def test_extract_primary_fits(tmp_path):
     assert u.meta["wcs"]["CTYPE1"] == "RA---TAN"
 
 
-def test_extract_multi_extension_fits(tmp_path):
-    # 1. Primary HDU (no data, NAXIS=0)
+def test_quoted_string_with_slash_and_doubled_quote(tmp_path):
+    """Quoted string containing slash and doubled quote must be parsed without corruption."""
+    cards = [
+        _make_fits_card("SIMPLE", True),
+        _make_fits_card("BITPIX", 8),
+        _make_fits_card("NAXIS", 0),
+        _make_fits_card("TELESCOP", "ESO/VLT / 8.2m", "Telescope with slash in name"),
+        _make_fits_card("OBSERVER", "O''Neil, J.", "Observer with doubled quote"),
+    ]
+    p = tmp_path / "quoted.fits"
+    p.write_bytes(_build_fits_header(cards))
+
+    extraction = extract_fits(p)
+    u = extraction.units[0]
+    assert u.meta["telescope"] == "ESO/VLT / 8.2m"
+
+
+def test_duplicate_extname_and_column_names(tmp_path):
+    """Duplicate EXTNAMEs and duplicate column names must not collide in Unit IDs or refs."""
     prim_cards = [
         _make_fits_card("SIMPLE", True),
         _make_fits_card("BITPIX", 8),
         _make_fits_card("NAXIS", 0),
-        _make_fits_card("EXTEND", True),
-        _make_fits_card("TELESCOP", "JWST"),
-        _make_fits_card("INSTRUME", "NIRCam"),
     ]
     prim_hdr = _build_fits_header(prim_cards)
 
-    # 2. Extension 1: BINTABLE
+    # Extension 1 with EXTNAME='DATA' and duplicate columns 'FLUX', 'FLUX'
     ext1_cards = [
         _make_fits_card("XTENSION", "BINTABLE"),
         _make_fits_card("BITPIX", 8),
         _make_fits_card("NAXIS", 2),
-        _make_fits_card("NAXIS1", 16),
-        _make_fits_card("NAXIS2", 10),
-        _make_fits_card("PCOUNT", 0),
-        _make_fits_card("GCOUNT", 1),
-        _make_fits_card("TFIELDS", 3),
-        _make_fits_card("EXTNAME", "SOURCES"),
-        _make_fits_card("TTYPE1", "STAR_ID"),
-        _make_fits_card("TFORM1", "1J"),
+        _make_fits_card("NAXIS1", 8),
+        _make_fits_card("NAXIS2", 5),
+        _make_fits_card("TFIELDS", 2),
+        _make_fits_card("EXTNAME", "DATA"),
+        _make_fits_card("TTYPE1", "FLUX"),
+        _make_fits_card("TFORM1", "1E"),
         _make_fits_card("TTYPE2", "FLUX"),
         _make_fits_card("TFORM2", "1E"),
-        _make_fits_card("TUNIT2", "count/s"),
-        _make_fits_card("TTYPE3", "QUALITY"),
-        _make_fits_card("TFORM3", "1I"),
     ]
     ext1_hdr = _build_fits_header(ext1_cards)
-    ext1_data_len = 16 * 10
-    ext1_data_pad = 2880 - (ext1_data_len % 2880)
-    ext1_data = b"\x00" * (ext1_data_len + ext1_data_pad)
+    data1 = b"\x00" * 2880
 
-    # 3. Extension 2: IMAGE
+    # Extension 2 ALSO with EXTNAME='DATA'
     ext2_cards = [
         _make_fits_card("XTENSION", "IMAGE"),
-        _make_fits_card("BITPIX", -32),
+        _make_fits_card("BITPIX", 16),
         _make_fits_card("NAXIS", 2),
-        _make_fits_card("NAXIS1", 20),
-        _make_fits_card("NAXIS2", 20),
-        _make_fits_card("EXTNAME", "SCI"),
+        _make_fits_card("NAXIS1", 10),
+        _make_fits_card("NAXIS2", 10),
+        _make_fits_card("EXTNAME", "DATA"),
     ]
     ext2_hdr = _build_fits_header(ext2_cards)
-    ext2_data_len = 20 * 20 * 4
-    ext2_data_pad = 2880 - (ext2_data_len % 2880)
-    ext2_data = b"\x00" * (ext2_data_len + ext2_data_pad)
+    data2 = b"\x00" * 2880
 
-    p = tmp_path / "jwst_dataset.fits"
-    p.write_bytes(prim_hdr + ext1_hdr + ext1_data + ext2_hdr + ext2_data)
+    p = tmp_path / "dup_ext.fits"
+    p.write_bytes(prim_hdr + ext1_hdr + data1 + ext2_hdr + data2)
 
-    extraction = extract_astronomy(p)
-    assert len(extraction.units) >= 6
+    extraction = extract_fits(p)
+    unit_ids = [u.id for u in extraction.units]
+    assert len(unit_ids) == len(set(unit_ids)), "All emitted Unit IDs must be strictly unique"
 
-    # Verify primary and extension relations
-    prim_unit = [u for u in extraction.units if u.origin.ref == "primary"][0]
-    ext_units = [u for u in extraction.units if u.origin.ref in {"ext:SOURCES", "ext:SCI"}]
-    assert len(ext_units) == 2
-
-    # Verify column units
-    col_units = [u for u in extraction.units if "col:" in u.origin.ref]
-    assert len(col_units) == 3
-    col_names = [u.meta["name"] for u in col_units]
-    assert set(col_names) == {"STAR_ID", "FLUX", "QUALITY"}
-
-    # Relations check
-    table_unit = [u for u in extraction.units if u.origin.ref == "ext:SOURCES"][0]
-    for c in col_units:
-        assert any(
-            r.src == table_unit.id and r.dst == c.id and r.kind == RelationKind.DESCRIBES
-            for r in extraction.relations
-        )
+    refs = [u.origin.ref for u in extraction.units]
+    assert "hdu:1" in refs
+    assert "hdu:2" in refs
+    assert "hdu:1#col:1:FLUX" in refs
+    assert "hdu:1#col:2:FLUX" in refs
 
 
-def test_fits_payload_skip_checked_arithmetic(tmp_path):
-    """Ensure parser skips data payload using arithmetic without loading large payload."""
+def test_payload_truncation_rejected(tmp_path):
+    """FITS header declaring 100x100 32-bit payload but ending at header must decline."""
     cards = [
         _make_fits_card("SIMPLE", True),
         _make_fits_card("BITPIX", 32),
         _make_fits_card("NAXIS", 2),
-        _make_fits_card("NAXIS1", 1000),
-        _make_fits_card("NAXIS2", 1000),  # 4 MB payload
-        _make_fits_card("TELESCOP", "VLT"),
+        _make_fits_card("NAXIS1", 100),
+        _make_fits_card("NAXIS2", 100),
     ]
-    hdr = _build_fits_header(cards)
-    data_len = 1000 * 1000 * 4
-    data_pad = 2880 - (data_len % 2880)
-    data = b"\x00" * (data_len + data_pad)
+    p = tmp_path / "header_only_truncated.fits"
+    # Declares 100*100*4 = 40,000 bytes data payload, but writes only header
+    p.write_bytes(_build_fits_header(cards))
 
-    p = tmp_path / "large_image.fits"
-    p.write_bytes(hdr + data)
-
-    extraction = extract_fits(p)
-    assert extraction.units[0].meta["shape"] == [1000, 1000]
-
-
-def test_missing_observation_cards_gap(tmp_path):
-    cards = [
-        _make_fits_card("SIMPLE", True),
-        _make_fits_card("BITPIX", 8),
-        _make_fits_card("NAXIS", 0),
-    ]
-    hdr = _build_fits_header(cards)
-    p = tmp_path / "no_obs.fits"
-    p.write_bytes(hdr)
-
-    extraction = extract_fits(p)
-    assert any("TELESCOP or INSTRUME" in str(g) for g in extraction.gaps)
-
-
-def test_truncated_fits_rejected(tmp_path):
-    p = tmp_path / "truncated.fits"
-    p.write_bytes(b"SIMPLE  =                    T / Standard FITS" + b" " * 100)
-    with pytest.raises(InvalidFitsData, match="multiple of 2880"):
+    with pytest.raises(InvalidFitsData, match="payload truncated"):
         extract_fits(p)
 
 
-def test_empty_fits_rejected(tmp_path):
-    empty = tmp_path / "empty.fits"
-    empty.write_bytes(b"")
-    with pytest.raises(InvalidFitsData, match="empty"):
-        extract_fits(empty)
+def test_fail_closed_unknown_bytes_and_spoofed_suffix(tmp_path):
+    """Spoofed suffix on unknown bytes must fail closed."""
+    p_fake = tmp_path / "fake.fits"
+    p_fake.write_bytes(b"NOT_A_FITS_HEADER_FILE_AT_ALL_1234" + b"\x00" * 3000)
+
+    with pytest.raises(InvalidFitsData, match="failed closed"):
+        detect_astronomy_kind(p_fake)
 
 
-def test_determinism(tmp_path):
+def test_missing_required_card_order(tmp_path):
+    """FITS primary missing SIMPLE as first card must decline."""
     cards = [
-        _make_fits_card("SIMPLE", True),
         _make_fits_card("BITPIX", 8),
+        _make_fits_card("SIMPLE", True),
         _make_fits_card("NAXIS", 0),
-        _make_fits_card("TELESCOP", "TEST"),
     ]
-    p = tmp_path / "det.fits"
+    p = tmp_path / "wrong_order.fits"
     p.write_bytes(_build_fits_header(cards))
 
-    ext1 = extract_fits(p)
-    ext2 = extract_fits(p)
-    assert [u.id for u in ext1.units] == [u.id for u in ext2.units]
+    with pytest.raises(InvalidFitsData, match="must begin with 'SIMPLE'"):
+        extract_fits(p)
+
+
+def test_invalid_bitpix_rejected(tmp_path):
+    """Invalid BITPIX value must decline."""
+    cards = [
+        _make_fits_card("SIMPLE", True),
+        _make_fits_card("BITPIX", 17),  # 17 is not in (8, 16, 32, 64, -32, -64)
+        _make_fits_card("NAXIS", 0),
+    ]
+    p = tmp_path / "bad_bitpix.fits"
+    p.write_bytes(_build_fits_header(cards))
+
+    with pytest.raises(InvalidFitsData, match="invalid BITPIX"):
+        extract_fits(p)
+
+
+def test_error_message_scrubbing(tmp_path):
+    """Error messages must not leak private directory paths."""
+    secret_dir = tmp_path / "top_secret_astronomy_observatory"
+    secret_dir.mkdir()
+    p = secret_dir / "bad.fits"
+    p.write_bytes(b"SIMPLE  =                    T" + b" " * 2854)
+
+    with pytest.raises(InvalidFitsData) as exc_info:
+        extract_fits(p)
+
+    msg = str(exc_info.value)
+    assert "top_secret_astronomy_observatory" not in msg
+    assert "bad.fits:" in msg

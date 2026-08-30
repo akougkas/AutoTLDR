@@ -10,9 +10,10 @@ Invariants enforced:
 - Every emitted Unit, Relation, and Gap is strictly addressable with exact origins.
 - Emits Role.UNKNOWN exclusively.
 - Never decodes or emits raw pixel payloads, image buffers, or table data rows.
-- Pure standard library implementation using checked 2880-byte block parsing.
-- Correctly skips data payload blocks with checked integer arithmetic.
-- Rejects truncated, malformed, or out-of-bounds headers.
+- Pure standard library implementation using strict 7-bit ASCII 2880-byte block parsing.
+- Validates required card order, valid BITPIX, bounded NAXIS/dimensions, and checked payload arithmetic.
+- Proves payload extent before seeking; truncated payloads decline with typed errors.
+- Disambiguates duplicate EXTNAME and duplicate column names with deterministic index-qualified refs.
 - Enforces strict bounds on file sizes, HDU counts, cards per HDU, and table columns.
 - Scrubs parser exceptions to prevent private paths or binary buffer leaks.
 """
@@ -24,7 +25,6 @@ import json
 import os
 import posixpath
 import stat
-import struct
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
@@ -40,11 +40,13 @@ _MAX_HDUS = 512
 _MAX_HEADER_BLOCKS_PER_HDU = 128
 _MAX_CARDS_PER_HDU = 4096
 _MAX_COLUMNS_PER_TABLE = 1024
+_MAX_DIMENSIONS = 32
 _MAX_TEXT_CHARS = 1024
 _HASH_CHUNK_BYTES = 1024 * 1024
 _FITS_BLOCK_SIZE = 2880
 _FITS_CARD_SIZE = 80
 _CARDS_PER_BLOCK = 36
+_VALID_BITPIX = {8, 16, 32, 64, -32, -64}
 
 
 class InvalidFitsData(ValueError):
@@ -52,11 +54,11 @@ class InvalidFitsData(ValueError):
 
     tier = 3
 
-    def __init__(self, path: Path, kind: str, detail: str) -> None:
+    def __init__(self, path: Path | str, kind: str, detail: str) -> None:
         self.path = Path(path)
         self.kind = kind
-        self.detail = detail
-        super().__init__(f"{self.path.name}: invalid {kind}: {detail}")
+        self.detail = _bounded_text(detail, 200)
+        super().__init__(f"{self.path.name}: invalid {kind}: {self.detail}")
 
 
 @dataclass(frozen=True, slots=True)
@@ -78,16 +80,33 @@ def _bounded_text(value: object, limit: int = _MAX_TEXT_CHARS) -> str:
     return text[: max(0, limit - 1)] + "…"
 
 
+def _scrub_error_message(exc: BaseException, phase: str, filename: str) -> str:
+    """Produce a bounded, stable, scrubbed error description without private paths or binary buffer dumps."""
+    cls_name = exc.__class__.__name__
+    raw = str(exc).splitlines()[0] if str(exc) else ""
+    parts = []
+    for token in raw.split():
+        if "/" in token or "\\" in token:
+            token = Path(token).name if "/" in token else token
+        parts.append(token)
+    cleaned = " ".join(parts)
+    bounded = _bounded_text(cleaned, 160)
+    return f"{phase} failed ({cls_name}): {bounded}"
+
+
 # ---------------------------------------------------------------------------
 # Magic and structural detection
 # ---------------------------------------------------------------------------
 def detect_astronomy_kind(path: str | Path) -> str:
-    """Detect whether a file is a FITS astronomy data file."""
+    """Detect whether a file is a FITS astronomy data file.
+
+    Fails closed on unknown or spoofed bytes.
+    """
     path = Path(path)
     try:
         size = path.stat().st_size
     except OSError as exc:
-        raise InvalidFitsData(path, "astronomy", str(exc)) from exc
+        raise InvalidFitsData(path, "astronomy", f"stat error: {_bounded_text(str(exc), 80)}") from exc
 
     if size == 0:
         raise InvalidFitsData(path, "astronomy", "file is empty")
@@ -103,14 +122,13 @@ def detect_astronomy_kind(path: str | Path) -> str:
     with path.open("rb") as f:
         header = f.read(30)
 
-    # Standard FITS primary header starts with 'SIMPLE  = ' or 'SIMPLE  ='
+    # Standard FITS primary header starts with 'SIMPLE  = '
     if header.startswith(b"SIMPLE  ="):
         return "fits"
 
-    if path.suffix.lower() in {".fits", ".fit", ".fts"}:
-        return "fits"
-
-    return "fits"
+    raise InvalidFitsData(
+        path, "astronomy", "unrecognized or unsupported astronomy format signature (failed closed)"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -121,7 +139,7 @@ def _begin(path: Path, kind: str) -> _ReadContext:
     try:
         info = path.stat()
     except OSError as exc:
-        raise InvalidFitsData(path, kind, str(exc)) from exc
+        raise InvalidFitsData(path, kind, f"stat error: {_bounded_text(str(exc), 80)}") from exc
 
     if not stat.S_ISREG(info.st_mode):
         raise InvalidFitsData(path, kind, "input is not a regular file")
@@ -148,7 +166,7 @@ def _begin(path: Path, kind: str) -> _ReadContext:
                 byte_count += len(chunk)
                 digest.update(chunk)
     except OSError as exc:
-        raise InvalidFitsData(path, kind, str(exc)) from exc
+        raise InvalidFitsData(path, kind, f"read error: {_bounded_text(str(exc), 80)}") from exc
 
     identity = (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns)
     if byte_count != info.st_size or _identity(path) != identity:
@@ -223,87 +241,90 @@ def _finish(context: _ReadContext) -> Extraction:
 
 
 # ---------------------------------------------------------------------------
-# Card Parsing Logic
+# Strict 7-Bit ASCII Card Parsing Logic
 # ---------------------------------------------------------------------------
-def _parse_card(card_bytes: bytes) -> tuple[str, Any, str]:
-    """Parse an 80-byte ASCII FITS card into (keyword, value, comment)."""
+def _parse_card_strict(card_bytes: bytes) -> tuple[str, Any, str]:
+    """Parse an 80-byte strict 7-bit ASCII FITS card into (keyword, value, comment)."""
+    if len(card_bytes) != 80:
+        raise ValueError(f"card must be exactly 80 bytes, got {len(card_bytes)}")
+
     try:
-        card_str = card_bytes.decode("ascii", errors="replace")
-    except Exception:
-        return "", None, ""
+        card_str = card_bytes.decode("ascii")
+    except UnicodeDecodeError as exc:
+        raise ValueError(f"non-ASCII byte in card at offset {exc.start}") from exc
 
     kw = card_str[:8].strip().upper()
     if not kw:
         return "", None, ""
 
     if len(card_str) <= 8 or card_str[8:10] != "= ":
-        # Free-format comment card or non-value card
         comment = card_str[8:].strip()
         return kw, None, comment
 
     rest = card_str[10:]
+    stripped_rest = rest.lstrip()
+
+    # Check for single-quoted string value (which may contain slashes)
+    if stripped_rest.startswith("'"):
+        start_idx = rest.find("'")
+        accum = []
+        i = start_idx + 1
+        closed = False
+        while i < len(rest):
+            if rest[i] == "'":
+                if i + 1 < len(rest) and rest[i + 1] == "'":
+                    accum.append("'")
+                    i += 2
+                    continue
+                else:
+                    closed = True
+                    i += 1
+                    break
+            else:
+                accum.append(rest[i])
+                i += 1
+        if not closed:
+            raise ValueError(f"unclosed single-quoted string for keyword {kw}")
+        val = "".join(accum).rstrip()
+        remainder = rest[i:]
+        _, _, comment = remainder.partition("/")
+        return kw, val, comment.strip()
+
+    # Non-string value: partition at '/'
     val_part, _, comment_part = rest.partition("/")
     val_str = val_part.strip()
     comment = comment_part.strip()
 
     if not val_str:
         return kw, None, comment
-
-    # String value enclosed in quotes
-    if val_str.startswith("'"):
-        # FITS string: find closing quote
-        in_str = True
-        accum = []
-        i = 1
-        while i < len(val_str):
-            if val_str[i] == "'":
-                if i + 1 < len(val_str) and val_str[i + 1] == "'":
-                    accum.append("'")
-                    i += 2
-                    continue
-                else:
-                    break
-            else:
-                accum.append(val_str[i])
-                i += 1
-        return kw, "".join(accum).rstrip(), comment
-
-    # Boolean value
     if val_str == "T":
         return kw, True, comment
     if val_str == "F":
         return kw, False, comment
-
-    # Integer value
     try:
         return kw, int(val_str), comment
     except ValueError:
         pass
-
-    # Float value
     try:
-        # FITS allows 'D' exponent instead of 'E'
-        normalized_float = val_str.replace("D", "E").replace("d", "e")
-        return kw, float(normalized_float), comment
+        norm = val_str.replace("D", "E").replace("d", "e")
+        return kw, float(norm), comment
     except ValueError:
         pass
-
-    # Fallback to string
     return kw, val_str, comment
 
 
 # ---------------------------------------------------------------------------
-# HDU Header Reader
+# Ordered HDU Header Reader with Mandatory Validation
 # ---------------------------------------------------------------------------
 def _read_hdu_header(
     stream, hdu_index: int
-) -> tuple[dict[str, Any], dict[str, str], int]:
+) -> tuple[dict[str, Any], list[tuple[str, Any, str]], int]:
     """Read all 2880-byte header blocks for one HDU until 'END' card.
 
-    Returns (cards_dict, comments_dict, total_header_bytes).
+    Returns (cards_dict, ordered_cards_list, total_header_bytes).
     """
     cards: dict[str, Any] = {}
-    comments: dict[str, str] = {}
+    ordered_cards: list[tuple[str, Any, str]] = []
     block_count = 0
     found_end = False
 
@@ -311,23 +332,21 @@ def _read_hdu_header(
         block = stream.read(_FITS_BLOCK_SIZE)
         if len(block) < _FITS_BLOCK_SIZE:
             if block_count == 0 and len(block) == 0:
-                # Normal EOF between HDUs
-                return {}, {}, 0
+                # Clean EOF between HDUs
+                return {}, [], 0
             raise ValueError(f"truncated FITS header block in HDU {hdu_index}")
 
         block_count += 1
         for card_idx in range(_CARDS_PER_BLOCK):
             card_bytes = block[card_idx * _FITS_CARD_SIZE : (card_idx + 1) * _FITS_CARD_SIZE]
-            kw, val, comm = _parse_card(card_bytes)
+            kw, val, comm = _parse_card_strict(card_bytes)
             if kw == "END":
                 found_end = True
                 break
-            if kw and len(cards) < _MAX_CARDS_PER_HDU:
-                # If key already exists, keep or list
+            if kw and len(ordered_cards) < _MAX_CARDS_PER_HDU:
+                ordered_cards.append((kw, val, comm))
                 if kw not in cards:
                     cards[kw] = val
-                    if comm:
-                        comments[kw] = comm
 
         if found_end:
             break
@@ -337,7 +356,7 @@ def _read_hdu_header(
             f"HDU {hdu_index} header exceeded {_MAX_HEADER_BLOCKS_PER_HDU} blocks without END card"
         )
 
-    return cards, comments, block_count * _FITS_BLOCK_SIZE
+    return cards, ordered_cards, block_count * _FITS_BLOCK_SIZE
 
 
 # ---------------------------------------------------------------------------
@@ -348,6 +367,7 @@ def extract_fits(path: str | Path) -> Extraction:
     path = Path(path)
     context = _begin(path, "fits")
     source = str(context.path)
+    file_size = context.path.stat().st_size
 
     try:
         with context.path.open("rb") as f:
@@ -356,32 +376,68 @@ def extract_fits(path: str | Path) -> Extraction:
 
             while hdu_index < _MAX_HDUS:
                 start_offset = f.tell()
-                cards, comments, header_bytes = _read_hdu_header(f, hdu_index)
+                cards, ordered_cards, header_bytes = _read_hdu_header(f, hdu_index)
                 if not cards and header_bytes == 0:
-                    # End of file reached
                     break
 
-                # Validate HDU 0 is primary
+                # 1. Validate mandatory card ordering and types
                 if hdu_index == 0:
-                    if "SIMPLE" not in cards:
-                        raise ValueError("Primary HDU missing required 'SIMPLE' card")
-                    if cards.get("SIMPLE") is not True:
+                    if not ordered_cards or ordered_cards[0][0] != "SIMPLE":
+                        raise ValueError("Primary HDU must begin with 'SIMPLE' card at card index 0")
+                    simple_val = cards.get("SIMPLE")
+                    if not isinstance(simple_val, bool):
+                        raise ValueError(f"Primary HDU 'SIMPLE' card must be boolean T/F, got {simple_val!r}")
+                    if simple_val is not True:
                         context.result.add_gap(
                             "Primary HDU declares SIMPLE=F (non-standard FITS conformant file)",
-                            ref="primary",
+                            ref="hdu:0",
                         )
                 else:
-                    if "XTENSION" not in cards:
-                        raise ValueError(f"Extension HDU {hdu_index} missing 'XTENSION' card")
+                    if not ordered_cards or ordered_cards[0][0] != "XTENSION":
+                        raise ValueError(f"Extension HDU {hdu_index} must begin with 'XTENSION' card at card index 0")
+                    xtension_val = cards.get("XTENSION")
+                    if not isinstance(xtension_val, str) or not xtension_val.strip():
+                        raise ValueError(f"Extension HDU {hdu_index} 'XTENSION' card must be a non-empty string")
 
-                # Parse dimensions and BITPIX
-                bitpix = int(cards.get("BITPIX", 8))
-                naxis = int(cards.get("NAXIS", 0))
-                dims = [int(cards.get(f"NAXIS{i}", 0)) for i in range(1, naxis + 1)]
-                pcount = int(cards.get("PCOUNT", 0))
-                gcount = int(cards.get("GCOUNT", 1))
+                # Validate BITPIX
+                if "BITPIX" not in cards:
+                    raise ValueError(f"HDU {hdu_index} missing mandatory 'BITPIX' card")
+                bitpix_raw = cards["BITPIX"]
+                if isinstance(bitpix_raw, bool) or not isinstance(bitpix_raw, int) or bitpix_raw not in _VALID_BITPIX:
+                    raise ValueError(f"HDU {hdu_index} invalid BITPIX {bitpix_raw!r}; must be one of {sorted(_VALID_BITPIX)}")
+                bitpix = bitpix_raw
 
-                # Calculate payload size and advance stream
+                # Validate NAXIS
+                if "NAXIS" not in cards:
+                    raise ValueError(f"HDU {hdu_index} missing mandatory 'NAXIS' card")
+                naxis_raw = cards["NAXIS"]
+                if isinstance(naxis_raw, bool) or not isinstance(naxis_raw, int) or naxis_raw < 0 or naxis_raw > _MAX_DIMENSIONS:
+                    raise ValueError(f"HDU {hdu_index} invalid NAXIS {naxis_raw!r}; must be integer 0..{_MAX_DIMENSIONS}")
+                naxis = naxis_raw
+
+                # Validate NAXISn dimensions
+                dims: list[int] = []
+                for n in range(1, naxis + 1):
+                    key = f"NAXIS{n}"
+                    if key not in cards:
+                        raise ValueError(f"HDU {hdu_index} missing mandatory '{key}' card for NAXIS={naxis}")
+                    dim_val = cards[key]
+                    if isinstance(dim_val, bool) or not isinstance(dim_val, int) or dim_val < 0:
+                        raise ValueError(f"HDU {hdu_index} invalid {key} {dim_val!r}; must be non-negative integer")
+                    dims.append(dim_val)
+
+                # Validate PCOUNT and GCOUNT
+                pcount_raw = cards.get("PCOUNT", 0)
+                if isinstance(pcount_raw, bool) or not isinstance(pcount_raw, int) or pcount_raw < 0:
+                    raise ValueError(f"HDU {hdu_index} invalid PCOUNT {pcount_raw!r}; must be non-negative integer")
+                pcount = pcount_raw
+
+                gcount_raw = cards.get("GCOUNT", 1)
+                if isinstance(gcount_raw, bool) or not isinstance(gcount_raw, int) or gcount_raw < 1:
+                    raise ValueError(f"HDU {hdu_index} invalid GCOUNT {gcount_raw!r}; must be positive integer >= 1")
+                gcount = gcount_raw
+
+                # 2. Checked Payload Arithmetic & Extent Validation
                 payload_bytes = 0
                 if naxis > 0 and all(d > 0 for d in dims):
                     bytes_per_val = abs(bitpix) // 8
@@ -395,7 +451,14 @@ def extract_fits(path: str | Path) -> Extraction:
                 if payload_bytes > 0:
                     rem = payload_bytes % _FITS_BLOCK_SIZE
                     padded_data_bytes = payload_bytes if rem == 0 else payload_bytes + (_FITS_BLOCK_SIZE - rem)
-                    # Checked skip of payload blocks without loading data
+
+                current_offset = f.tell()
+                if current_offset + padded_data_bytes > file_size:
+                    raise ValueError(
+                        f"HDU {hdu_index} payload truncated: requires {padded_data_bytes} bytes, file ends at offset {file_size}"
+                    )
+
+                if padded_data_bytes > 0:
                     f.seek(padded_data_bytes, os.SEEK_CUR)
 
                 # Extract observation & instrument metadata
@@ -411,7 +474,7 @@ def extract_fits(path: str | Path) -> Extraction:
                     if wcs_k in cards:
                         wcs_info[wcs_k] = cards[wcs_k]
 
-                # 1. Primary HDU Unit
+                # 3. Emit Primary HDU Unit
                 if hdu_index == 0:
                     content_parts = [f"FITS Primary HDU: {naxis}D image (BITPIX={bitpix})"]
                     if dims:
@@ -430,9 +493,9 @@ def extract_fits(path: str | Path) -> Extraction:
                         source=source,
                         modality=Modality.SCHEMA,
                         content=primary_content,
-                        origin=Origin(source, "primary"),
+                        origin=Origin(source, "hdu:0"),
                         role=Role.UNKNOWN,
-                        structure=("fits", context.path.name, "primary"),
+                        structure=("fits", context.path.name, "hdu:0"),
                         salience=0.9,
                         meta={
                             "hdu_index": 0,
@@ -454,15 +517,15 @@ def extract_fits(path: str | Path) -> Extraction:
                     if not telescop and not instrume:
                         context.result.add_gap(
                             "Primary HDU contains no TELESCOP or INSTRUME observation cards",
-                            ref="primary",
+                            ref="hdu:0",
                         )
 
-                # 2. Extension HDU Unit
+                # 4. Emit Extension HDU Unit (Deterministic origin: ref=f"hdu:{i}")
                 else:
                     xtension = str(cards.get("XTENSION", "UNKNOWN")).strip()
                     extname = str(cards.get("EXTNAME", "")).strip()
                     extver = cards.get("EXTVER")
-                    tfields = int(cards.get("TFIELDS", 0))
+                    tfields = int(cards.get("TFIELDS", 0)) if "TFIELDS" in cards else 0
 
                     ext_parts = [f"FITS HDU {hdu_index} ({xtension})"]
                     if extname:
@@ -473,7 +536,7 @@ def extract_fits(path: str | Path) -> Extraction:
                         ext_parts.append(f"shape={dims}")
 
                     ext_content = ", ".join(ext_parts)
-                    ext_origin_ref = f"hdu:{hdu_index}" if not extname else f"ext:{quote(extname, safe='-._~')}"
+                    ext_origin_ref = f"hdu:{hdu_index}"
 
                     ext_unit = Unit(
                         source=source,
@@ -481,7 +544,7 @@ def extract_fits(path: str | Path) -> Extraction:
                         content=ext_content,
                         origin=Origin(source, ext_origin_ref),
                         role=Role.UNKNOWN,
-                        structure=("fits", context.path.name, f"hdu:{hdu_index}"),
+                        structure=("fits", context.path.name, ext_origin_ref),
                         salience=0.8,
                         meta={
                             "hdu_index": hdu_index,
@@ -506,7 +569,7 @@ def extract_fits(path: str | Path) -> Extraction:
                             )
                         )
 
-                    # Extract Table Columns if TABLE / BINTABLE
+                    # Extract Table Columns (Deterministic origin: ref=f"hdu:{i}#col:{j}:{quote(name)}")
                     if tfields > 0:
                         for col_idx in range(1, tfields + 1):
                             if col_idx > _MAX_COLUMNS_PER_TABLE:
@@ -520,14 +583,16 @@ def extract_fits(path: str | Path) -> Extraction:
                             col_form = str(cards.get(f"TFORM{col_idx}", "")).strip()
                             col_unit = str(cards.get(f"TUNIT{col_idx}", "")).strip()
 
-                            col_content = f"Column {col_name}: format={col_form}" + (f", unit={col_unit}" if col_unit else "")
+                            col_content = f"Column {col_idx} ({col_name}): format={col_form}" + (f", unit={col_unit}" if col_unit else "")
+                            col_origin_ref = f"{ext_origin_ref}#col:{col_idx}:{quote(col_name, safe='-._~')}"
+
                             col_unit_obj = Unit(
                                 source=source,
                                 modality=Modality.SCHEMA,
                                 content=col_content,
-                                origin=Origin(source, f"{ext_origin_ref}#col:{quote(col_name, safe='-._~')}"),
+                                origin=Origin(source, col_origin_ref),
                                 role=Role.UNKNOWN,
-                                structure=("fits", context.path.name, f"hdu:{hdu_index}", col_name),
+                                structure=("fits", context.path.name, ext_origin_ref, f"{col_idx}:{col_name}"),
                                 salience=0.7,
                                 meta={
                                     "column_index": col_idx,
@@ -548,8 +613,15 @@ def extract_fits(path: str | Path) -> Extraction:
 
                 hdu_index += 1
 
+            if f.tell() < file_size and hdu_index >= _MAX_HDUS:
+                context.result.add_gap(
+                    f"HDU count reached maximum limit ({_MAX_HDUS}); remaining file data omitted",
+                    ref=f"hdu:{_MAX_HDUS-1}",
+                )
+
     except Exception as exc:
-        raise InvalidFitsData(context.path, "fits", str(exc)) from exc
+        scrubbed = _scrub_error_message(exc, "fits block parse", context.path.name)
+        raise InvalidFitsData(context.path, "fits", scrubbed) from exc
 
     return _finish(context)
 
