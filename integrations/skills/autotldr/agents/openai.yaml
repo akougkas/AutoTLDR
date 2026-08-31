@@ -1,0 +1,4 @@
+interface:
+  display_name: "AutoTLDR"
+  short_description: "Grounded local summaries for files and folders"
+  default_prompt: "Use $autotldr to summarize local sources with citations and a strict output budget."

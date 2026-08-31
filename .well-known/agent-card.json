@@ -1,0 +1,44 @@
+{
+  "name": "AutoTLDR",
+  "description": "Local-only grounded semantic extraction and bounded rendering for files, directories, and explicit collections. This static card describes a loopback A2A deployment target; it does not advertise a hosted service or model lifecycle.",
+  "supportedInterfaces": [
+    {
+      "url": "http://127.0.0.1:8765/a2a",
+      "protocolBinding": "JSONRPC",
+      "protocolVersion": "1.0"
+    }
+  ],
+  "version": "0.1.0.dev0",
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false,
+    "extendedAgentCard": false
+  },
+  "defaultInputModes": [
+    "text/plain",
+    "application/json"
+  ],
+  "defaultOutputModes": [
+    "application/json",
+    "application/x-ndjson",
+    "text/markdown",
+    "text/plain"
+  ],
+  "skills": [
+    {
+      "id": "autotldr-summarize-local",
+      "name": "Summarize local sources",
+      "description": "Extracts addressable semantics from local files or collections, fuses grounded relationships, and renders the result under an exact utf8-byte-v1 budget without loading a model.",
+      "tags": [
+        "summarization",
+        "semantic-extraction",
+        "citations",
+        "local-files"
+      ],
+      "examples": [
+        "Summarize these local research files as grounded Markdown within 65536 bytes.",
+        "Explain this spreadsheet's formula structure and cite every finding."
+      ]
+    }
+  ]
+}
