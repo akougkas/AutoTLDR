@@ -3,7 +3,11 @@
 AutoTLDR is pre-alpha. Nothing is stable yet, and this record names product-level changes
 rather than promising semantic-version compatibility.
 
-## Unreleased — first-user alpha candidate
+## Unreleased
+
+No changes yet.
+
+## 0.1.0a1 — first-user alpha candidate — 2026-08-31
 
 - Ordinary CLI, watch, product Python API, and MCP runs use one configured local-model
   prose policy; deterministic representation is an explicit evidence mode.
