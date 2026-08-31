@@ -1,0 +1,12 @@
+{
+  "id": 1,
+  "name": "sourdough starter",
+  "status": "active",
+  "parcel_id": 17,
+  "route_bucket": true,
+  "domain_notice": "Bakery sourdough planning only; parcel_id and route_bucket are bakery batch labels, not carrier dispatch fields.",
+  "bakery_namespace": {
+    "routing_epoch": 2,
+    "audit_window_s": 45
+  }
+}

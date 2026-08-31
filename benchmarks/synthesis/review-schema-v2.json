@@ -1,0 +1,48 @@
+{
+  "schema": 2,
+  "benchmark": "stage5-grounded-synthesis-v2",
+  "artifact_schema": "autotldr-stage5-synthesis-human-review-v2",
+  "packet_schema": "autotldr-stage5-synthesis-review-packets-v2",
+  "entailment_values": [
+    "entailed",
+    "partial",
+    "unsupported",
+    "contradicted"
+  ],
+  "usefulness_values": [
+    "essential",
+    "useful",
+    "redundant",
+    "noise"
+  ],
+  "fact_row_fields": [
+    "packet_id",
+    "fact_id",
+    "supporting_claim_ids",
+    "entailment",
+    "rationale"
+  ],
+  "claim_row_fields": [
+    "packet_id",
+    "claim_id",
+    "every_citation_relevant",
+    "atomic_claim",
+    "hard_negative_ids",
+    "payload_canary_ids",
+    "other_raw_payload_leak",
+    "usefulness",
+    "rationale"
+  ],
+  "summary_row_fields": [
+    "packet_id",
+    "coherent",
+    "concise",
+    "integrates_sources",
+    "useful_over_inventory",
+    "rationale"
+  ],
+  "rationale_min_characters": 1,
+  "rationale_max_characters": 1200,
+  "reviewer_must_be_human": true,
+  "model_generated_review_allowed": false
+}

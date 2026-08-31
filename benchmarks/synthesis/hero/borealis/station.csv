@@ -1,0 +1,4 @@
+metric,unit,source
+reservoir_temp_c,degC,measurements.parquet
+pressure_kpa,kPa,measurements.parquet
+safety_margin_pct,percent,capacity.xlsx

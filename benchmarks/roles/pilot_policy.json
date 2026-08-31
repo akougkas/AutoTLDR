@@ -1,0 +1,115 @@
+{
+  "schema": 1,
+  "purpose": "Freeze local-model selection before any pilot predictions are scored.",
+  "frozen_at": "2026-08-30",
+  "pilot": {
+    "items": 33,
+    "roles": 11,
+    "items_per_role": 3,
+    "items_sha256": "f6f363f5cd2517a4e3cfc6a7e6ea599f5d0377819af1690859a14c19c8d1fdbc",
+    "labels_sha256": "76a409a74ec7d5223a3d199773b40db8604570e991c9cfc86932aac0604b6ffb",
+    "source_groups_overlap_with_scored_corpus": 0,
+    "model_visible_fields": [
+      "format",
+      "modality",
+      "content",
+      "structure",
+      "evidence"
+    ]
+  },
+  "incumbent": {
+    "name": "Ornith-1.5-35B-A3B",
+    "architecture": "MoE with approximately 35B total and 3B active parameters",
+    "artifact": "ornith-ai/Ornith-1.5-35B-A3B-GGUF Q4_K_M"
+  },
+  "challengers": [
+    {
+      "name": "Granite-4.2-3B",
+      "architecture": "3B dense",
+      "artifact": "ibm-granite/granite-4.2-3b-GGUF granite-4.2-3b-Q8_0.gguf"
+    },
+    {
+      "name": "Granite-4.2-8B",
+      "architecture": "8B dense",
+      "artifact": "ibm-granite/granite-4.2-8b-GGUF granite-4.2-8b-Q4_K_M.gguf"
+    },
+    {
+      "name": "MiniCPM-V-4.6",
+      "architecture": "approximately 0.8B text model plus approximately 0.4B vision encoder",
+      "artifact": "openbmb/MiniCPM-V-4.6-gguf MiniCPM-V-4_6-F16.gguf with matching F16 mmproj"
+    },
+    {
+      "name": "Gemma-4-26B-A4B-QAT",
+      "architecture": "26B-total / 4B-active MoE",
+      "artifact": "google/gemma-4-26b-a4b-qat Q4_0; already ZBook-local"
+    }
+  ],
+  "catalog_candidates_not_run": [
+    {
+      "name": "Gemma-4-31B-QAT",
+      "reason": "Dense model was fully GPU-resident but too slow for this workload; its pilot was interrupted and produced no prediction artifact. The infrastructure owner retained only the Gemma 4 MoE variant."
+    },
+    {
+      "name": "Qwen3.8-27B",
+      "reason": "Not run after the infrastructure owner narrowed the finishing sweep to small and efficient models."
+    },
+    {
+      "name": "GPT-OSS-20B",
+      "reason": "Not run after the infrastructure owner stopped the heavyweight catalog sweep."
+    },
+    {
+      "name": "GPT-OSS-120B",
+      "reason": "Not run after the infrastructure owner stopped the heavyweight catalog sweep."
+    },
+    {
+      "name": "Nemotron-Cascade-2-30B-A3B",
+      "reason": "Not run after the infrastructure owner stopped the heavyweight catalog sweep."
+    }
+  ],
+  "eligibility": {
+    "parameter_limit": null,
+    "rule": "Any model already in the ZBook-local catalog or one of the three explicitly authorized downloads may compete if the ZBook can serve it without using a linked host.",
+    "download_allowlist": [
+      "ibm-granite/granite-4.2-3b-GGUF granite-4.2-3b-Q8_0.gguf",
+      "ibm-granite/granite-4.2-8b-GGUF granite-4.2-8b-Q4_K_M.gguf",
+      "openbmb/MiniCPM-V-4.6-gguf MiniCPM-V-4_6-F16.gguf with matching F16 mmproj"
+    ]
+  },
+  "runtime_gate": {
+    "endpoint": "http://127.0.0.1:1234/v1",
+    "device": "zbook-local-only",
+    "required_ok_predictions": 33,
+    "invalid_or_error_predictions_allowed": 0,
+    "requests_per_item": 1,
+    "temperature": 0,
+    "seed": 20260830,
+    "max_tokens": 32,
+    "reasoning_effort": "none",
+    "strict_json_schema": true
+  },
+  "selection_rule": {
+    "baseline": "Retain the incumbent unless a challenger clears every switch condition.",
+    "minimum_total_correct_advantage": 4,
+    "maximum_roles_worse_than_incumbent": 2,
+    "switch_conditions": [
+      "The challenger has at least four more exact labels correct out of 33 than the incumbent.",
+      "The challenger has fewer correct labels than the incumbent on no more than two of the eleven roles.",
+      "The challenger passes the runtime gate."
+    ],
+    "multiple_qualifying_challengers": [
+      "Choose the greatest exact-label advantage over the incumbent.",
+      "Then choose the most roles with three of three correct.",
+      "Then choose the most roles with at least two of three correct.",
+      "If still tied, retain the smaller complete runtime artifact."
+    ],
+    "known_complete_artifact_size_order": [
+      "MiniCPM-V-4.6",
+      "Granite-4.2-3B",
+      "Granite-4.2-8B",
+      "Gemma-4-26B-A4B-QAT",
+      "Ornith-1.5-35B-A3B"
+    ],
+    "unknown_artifact_tie": "retain-incumbent",
+    "interpretation": "This pilot selects one local arm. It is not evidence that a role is recoverable; only the frozen 200-unit per-role evaluation answers that question."
+  }
+}

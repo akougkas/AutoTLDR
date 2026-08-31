@@ -1,0 +1,16 @@
+{
+  "meters": [
+    {
+      "account_ref": "district-example-1",
+      "meter_reading_l": 0,
+      "tariff_band": "standard"
+    },
+    {
+      "account_ref": "district-example-2",
+      "meter_reading_l": 250000,
+      "tariff_band": "high"
+    }
+  ],
+  "grace_period_days": 10,
+  "late_fee_pct": 3
+}

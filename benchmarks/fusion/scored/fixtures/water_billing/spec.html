@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head><title>Water billing import</title></head>
+  <body>
+    <main>
+      <h1>Water billing import</h1>
+      <p>The implementation is <a href="tariff.py">tariff.py</a>, meter data
+      arrives in <a href="meters.jsonl">meters.jsonl</a>, and the declared
+      schema is <a href="tariff.json">tariff.json</a>. The pending audit should
+      be in <a href="audit-notes.md">audit-notes.md</a>. The regulator portal at
+      <a href="https://regulator.example/water#tariffs">the regulator</a> is
+      external.</p>
+      <p>The shared fields are <code>account_ref</code>,
+      <code>meter_reading_l</code>, and <code>tariff_band</code>.</p>
+      <pre>grace_period_days = 7</pre>
+      <pre>late_fee_pct = 2</pre>
+      <p>An approximate grace period of about a week is descriptive, not an
+      exact assignment.</p>
+    </main>
+  </body>
+</html>

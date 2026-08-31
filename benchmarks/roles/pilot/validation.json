@@ -1,0 +1,46 @@
+{
+  "counts_by_format": {
+    "md": 8,
+    "pdf": 5,
+    "rst": 8,
+    "txt": 9,
+    "xlsx": 3
+  },
+  "counts_by_role": {
+    "assumption": 3,
+    "caveat": 3,
+    "claim": 3,
+    "decision": 3,
+    "definition": 3,
+    "example": 3,
+    "limitation": 3,
+    "parameter": 3,
+    "procedure": 3,
+    "result": 3,
+    "unknown": 3
+  },
+  "exact_production_units": 33,
+  "included_in_scored_corpus": false,
+  "model_visible_fields": [
+    "content",
+    "evidence",
+    "format",
+    "id",
+    "modality",
+    "structure"
+  ],
+  "output_sha256": {
+    "annotations.jsonl": "ee7270a63314a32452a65215373eea528858f3fa337772f1b1166ec814a0eb29",
+    "items.jsonl": "f6f363f5cd2517a4e3cfc6a7e6ea599f5d0377819af1690859a14c19c8d1fdbc",
+    "labels.jsonl": "76a409a74ec7d5223a3d199773b40db8604570e991c9cfc86932aac0604b6ffb",
+    "origins.jsonl": "01197ffa4b52bac4c03b8a7048fcad21955a4c6d9a13ec7997b858e1da9ed68a",
+    "sources.jsonl": "a202481f45009700f0c352130eb79171344da255f490d923d624f8f2f4f3e21b"
+  },
+  "predictions_read_by_builder": false,
+  "purpose": "label-blind local-model candidate screening and response-JSON compliance only",
+  "rule_commit": "54b2158a37e7dd42392494fbadf031e11d952289",
+  "scored_source_group_overlap": [],
+  "source_hashes_verified": 5,
+  "status": "pass",
+  "unique_addressable_origins": 33
+}

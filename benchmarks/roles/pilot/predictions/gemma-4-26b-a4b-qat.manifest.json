@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "arm": "local",
+  "runner": "openai-compatible-chat-completions",
+  "created_at": "2026-08-30T17:39:43.757709Z",
+  "items": 33,
+  "model": "autotldr-gemma-4-26b-a4b-qat",
+  "endpoint": "http://127.0.0.1",
+  "evaluator_commit": "54b2158a37e7dd42392494fbadf031e11d952289",
+  "settings": {
+    "temperature": 0,
+    "seed": 20260830,
+    "max_tokens": 32,
+    "timeout_seconds": 180.0,
+    "concurrency": 4,
+    "requests_per_item": 1,
+    "structured_output": "strict-json-schema",
+    "thinking": "disabled-via-reasoning-effort"
+  },
+  "hashes": {
+    "items_sha256": "f6f363f5cd2517a4e3cfc6a7e6ea599f5d0377819af1690859a14c19c8d1fdbc",
+    "prompt_sha256": "62f3bb2ef8371e29c8c077104472f12ab7651774d8558cb045a27b4feec658dc",
+    "policy_sha256": "f486dff85886e0a397b130328647ae077eb8db8deb05c24999ebbd2b507118e7",
+    "predictions_sha256": "57ff80e9d69e09b2f25303c296da53a82ea0e2a47007a603ee7f8135feb4e8b0",
+    "sanitized_config_sha256": "a9a1f26522b69cb9d9f0187db1960af151f3480f8fab1dfbdf070e89acb44d5e"
+  },
+  "counts": {
+    "ok": 33,
+    "invalid": 0,
+    "error": 0
+  }
+}

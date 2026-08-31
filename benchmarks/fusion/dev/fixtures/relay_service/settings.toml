@@ -1,0 +1,6 @@
+max_delivery_attempts = 7
+
+[[event_examples]]
+message_id = "relay-example"
+delivery_attempts = 1
+ack_latency_ms = 15.0

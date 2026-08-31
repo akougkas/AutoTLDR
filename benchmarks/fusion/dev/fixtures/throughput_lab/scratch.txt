@@ -1,0 +1,5 @@
+Garden inventory
+
+The id, name, status, result, and timestamp columns belong to a seed catalog.
+Nothing in this note describes a performance experiment.
+

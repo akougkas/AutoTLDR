@@ -1,0 +1,9 @@
+frames:
+  - frame_id: f-example-1
+    sky_level_adu: 812.0
+    focus_offset_um: 0
+  - frame_id: f-example-2
+    sky_level_adu: 815.0
+    focus_offset_um: 15
+exposure_time_s: 25
+gain_e_per_adu: 1.8

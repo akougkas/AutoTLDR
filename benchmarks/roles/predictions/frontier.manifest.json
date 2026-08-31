@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "arm": "frontier",
+  "runner": "codex-cli-one-item-per-process",
+  "created_at": "2026-08-30T17:02:42.991768Z",
+  "items": 200,
+  "model": "gpt-5.6-sol",
+  "codex_version": "codex-cli 0.144.1",
+  "evaluator_commit": "54b2158a37e7dd42392494fbadf031e11d952289",
+  "label_blind": true,
+  "settings": {
+    "transport": "codex-cli-chatgpt-subscription",
+    "timeout_seconds": 120.0,
+    "concurrency": 4,
+    "requests_per_item": 1,
+    "retries": 0,
+    "ephemeral": true,
+    "working_directory": "fresh-empty-temporary-directory-per-item",
+    "sandbox": "read-only",
+    "user_config": "ignored",
+    "exec_rules": "ignored",
+    "git_repository_check": "skipped",
+    "shell_environment_inheritance": "none",
+    "web_search": "disabled",
+    "structured_output": "strict-json-schema",
+    "accepted_tool_events": 0,
+    "policy_temperature": 0,
+    "policy_seed": 20260830,
+    "policy_max_tokens": 32,
+    "sampling_controls": "not-exposed-by-codex-cli"
+  },
+  "hashes": {
+    "items_sha256": "e16b869d95b01f61b5fa01642583a3d02fdaee655caf3e95fea995aef8745dc8",
+    "prompt_sha256": "62f3bb2ef8371e29c8c077104472f12ab7651774d8558cb045a27b4feec658dc",
+    "policy_sha256": "f486dff85886e0a397b130328647ae077eb8db8deb05c24999ebbd2b507118e7",
+    "output_schema_sha256": "3b2dd0c20331214dd83bcca0dba5db7973ca72020aef1a8040c423f124e1f33b",
+    "predictions_sha256": "145b3c1ed75aeb35337f1fbefe80872b1ffc0f9061d3717601e8d663d0dae489",
+    "sanitized_config_sha256": "12b193b654269b0cfb5daf6f35a2b269065e7db9b37e2a47ea2f5801998d9c9e"
+  },
+  "counts": {
+    "ok": 200,
+    "invalid": 0,
+    "error": 0
+  },
+  "tool_violations": 0
+}

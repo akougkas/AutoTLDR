@@ -1,0 +1,194 @@
+{
+  "schema": 2,
+  "benchmark": "stage5-grounded-synthesis-v2",
+  "base_benchmark": "stage5-grounded-synthesis-v1",
+  "base_policy_sha256": "0d513a748809ccf55ce21c499c1e6c055ac881613d47c30282d11b2f0b8c82f5",
+  "frozen_before_model_outputs": true,
+  "required_endpoint_class": "openai-compatible-zbook-local",
+  "blindness": {
+    "algorithm": "sha256-preoutput-seed-candidate-v1",
+    "alias_prefix": "sample-",
+    "alias_hex_characters": 12
+  },
+  "review": {
+    "initial_reviewers": 2,
+    "independent": true,
+    "candidate_identity_hidden": true,
+    "third_reviewer_on_gate_disagreement": true,
+    "unresolved_is_ineligible": true,
+    "model_as_judge_allowed": false
+  },
+  "eligibility": {
+    "required_fact_ids_each_repeat": [
+      "purpose",
+      "operating_constraints",
+      "data_flow",
+      "scientific_and_capacity_context",
+      "missing_calibration"
+    ],
+    "minimum_relevant_sources_each_repeat": 4,
+    "minimum_relevant_tier3_sources_each_repeat": 2,
+    "accepted_claim_usefulness": [
+      "essential",
+      "useful"
+    ],
+    "required_summary_gates": [
+      "coherent",
+      "concise",
+      "integrates_sources",
+      "useful_over_inventory"
+    ],
+    "aggregate_accuracy_is_gate": false
+  },
+  "failure_injection": {
+    "repeats": 2,
+    "max_response_bytes": 4096,
+    "clock_elapsed_ns": 1000,
+    "accepted_claim_count": 0,
+    "fallback_used": false,
+    "cases": [
+      {
+        "id": "timeout",
+        "expected_outcome": "error-timeout",
+        "expected_validation_status": "not-run",
+        "expected_error_class": "SynthesisTimeoutError",
+        "expected_error_phase": "transport",
+        "expected_error_code": "timeout",
+        "response_present": false
+      },
+      {
+        "id": "connection_failure",
+        "expected_outcome": "error-transport-error",
+        "expected_validation_status": "not-run",
+        "expected_error_class": "SynthesisClientError",
+        "expected_error_phase": "transport",
+        "expected_error_code": "transport-error",
+        "response_present": false
+      },
+      {
+        "id": "malformed_json",
+        "expected_outcome": "error-invalid-response",
+        "expected_validation_status": "rejected",
+        "expected_error_class": "SynthesisValidationError",
+        "expected_error_phase": "response-validation",
+        "expected_error_code": "invalid-response",
+        "response_present": true
+      },
+      {
+        "id": "duplicate_json_key",
+        "expected_outcome": "error-invalid-response",
+        "expected_validation_status": "rejected",
+        "expected_error_class": "SynthesisValidationError",
+        "expected_error_phase": "response-validation",
+        "expected_error_code": "invalid-response",
+        "response_present": true
+      },
+      {
+        "id": "non_utf8",
+        "expected_outcome": "error-invalid-response",
+        "expected_validation_status": "rejected",
+        "expected_error_class": "SynthesisValidationError",
+        "expected_error_phase": "response-validation",
+        "expected_error_code": "invalid-response",
+        "response_present": true
+      },
+      {
+        "id": "oversized_response",
+        "expected_outcome": "error-transport-error",
+        "expected_validation_status": "not-run",
+        "expected_error_class": "SynthesisClientError",
+        "expected_error_phase": "transport",
+        "expected_error_code": "response-too-large",
+        "response_present": false
+      },
+      {
+        "id": "unknown_id",
+        "expected_outcome": "error-invalid-response",
+        "expected_validation_status": "rejected",
+        "expected_error_class": "SynthesisValidationError",
+        "expected_error_phase": "response-validation",
+        "expected_error_code": "invalid-response",
+        "response_present": true
+      },
+      {
+        "id": "empty_ids",
+        "expected_outcome": "error-invalid-response",
+        "expected_validation_status": "rejected",
+        "expected_error_class": "SynthesisValidationError",
+        "expected_error_phase": "response-validation",
+        "expected_error_code": "invalid-response",
+        "response_present": true
+      },
+      {
+        "id": "duplicate_ids",
+        "expected_outcome": "error-invalid-response",
+        "expected_validation_status": "rejected",
+        "expected_error_class": "SynthesisValidationError",
+        "expected_error_phase": "response-validation",
+        "expected_error_code": "invalid-response",
+        "response_present": true
+      },
+      {
+        "id": "extra_fields",
+        "expected_outcome": "error-invalid-response",
+        "expected_validation_status": "rejected",
+        "expected_error_class": "SynthesisValidationError",
+        "expected_error_phase": "response-validation",
+        "expected_error_code": "invalid-response",
+        "response_present": true
+      },
+      {
+        "id": "overlong_claim",
+        "expected_outcome": "error-invalid-response",
+        "expected_validation_status": "rejected",
+        "expected_error_class": "SynthesisValidationError",
+        "expected_error_phase": "response-validation",
+        "expected_error_code": "invalid-response",
+        "response_present": true
+      }
+    ]
+  },
+  "render_budget_scope": {
+    "classification": "benchmark-complete-audit-wire-v1",
+    "includes_model_run_manifest": true,
+    "product_acceptance_target": false,
+    "review_required_before_product_lock": true
+  },
+  "render_budgets": {
+    "ansi": {
+      "minimum": 20000,
+      "compact": 30000,
+      "complete": 48000
+    },
+    "md": {
+      "minimum": 20000,
+      "compact": 30000,
+      "complete": 60000
+    },
+    "json": {
+      "minimum": 232000,
+      "compact": 260000,
+      "complete": 320000
+    },
+    "jsonl": {
+      "minimum": 152000,
+      "compact": 170000,
+      "complete": 230000
+    }
+  },
+  "render_semantic_requirements": {
+    "minimum": [],
+    "compact": [
+      "purpose",
+      "data_flow",
+      "missing_calibration"
+    ],
+    "complete": [
+      "purpose",
+      "operating_constraints",
+      "data_flow",
+      "scientific_and_capacity_context",
+      "missing_calibration"
+    ]
+  }
+}

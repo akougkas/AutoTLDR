@@ -1,0 +1,5 @@
+Amateur telescope inventory
+
+The id, name, value, status, result, and timestamp fields describe eyepieces.
+Moisture can fog a lens, but this note has no irrigation measurements.
+Eyepiece records are exported to the missing file moisture-readings.csv.

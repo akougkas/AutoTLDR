@@ -1,0 +1,5 @@
+Community orchestra memo
+
+The id and status columns identify borrowed music stands. Focus during rehearsal
+is important, but this memo contains no astronomical frame schema.
+

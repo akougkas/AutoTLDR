@@ -1,0 +1,6 @@
+{"id":"battery","sources":["analysis.ipynb","cycles.csv","limits.toml","report.md","todo.txt"],"split":"scored"}
+{"id":"capacity","sources":["capacity.xlsx","export.csv","overview.md","schema.xml","unused.md"],"split":"scored"}
+{"id":"greenhouse","sources":["controller.py","layout.json","old-notes.txt","protocol.md","readings.csv","readings.jsonl"],"split":"scored"}
+{"id":"parcel_dispatch","sources":["archive/parcels.tsv","current/parcels.tsv","dispatch.py","draft.json","policy.toml","runbook.rst"],"split":"scored"}
+{"id":"telescope","sources":["appendix.tex","frames.csv","frames.jsonl","instrument.yaml","methods.tex","old-memo.txt","reduce.ipynb"],"split":"scored"}
+{"id":"water_billing","sources":["legacy.md","meters.jsonl","spec.html","tariff.json","tariff.py"],"split":"scored"}

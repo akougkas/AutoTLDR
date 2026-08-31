@@ -1,0 +1,14 @@
+{
+  "event_store": "safety.sqlite",
+  "pressure_kpa": {
+    "ceiling": 240.0,
+    "unit": "kPa"
+  },
+  "reservoir_temp_c": {
+    "target": 18.0,
+    "unit": "degC"
+  },
+  "safety_margin_pct": 12.0,
+  "station_id": "alpha",
+  "telemetry_source": "measurements.parquet"
+}

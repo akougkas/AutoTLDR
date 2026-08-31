@@ -1,0 +1,5 @@
+City bicycle route TODO
+
+Record the route name, status, value, and timestamp. A battery powers the lamp,
+but this list has no electrochemical cycle measurements.
+

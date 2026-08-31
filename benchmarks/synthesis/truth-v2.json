@@ -1,0 +1,309 @@
+{
+  "schema": 2,
+  "benchmark": "stage5-grounded-synthesis-v2",
+  "hero_collection": "borealis-stage5-hero-v1",
+  "facts": [
+    {
+      "id": "purpose",
+      "canonical_proposition": "Borealis monitors and controls the Station Alpha cooling reservoir.",
+      "critical": true,
+      "semantic_slots": [
+        "system=Borealis",
+        "station=Alpha",
+        "function=monitor-and-control",
+        "subject=cooling-reservoir"
+      ],
+      "acceptable_evidence_sets": [
+        [
+          {
+            "source": "borealis/overview.md",
+            "ref": "line:3-6",
+            "modality": "prose"
+          }
+        ],
+        [
+          {
+            "source": "borealis/controller.py",
+            "ref": "line:1",
+            "modality": "prose"
+          },
+          {
+            "source": "borealis/operations.html",
+            "ref": "line:4#element:6",
+            "modality": "prose"
+          }
+        ]
+      ],
+      "forbidden_overclaims": [
+        "The evidence establishes the reservoir's current safety state.",
+        "The evidence establishes that an alert occurred."
+      ]
+    },
+    {
+      "id": "operating_constraints",
+      "canonical_proposition": "The operating target for reservoir_temp_c is 18.0 degrees C and the pressure_kpa ceiling is 240 kPa.",
+      "critical": true,
+      "semantic_slots": [
+        "reservoir_temp_c.target=18.0 degC",
+        "pressure_kpa.ceiling=240 kPa"
+      ],
+      "acceptable_evidence_sets": [
+        [
+          {
+            "source": "borealis/overview.md",
+            "ref": "line:3-6",
+            "modality": "prose"
+          }
+        ],
+        [
+          {
+            "source": "borealis/config.json",
+            "ref": "pointer:/reservoir_temp_c/target",
+            "modality": "schema"
+          },
+          {
+            "source": "borealis/config.json",
+            "ref": "pointer:/pressure_kpa/ceiling",
+            "modality": "schema"
+          }
+        ]
+      ],
+      "forbidden_overclaims": [
+        "The target is a measured current temperature.",
+        "The ceiling is a measured current pressure."
+      ]
+    },
+    {
+      "id": "data_flow",
+      "canonical_proposition": "The controller reads configuration, consumes Parquet telemetry, and records safety events in SQLite.",
+      "critical": true,
+      "semantic_slots": [
+        "controller-input=config.json",
+        "controller-input=measurements.parquet",
+        "controller-output=safety.sqlite"
+      ],
+      "acceptable_evidence_sets": [
+        [
+          {
+            "source": "borealis/overview.md",
+            "ref": "line:3-6",
+            "modality": "prose"
+          }
+        ],
+        [
+          {
+            "source": "borealis/operations.html",
+            "ref": "line:6#element:8",
+            "modality": "prose"
+          },
+          {
+            "source": "borealis/operations.html",
+            "ref": "line:7#element:9",
+            "modality": "prose"
+          },
+          {
+            "source": "borealis/operations.html",
+            "ref": "line:8#element:10",
+            "modality": "prose"
+          }
+        ]
+      ],
+      "forbidden_overclaims": [
+        "The database schema proves that a particular alert row was written."
+      ]
+    },
+    {
+      "id": "scientific_and_capacity_context",
+      "canonical_proposition": "HDF5 experiments, NetCDF forecasts, aggregate DuckDB profiles, and the capacity workbook provide analysis context.",
+      "critical": true,
+      "semantic_slots": [
+        "experiments.h5=scientific-context",
+        "forecast.nc=scientific-context",
+        "analytics.duckdb=bounded-aggregate-profile",
+        "capacity.xlsx=reserve-and-margin"
+      ],
+      "acceptable_evidence_sets": [
+        [
+          {
+            "source": "borealis/overview.md",
+            "ref": "line:8-11",
+            "modality": "prose"
+          }
+        ],
+        [
+          {
+            "source": "borealis/pipeline.ipynb",
+            "ref": "cell:1",
+            "modality": "prose"
+          },
+          {
+            "source": "borealis/capacity.xlsx",
+            "ref": "Inputs!B4",
+            "modality": "record"
+          }
+        ]
+      ],
+      "forbidden_overclaims": [
+        "The HDF5 or NetCDF source is an operator command source.",
+        "The DuckDB database contains raw telemetry rows."
+      ]
+    },
+    {
+      "id": "missing_calibration",
+      "canonical_proposition": "calibration/current.csv is referenced but absent from the collection.",
+      "critical": true,
+      "semantic_slots": [
+        "dependency=calibration/current.csv",
+        "status=referenced-and-absent"
+      ],
+      "acceptable_evidence_sets": [
+        [
+          {
+            "source": "borealis/appendix.zip!/appendix/calibration.md",
+            "ref": "line:3",
+            "modality": "prose"
+          }
+        ],
+        [
+          {
+            "source": "borealis/overview.md",
+            "ref": "line:13-14",
+            "modality": "prose"
+          }
+        ]
+      ],
+      "required_findings": [
+        {
+          "source": "borealis/appendix.zip!/appendix/calibration.md",
+          "ref": "line:3",
+          "kind": "unresolved-reference"
+        },
+        {
+          "source": "borealis/overview.md",
+          "ref": "line:13-14",
+          "kind": "unresolved-reference"
+        }
+      ],
+      "forbidden_overclaims": [
+        "The calibration file is present or was validated."
+      ]
+    }
+  ],
+  "hard_negatives": [
+    {
+      "id": "science_is_command_source",
+      "proposition": "experiments.h5 or forecast.nc is an operator command source.",
+      "basis": "contradicted",
+      "evidence": [
+        {
+          "source": "borealis/operations.html",
+          "ref": "line:9#element:11",
+          "modality": "prose"
+        }
+      ]
+    },
+    {
+      "id": "calibration_is_present",
+      "proposition": "calibration/current.csv is present, resolved, or validated.",
+      "basis": "contradicted",
+      "evidence": [
+        {
+          "source": "borealis/overview.md",
+          "ref": "line:13-14",
+          "modality": "prose"
+        }
+      ]
+    },
+    {
+      "id": "current_alert_or_exceedance",
+      "proposition": "An alert occurred or the current operating limits were exceeded.",
+      "basis": "unsupported-by-evidence-pack",
+      "evidence": [
+        {
+          "source": "borealis/controller.py",
+          "ref": "line:16",
+          "modality": "prose"
+        }
+      ]
+    },
+    {
+      "id": "wrong_operating_values",
+      "proposition": "The operating target and pressure ceiling differ from 18.0 degrees C and 240 kPa.",
+      "basis": "contradicted",
+      "evidence": [
+        {
+          "source": "borealis/config.json",
+          "ref": "pointer:/reservoir_temp_c/target",
+          "modality": "schema"
+        },
+        {
+          "source": "borealis/config.json",
+          "ref": "pointer:/pressure_kpa/ceiling",
+          "modality": "schema"
+        }
+      ]
+    },
+    {
+      "id": "duckdb_contains_raw_telemetry",
+      "proposition": "analytics.duckdb stores raw telemetry rather than bounded aggregate profiles.",
+      "basis": "contradicted",
+      "evidence": [
+        {
+          "source": "borealis/overview.md",
+          "ref": "line:8-11",
+          "modality": "prose"
+        }
+      ]
+    }
+  ],
+  "payload_canaries": [
+    {
+      "id": "xlsx_raw_only_sentinel",
+      "literal": "AUTOTLDR_RAW_ONLY_XLSX_20260830_5A1D2C",
+      "source": "borealis/capacity.xlsx",
+      "native_locator": "sheet:_raw_canary#cell:A1",
+      "status": "final",
+      "reason": "A high-entropy value in an unreferenced veryHidden worksheet cell is not exposed by formula-graph extraction."
+    },
+    {
+      "id": "parquet_raw_only_sentinel",
+      "literal": "AUTOTLDR_RAW_ONLY_PARQUET_20260830_8E4B17",
+      "source": "borealis/measurements.parquet",
+      "native_locator": "column:raw_note#row:0",
+      "status": "final",
+      "reason": "A high-entropy string row value is not exposed by metadata-only Parquet extraction."
+    },
+    {
+      "id": "sqlite_raw_only_sentinel",
+      "literal": "AUTOTLDR_RAW_ONLY_SQLITE_20260830_7F3C91",
+      "source": "borealis/safety.sqlite",
+      "native_locator": "table:stations#pk:alpha#column:description",
+      "status": "final",
+      "reason": "A high-entropy stations.description cell is present only in raw SQLite row data and is not exposed by the bounded native extraction or evidence pack."
+    },
+    {
+      "id": "duckdb_raw_only_sentinel",
+      "literal": "AUTOTLDR_RAW_ONLY_DUCKDB_20260830_C2A845",
+      "source": "borealis/analytics.duckdb",
+      "native_locator": "table:main.telemetry_profile#pk:alpha#column:raw_note",
+      "status": "final",
+      "reason": "A high-entropy string row value is reduced to bounded type, count, distinct-count, and length statistics by DuckDB extraction."
+    },
+    {
+      "id": "hdf5_raw_only_sentinel",
+      "literal": "AUTOTLDR_RAW_ONLY_HDF5_20260830_D6E913",
+      "source": "borealis/experiments.h5",
+      "native_locator": "/experiments/run_001/raw_note#scalar",
+      "status": "final",
+      "reason": "A high-entropy scalar dataset payload is not read by metadata-only HDF5 extraction."
+    },
+    {
+      "id": "netcdf_raw_only_sentinel",
+      "literal": "AUTOTLDR_RAW_ONLY_NETCDF_20260830_B4F720",
+      "source": "borealis/forecast.nc",
+      "native_locator": "/raw_note#chars",
+      "status": "final",
+      "reason": "A high-entropy character-variable payload is not read by metadata-only NetCDF extraction."
+    }
+  ]
+}

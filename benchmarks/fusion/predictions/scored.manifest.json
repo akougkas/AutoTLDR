@@ -1,0 +1,23 @@
+{
+  "collections": 6,
+  "evaluator_sha256": "331d14c93d9d9d0195121b1a8a4d1cc0a6d48064fb89c74aacb4d85272cca402",
+  "evaluator_version": "stage4-fusion-evaluator-v2",
+  "extractions_sha256": "f83b4dd639ed5a4d24721d43f524370cc25854349f27cd3abed2791e84978cc5",
+  "implementation_sha256": "830d42e7efcdf3fd20beac11733acf9276c0484af810e439dd70122de8dc8420",
+  "labels_sha256_recorded_but_not_loaded": "4a208074cdad1e6ec60fc39b778916eedaf8aad4c1be85f7f55cb755a5a9ae9c",
+  "models": [],
+  "policy_sha256": "b015d48e048b895d0002ad56f60a4ee4bd3bbc02229af886827671be37737ff3",
+  "predictions_sha256": "c9fd530184b14219cbc6f409380dd0a1e6ac45c12efda445c90ef5a184d17ac9",
+  "robustness": {
+    "all_unknown_equal": true,
+    "deterministic_repeat": true,
+    "full_existing_unit_ids": true,
+    "input_permutation_equal": true,
+    "root_relocation_equal": true
+  },
+  "schema": 2,
+  "source_tree_sha256": "5e4f8c1f3132395f40527949dc7b5410b3ade5f208c5401d70bca26cc9ac5db6",
+  "split": "scored",
+  "status": "complete",
+  "structured_trace_only": true
+}

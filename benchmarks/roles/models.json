@@ -1,0 +1,236 @@
+{
+  "schema": 2,
+  "rules": {
+    "runner": "production extractor Role emitted before annotation",
+    "commit": "54b2158a37e7dd42392494fbadf031e11d952289"
+  },
+  "local_selection": {
+    "status": "complete",
+    "selected_candidate": "Ornith-1.5-35B-A3B",
+    "selected_candidate_key": "ornith_1_5_35b_a3b_q4_k_m",
+    "formal_api_identifier": "autotldr-ornith-stage2",
+    "selection_reason": "The incumbent was retained because no challenger cleared every frozen switch condition. Gemma-4-26B-A4B-QAT led the incumbent by 2 correct labels, below the required advantage of 4.",
+    "endpoint": "http://127.0.0.1:1234/v1",
+    "host": "zbook",
+    "parameter_limit": null,
+    "parameter_policy": "There is no parameter-count ceiling. Locality, artifact authorization, exclusive residency, and the runtime gate determine whether a model may compete.",
+    "catalog_rule": "Any model already stored and served on the ZBook may compete. A linked or Dynamo catalog entry is not local and must not be loaded, called, or unloaded.",
+    "download_allowlist": [
+      "ibm-granite/granite-4.2-3b-GGUF granite-4.2-3b-Q8_0.gguf",
+      "ibm-granite/granite-4.2-8b-GGUF granite-4.2-8b-Q4_K_M.gguf",
+      "openbmb/MiniCPM-V-4.6-gguf MiniCPM-V-4_6-F16.gguf with mmproj-model-f16.gguf"
+    ],
+    "pilot_policy": "pilot_policy.json",
+    "pilot_report": "pilot/report.json",
+    "pilot_items_sha256": "f6f363f5cd2517a4e3cfc6a7e6ea599f5d0377819af1690859a14c19c8d1fdbc",
+    "pilot_labels_sha256": "76a409a74ec7d5223a3d199773b40db8604570e991c9cfc86932aac0604b6ffb",
+    "pilot_policy_sha256": "00ca73a0cd87d1b789ce8049d6c2173dc34077c5c56c6a5751a8f361ae24d0d6",
+    "pilot_result": {
+      "items": 33,
+      "roles": 11,
+      "items_per_role": 3,
+      "incumbent": "Ornith-1.5-35B-A3B",
+      "selected_candidate": "Ornith-1.5-35B-A3B",
+      "retained_incumbent": true,
+      "qualifying_challengers": [],
+      "frozen_switch_rule": {
+        "minimum_total_correct_advantage": 4,
+        "maximum_roles_worse_than_incumbent": 2,
+        "required_statuses": {
+          "ok": 33,
+          "invalid": 0,
+          "error": 0
+        }
+      },
+      "interpretation": "This pilot selected one local arm. It is not evidence that any role is recoverable; only the frozen 200-unit per-role evaluation answers that question."
+    },
+    "runtime_policy": {
+      "locality": "Only LM Studio residents and catalog rows whose deviceIdentifier is null are ZBook-local. LM Link rows, colon-prefixed paths, and every Dynamo resident are forbidden.",
+      "preferred_device_load_transaction": {
+        "required": true,
+        "before_load": "Capture lms link status --json and the exact original preferredDeviceIdentifier, set the preferred device to the local ZBook deviceIdentifier, and verify that preference before resolving or loading a candidate.",
+        "load": "Resolve the requested artifact to exactly one non-linked local catalog path, require a full-GPU estimate, load it while the ZBook is preferred, and verify that the resulting sole resident is local and has the requested identifier and settings.",
+        "after_load": "Immediately after loading and verifying the exact local candidate or restored incumbent, restore the captured preferredDeviceIdentifier in a finally path and verify the restoration. Failure, interruption, or Ctrl-C does not waive restoration.",
+        "unload": "Before every unload, temporarily prefer and verify the ZBook again, re-read process state and match the exact authorized local row, unload only its exact identifier, verify that no local row remains, then restore and verify the captured preferredDeviceIdentifier.",
+        "prohibition": "A preferred-device transaction authorizes only the exact ZBook-local artifact; it never authorizes loading, calling, or unloading a linked or Dynamo model."
+      },
+      "residency": "Exactly one ZBook-local LLM and zero ZBook-local embedding models may be resident during a run. Candidates are loaded and evaluated sequentially.",
+      "gpu": "The pre-load estimate must report 100% GPU offload, and the loaded candidate must remain fully GPU-resident.",
+      "lifecycle": "Snapshot the pre-existing incumbent and every restorable load setting, unload it, require zero local residents between candidates, unload only the exact AutoTLDR-owned candidate after its run, and restore the incumbent exactly even after failure or interruption."
+    },
+    "inference": {
+      "context_length": 8192,
+      "parallel_slots": 4,
+      "temperature": 0,
+      "seed": 20260830,
+      "max_tokens": 32,
+      "thinking": "disabled with LM Studio reasoning_effort=none",
+      "structured_output": "strict JSON schema"
+    },
+    "formal_run": {
+      "items": 200,
+      "model_identifier": "autotldr-ornith-stage2",
+      "statuses": {
+        "ok": 200,
+        "invalid": 0,
+        "error": 0
+      },
+      "predictions_sha256": "fea29365367226b4f737a86b9f65aa1e6f32b1e1163a5b704abb2ee7a4e5e51d",
+      "manifest": "predictions/local.manifest.json"
+    }
+  },
+  "candidates": {
+    "ornith_1_5_35b_a3b_q4_k_m": {
+      "role": "selected incumbent and formal local arm",
+      "upstream_model": "ornith-ai/Ornith-1.5-35B-A3B",
+      "upstream_revision": "10fbf86fed7ecee4a061f8b499a618f46001cac1",
+      "gguf_repository": "ornith-ai/Ornith-1.5-35B-A3B-GGUF",
+      "gguf_revision": "12393612fd4f730ff5aadc23e9b8f9648aa49ceb",
+      "file": "Ornith-1.5-35B-A3B-Q4_K_M.gguf",
+      "bytes": 21713463040,
+      "core_file_bytes": 21713463040,
+      "lm_studio_catalog_package_bytes": 22616284864,
+      "size_note": "21,713,463,040 bytes is the core Q4_K_M GGUF. 22,616,284,864 bytes is the LM Studio catalog/package size and must not be reported as the core file size.",
+      "sha256": "42739874cc2ccfdb8523b23fbe52e29b2a7555c8176737ca9ca0b5d59859d41f",
+      "license": "MIT",
+      "architecture": "approximately 35B-total / 3B-active MoE",
+      "quantization": "Q4_K_M",
+      "api_identifier": "ornith-1.5-35b-a3b",
+      "pilot": {
+        "exact_correct": 15,
+        "items": 33,
+        "statuses": {
+          "ok": 33,
+          "invalid": 0,
+          "error": 0
+        },
+        "predictions_sha256": "420cf4d886d36d44c712c010943c2b600c48a1f0a5939c216f1f50e338f08843",
+        "runtime_gate": "pass",
+        "selected": true
+      }
+    },
+    "granite_4_2_3b_q8_0": {
+      "role": "dense quality/efficiency challenger",
+      "upstream_model": "ibm-granite/granite-4.2-3b",
+      "upstream_revision": "b7e947307dd2efb3ad3b853b0e8a7e75f8ad4ac2",
+      "gguf_repository": "ibm-granite/granite-4.2-3b-GGUF",
+      "gguf_revision": "47a3d9699d7539606c83943d717fcea7bd9f6a19",
+      "file": "granite-4.2-3b-Q8_0.gguf",
+      "bytes": 3892652160,
+      "sha256": "9e97320b131445ab8d9098cafb48001e9925d879e71486a8af4db4c803c55394",
+      "hash_verification": "Locally verified on the ZBook file and matched to Hugging Face LFS metadata at the pinned revision",
+      "license": "Apache-2.0",
+      "architecture": "3,659,737,600-parameter dense decoder",
+      "quantization": "Q8_0",
+      "api_identifier": "autotldr-granite-4.2-3b-q8",
+      "pilot": {
+        "exact_correct": 4,
+        "items": 33,
+        "statuses": {
+          "ok": 33,
+          "invalid": 0,
+          "error": 0
+        },
+        "predictions_sha256": "c63438e5883d96fd87eecc05c11be0bbc74a646327696c4ab6aeac35856ea1b4",
+        "runtime_gate": "pass",
+        "total_correct_advantage_over_incumbent": -11,
+        "roles_worse_than_incumbent": 4,
+        "qualified_to_replace_incumbent": false
+      }
+    },
+    "granite_4_2_8b_q4_k_m": {
+      "role": "dense quality challenger",
+      "upstream_model": "ibm-granite/granite-4.2-8b",
+      "upstream_revision": "41a8a2d41c54ef4a71741b3e62604f4caaec9295",
+      "gguf_repository": "ibm-granite/granite-4.2-8b-GGUF",
+      "gguf_revision": "31239b3e4a93d1c2bc0e0d1160f711bf300cef05",
+      "file": "granite-4.2-8b-Q4_K_M.gguf",
+      "bytes": 5347917952,
+      "sha256": "16a9369d0805f80b7377d25d87f937a90c05dc04ad79173a52001e42c9aab311",
+      "hash_verification": "Locally verified on the ZBook file and matched to Hugging Face LFS metadata at the pinned revision",
+      "license": "Apache-2.0",
+      "architecture": "8,791,592,960-parameter dense decoder",
+      "quantization": "Q4_K_M",
+      "api_identifier": "autotldr-granite-4.2-8b-q4km",
+      "pilot": {
+        "exact_correct": 8,
+        "items": 33,
+        "statuses": {
+          "ok": 33,
+          "invalid": 0,
+          "error": 0
+        },
+        "predictions_sha256": "e9fe4e787ca8b3d687810378c23bc95bb3aa0e316d3ef721c93da47194f335ea",
+        "runtime_gate": "pass",
+        "total_correct_advantage_over_incumbent": -7,
+        "roles_worse_than_incumbent": 4,
+        "qualified_to_replace_incumbent": false
+      }
+    },
+    "minicpm_v_4_6_f16": {
+      "role": "small multimodal/OCR efficiency challenger",
+      "upstream_model": "openbmb/MiniCPM-V-4.6",
+      "upstream_revision": "36f34a661a4bd35d0dc2294cb044d2584646c7d3",
+      "gguf_repository": "openbmb/MiniCPM-V-4.6-gguf",
+      "gguf_revision": "afe9accb78d2995d214cd912920c9c92f4015faa",
+      "file": "MiniCPM-V-4_6-F16.gguf",
+      "bytes": 1516275776,
+      "sha256": "34754a0bc132e94de58d4ff50041b3481ebbad19bcde01977bdf32d5b0c9c547",
+      "projector_file": "mmproj-model-f16.gguf",
+      "projector_bytes": 1108746944,
+      "projector_sha256": "ca931d861d0801d9003e50697cd764721a334107c0e0415a51168ee1938462de",
+      "hash_verification": "Both files were locally verified on the ZBook and matched to Hugging Face LFS metadata at the pinned revision",
+      "license": "Apache-2.0",
+      "architecture": "752,161,600-parameter text GGUF plus separate vision projector; 1,300,428,016 parameters in the full upstream checkpoint",
+      "quantization": "F16",
+      "api_identifier": "autotldr-minicpm-v-4.6-f16",
+      "runtime_note": "The projector is required for image inputs but contributes no OCR signal to this text-only role pilot. The exact pair passed the ZBook-local LM Studio runtime gate.",
+      "pilot": {
+        "exact_correct": 8,
+        "items": 33,
+        "statuses": {
+          "ok": 33,
+          "invalid": 0,
+          "error": 0
+        },
+        "predictions_sha256": "b4be703033b531428813b072c4a9f6b8b29c99cbf7e56bf3f7b70910fee2f2d3",
+        "runtime_gate": "pass",
+        "total_correct_advantage_over_incumbent": -7,
+        "roles_worse_than_incumbent": 5,
+        "qualified_to_replace_incumbent": false
+      }
+    },
+    "gemma_4_26b_a4b_qat_q4_0": {
+      "role": "pre-existing ZBook-local MoE challenger",
+      "upstream_model": "google/gemma-4-26b-a4b-qat",
+      "artifact": "Q4_0 LM Studio catalog package already stored on the ZBook",
+      "license": "Gemma",
+      "architecture": "approximately 26B-total / 4B-active MoE",
+      "quantization": "Q4_0",
+      "api_identifier": "autotldr-gemma-4-26b-a4b-qat",
+      "pilot": {
+        "exact_correct": 17,
+        "items": 33,
+        "statuses": {
+          "ok": 33,
+          "invalid": 0,
+          "error": 0
+        },
+        "predictions_sha256": "57ff80e9d69e09b2f25303c296da53a82ea0e2a47007a603ee7f8135feb4e8b0",
+        "runtime_gate": "pass",
+        "total_correct_advantage_over_incumbent": 2,
+        "roles_worse_than_incumbent": 1,
+        "qualified_to_replace_incumbent": false,
+        "selection_note": "It had the highest raw pilot score but missed the frozen minimum advantage of 4, so the incumbent was retained."
+      }
+    }
+  },
+  "frontier": {
+    "requested_model": "gpt-5.6-sol",
+    "transport": "subscription-authenticated codex exec",
+    "codex_cli": "0.144.1",
+    "requests": "one independent ephemeral invocation per item",
+    "isolation": "new empty directory, read-only sandbox, no inherited environment, user config, rules, repository context, web search, or tools",
+    "methodology_limit": "The subscription CLI exposes neither temperature, seed, nor max-output-token controls and adds the Codex execution surface. This arm is a pragmatic frontier ceiling, not a bit-for-bit match to direct API sampling."
+  }
+}

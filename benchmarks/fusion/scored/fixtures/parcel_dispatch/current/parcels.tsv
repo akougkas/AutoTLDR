@@ -1,0 +1,5 @@
+parcel_id	route_bucket	handoff_delay_ms
+ups-00000001	60	310
+fedex-00000002	75	285
+dhl-00000003	90	330
+

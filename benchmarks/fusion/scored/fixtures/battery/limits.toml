@@ -1,0 +1,13 @@
+cutoff_voltage_v = 2.70
+rest_period_min = 45
+nominal_voltage_v = 3.6
+
+[[cycle_examples]]
+cycle_index = 1
+capacity_mah = 5000
+internal_resistance_mohm = 30.0
+
+[[cycle_examples]]
+cycle_index = 2
+capacity_mah = 4980
+internal_resistance_mohm = 31.0

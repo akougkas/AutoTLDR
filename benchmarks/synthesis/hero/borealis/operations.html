@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en"><head><title>Borealis operations</title></head><body>
+<h1>Borealis operating procedure</h1>
+<p>The Station Alpha reservoir cooling service keeps reservoir_temp_c near
+18.0 degC and pressure_kpa below 240 kPa.</p>
+<ol><li>Read config.json before starting controller.py.</li>
+<li>Validate measurements.parquet and the calibration/current.csv dependency.</li>
+<li>Write alerts to safety.sqlite and review capacity.xlsx reserve margin.</li></ol>
+<p>experiments.h5 and forecast.nc provide scientific context; neither is an
+operator command source.</p>
+</body></html>

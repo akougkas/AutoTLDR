@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "arm": "rules",
+  "runner": "frozen-extractor-role",
+  "created_at": "2026-08-30T16:58:22.387058Z",
+  "items": 200,
+  "rule_commit": "54b2158a37e7dd42392494fbadf031e11d952289",
+  "evaluator_commit": "54b2158a37e7dd42392494fbadf031e11d952289",
+  "hashes": {
+    "items_sha256": "e16b869d95b01f61b5fa01642583a3d02fdaee655caf3e95fea995aef8745dc8",
+    "policy_sha256": "f486dff85886e0a397b130328647ae077eb8db8deb05c24999ebbd2b507118e7",
+    "predictions_sha256": "2b12799f3004726b6b277440c8bd8cd681852f34969c86098c3659968b531aa3"
+  },
+  "counts": {
+    "ok": 200,
+    "invalid": 0,
+    "error": 0
+  }
+}

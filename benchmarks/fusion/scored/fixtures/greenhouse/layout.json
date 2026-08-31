@@ -1,0 +1,18 @@
+{
+  "readings": [
+    {
+      "sample_id": "north-example",
+      "soil_moisture_pct": 31.0,
+      "valve_duty_pct": 18.5,
+      "zone_temperature_c": 22.5
+    },
+    {
+      "sample_id": "south-example",
+      "soil_moisture_pct": 34.0,
+      "valve_duty_pct": 15.0,
+      "zone_temperature_c": 23.0
+    }
+  ],
+  "sample_interval_s": 20,
+  "watering_window_min": 25
+}

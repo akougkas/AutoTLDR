@@ -1,0 +1,11 @@
+{
+  "runs": [
+    {
+      "run_id": "dev-example",
+      "throughput_mbps": 900.0,
+      "worker_count": 4,
+      "payload_bytes": 1048576
+    }
+  ],
+  "repeat_count": 48
+}

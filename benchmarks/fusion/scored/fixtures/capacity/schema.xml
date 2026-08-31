@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<capacity>
+  <rack_limit>20</rack_limit>
+  <record>
+    <node_count>8</node_count>
+    <per_node_mbps>450</per_node_mbps>
+    <overhead_factor>0.92</overhead_factor>
+  </record>
+  <record>
+    <node_count>12</node_count>
+    <per_node_mbps>430</per_node_mbps>
+    <overhead_factor>0.90</overhead_factor>
+  </record>
+</capacity>

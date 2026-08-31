@@ -1,0 +1,123 @@
+{
+  "schema": 1,
+  "benchmark": "stage5-grounded-synthesis-v1",
+  "frozen_before_model_outputs": true,
+  "endpoint": "http://127.0.0.1:1234/v1",
+  "endpoint_policy": "zbook-local-lmstudio-only",
+  "evidence_pack": {
+    "max_bytes": 24000,
+    "max_units": 48,
+    "minimum_sources_when_available": 8,
+    "raw_rows_or_arrays_allowed": false
+  },
+  "generation": {
+    "temperature": 0.0,
+    "max_tokens": 700,
+    "seed": 7305,
+    "repeats": 2,
+    "parallel": 1,
+    "context_length": 16384
+  },
+  "response": {
+    "minimum_claims": 1,
+    "maximum_claims": 3,
+    "maximum_claim_characters": 420,
+    "maximum_total_claim_characters": 900,
+    "unknown_evidence_ids_allowed": false,
+    "duplicate_evidence_ids_allowed": false,
+    "model_supplied_origins_allowed": false,
+    "model_supplied_relations_or_gaps_allowed": false,
+    "free_form_repair_allowed": false
+  },
+  "required_facts": [
+    {
+      "id": "purpose",
+      "description": "Borealis monitors or controls Station Alpha reservoir cooling/safety.",
+      "content_regexes": [
+        "(?i)borealis|station alpha",
+        "(?i)reservoir",
+        "(?i)cool|safety|monitor|control"
+      ],
+      "minimum_cited_sources": 1
+    },
+    {
+      "id": "operating_constraints",
+      "description": "The collection defines reservoir_temp_c and pressure_kpa operating constraints.",
+      "content_regexes": [
+        "(?i)reservoir[_ ]temp|temperature",
+        "(?i)pressure[_ ]kpa|pressure",
+        "(?i)18(?:\\.0)?|240"
+      ],
+      "minimum_cited_sources": 1
+    },
+    {
+      "id": "data_flow",
+      "description": "The controller consumes telemetry/configuration and records safety events.",
+      "content_regexes": [
+        "(?i)controller|pipeline",
+        "(?i)telemetry|measurements|config",
+        "(?i)event|alert|sqlite|safety"
+      ],
+      "minimum_cited_sources": 2
+    },
+    {
+      "id": "scientific_and_capacity_context",
+      "description": "Scientific forecast/experiment inputs and the capacity workbook provide analysis context.",
+      "content_regexes": [
+        "(?i)experiment|hdf5|\\.h5|forecast|netcdf|\\.nc",
+        "(?i)capacity|workbook|xlsx|margin|reserve"
+      ],
+      "minimum_cited_sources": 2
+    },
+    {
+      "id": "missing_calibration",
+      "description": "calibration/current.csv is a referenced but missing dependency.",
+      "content_regexes": [
+        "(?i)calibration/current\\.csv",
+        "(?i)missing|absent|unresolved|not included"
+      ],
+      "minimum_cited_sources": 1
+    }
+  ],
+  "eligibility": {
+    "all_repeats_runtime_ok": true,
+    "all_repeats_schema_and_provenance_valid": true,
+    "minimum_required_facts_each_repeat": 4,
+    "required_fact_ids_each_repeat": [
+      "purpose",
+      "data_flow",
+      "missing_calibration"
+    ],
+    "minimum_distinct_cited_sources_each_repeat": 4,
+    "minimum_distinct_cited_tier3_sources_each_repeat": 2
+  },
+  "selection": {
+    "aggregate_accuracy_is_gate": false,
+    "ranking": [
+      "fewest_failed_hard_gates",
+      "most_minimum-repeat-required-facts",
+      "most_minimum-repeat-distinct-cited-sources",
+      "fewest_total-claim-characters",
+      "lowest_median-latency-ms"
+    ],
+    "tie_break": "candidate_order"
+  },
+  "candidate_order": [
+    {
+      "name": "granite-4.2-3b-q8",
+      "installed_model": "ibm-granite/granite-4.2-3b-GGUF/granite-4.2-3b-Q8_0.gguf"
+    },
+    {
+      "name": "granite-4.2-8b-q4km",
+      "installed_model": "ibm-granite/granite-4.2-8b-GGUF/granite-4.2-8b-Q4_K_M.gguf"
+    },
+    {
+      "name": "minicpm-v-4.6-f16",
+      "installed_model": "openbmb/MiniCPM-V-4.6-gguf/MiniCPM-V-4_6-F16.gguf"
+    },
+    {
+      "name": "ornith-1.5-35b-a3b-q4km",
+      "installed_model": "ornith-ai/Ornith-1.5-35B-A3B-GGUF/Ornith-1.5-35B-Q4_K_M.gguf"
+    }
+  ]
+}

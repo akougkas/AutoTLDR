@@ -1,0 +1,81 @@
+{
+  "collection": "borealis-stage5-hero-v1",
+  "files": [
+    {
+      "bytes": 798720,
+      "path": "analytics.duckdb",
+      "sha256": "fa5520a834c57287838741711e4dddbf3908f577e779527e3bf90ea5e933f05f"
+    },
+    {
+      "bytes": 418,
+      "path": "appendix.zip",
+      "sha256": "741d7f06eb51331cda11bf7ac4d0566bafc401822790db51fd9a32f1c9f03c15"
+    },
+    {
+      "bytes": 6046,
+      "path": "capacity.xlsx",
+      "sha256": "72b3c3d385ed786634acefaac3d2efc166589cccaeabeea746db05c9cd1a92eb"
+    },
+    {
+      "bytes": 270,
+      "path": "config.json",
+      "sha256": "407c29741bd9b9d859e0119df9276bd669ee317a951ac5b4d3a88b08a99d57eb"
+    },
+    {
+      "bytes": 547,
+      "path": "controller.py",
+      "sha256": "976335046a8be82cca2bb2a2eff40a0afcb0813e8d45a712f85245e6867d87bb"
+    },
+    {
+      "bytes": 6230,
+      "path": "experiments.h5",
+      "sha256": "818e8f2d75c4445252548f9e84b72e99b5fa0b7f73f2da1e93364c041a27e5a1"
+    },
+    {
+      "bytes": 9273,
+      "path": "forecast.nc",
+      "sha256": "ae5622349005cdc943f9c996e0c856c9e12258b61745a022c27c3d26a2f55fe9"
+    },
+    {
+      "bytes": 2247,
+      "path": "measurements.parquet",
+      "sha256": "5821d599ae93f7108440eb1c4c87449e11906dcf13898d92969c6a855929ee65"
+    },
+    {
+      "bytes": 594,
+      "path": "operations.html",
+      "sha256": "c60a48f007d13f5752ec71927519a343becb6d2556538060b571f3d1032d3e9a"
+    },
+    {
+      "bytes": 729,
+      "path": "overview.md",
+      "sha256": "7e655064c7ae86b016a5a12568b31e021d3e5c5803107b3da0b440943b39707b"
+    },
+    {
+      "bytes": 854,
+      "path": "pipeline.ipynb",
+      "sha256": "75a834aa6e3643e563dc4c1b9e183f3f9794be65a35d7b84524880886c00d2d5"
+    },
+    {
+      "bytes": 20480,
+      "path": "safety.sqlite",
+      "sha256": "3bfc757879e34a641025c6d419a5dd77662c4381a5fac5c7460e3b5c4fc936f7"
+    },
+    {
+      "bytes": 140,
+      "path": "station.csv",
+      "sha256": "89c7c4dcf3c74a65394095799e07ba567b8c22d543850d094cf9a19b7614627d"
+    }
+  ],
+  "generated_with": {
+    "binary_libraries": {
+      "duckdb": "runtime-recorded",
+      "h5py": "runtime-recorded",
+      "netCDF4": "runtime-recorded",
+      "openpyxl": "runtime-recorded",
+      "pyarrow": "runtime-recorded"
+    },
+    "python": "3.12+"
+  },
+  "schema": 1
+}

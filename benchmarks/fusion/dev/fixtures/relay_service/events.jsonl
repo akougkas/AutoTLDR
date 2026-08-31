@@ -1,0 +1,3 @@
+{"message_id":"relay-1","delivery_attempts":1,"ack_latency_ms":12.5}
+{"message_id":"relay-2","delivery_attempts":2,"ack_latency_ms":18.0}
+

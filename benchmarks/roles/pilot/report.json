@@ -1,0 +1,297 @@
+{
+  "schema": 1,
+  "purpose": "local-model-selection-pilot",
+  "interpretation": "This pilot selects one local arm. It is not evidence that any role is recoverable; only the frozen 200-unit evaluation answers that question.",
+  "pilot": {
+    "items": 33,
+    "roles": 11,
+    "items_per_role": 3
+  },
+  "incumbent": "Ornith-1.5-35B-A3B",
+  "candidates": {
+    "Gemma-4-26B-A4B-QAT": {
+      "exact_correct": 17,
+      "per_role_correct": {
+        "unknown": 3,
+        "claim": 3,
+        "definition": 0,
+        "procedure": 3,
+        "parameter": 0,
+        "caveat": 3,
+        "result": 2,
+        "example": 0,
+        "decision": 0,
+        "assumption": 1,
+        "limitation": 2
+      },
+      "roles_three_of_three": 4,
+      "roles_at_least_two_of_three": 6,
+      "statuses": {
+        "ok": 33,
+        "invalid": 0,
+        "error": 0
+      },
+      "runtime_gate_passed": true,
+      "switch_conditions": {
+        "total_correct_advantage": {
+          "actual": 2,
+          "minimum": 4,
+          "passed": false
+        },
+        "roles_worse_than_incumbent": {
+          "actual": 1,
+          "roles": [
+            "result"
+          ],
+          "maximum": 2,
+          "passed": true
+        },
+        "runtime_gate": {
+          "actual": {
+            "ok": 33,
+            "invalid": 0,
+            "error": 0
+          },
+          "required": {
+            "ok": 33,
+            "invalid": 0,
+            "error": 0
+          },
+          "passed": true
+        }
+      },
+      "qualifies_to_replace_incumbent": false
+    },
+    "Granite-4.2-3B": {
+      "exact_correct": 4,
+      "per_role_correct": {
+        "unknown": 1,
+        "claim": 3,
+        "definition": 0,
+        "procedure": 0,
+        "parameter": 0,
+        "caveat": 0,
+        "result": 0,
+        "example": 0,
+        "decision": 0,
+        "assumption": 0,
+        "limitation": 0
+      },
+      "roles_three_of_three": 1,
+      "roles_at_least_two_of_three": 1,
+      "statuses": {
+        "ok": 33,
+        "invalid": 0,
+        "error": 0
+      },
+      "runtime_gate_passed": true,
+      "switch_conditions": {
+        "total_correct_advantage": {
+          "actual": -11,
+          "minimum": 4,
+          "passed": false
+        },
+        "roles_worse_than_incumbent": {
+          "actual": 4,
+          "roles": [
+            "unknown",
+            "procedure",
+            "caveat",
+            "result"
+          ],
+          "maximum": 2,
+          "passed": false
+        },
+        "runtime_gate": {
+          "actual": {
+            "ok": 33,
+            "invalid": 0,
+            "error": 0
+          },
+          "required": {
+            "ok": 33,
+            "invalid": 0,
+            "error": 0
+          },
+          "passed": true
+        }
+      },
+      "qualifies_to_replace_incumbent": false
+    },
+    "Granite-4.2-8B": {
+      "exact_correct": 8,
+      "per_role_correct": {
+        "unknown": 2,
+        "claim": 3,
+        "definition": 1,
+        "procedure": 1,
+        "parameter": 0,
+        "caveat": 0,
+        "result": 1,
+        "example": 0,
+        "decision": 0,
+        "assumption": 0,
+        "limitation": 0
+      },
+      "roles_three_of_three": 1,
+      "roles_at_least_two_of_three": 2,
+      "statuses": {
+        "ok": 33,
+        "invalid": 0,
+        "error": 0
+      },
+      "runtime_gate_passed": true,
+      "switch_conditions": {
+        "total_correct_advantage": {
+          "actual": -7,
+          "minimum": 4,
+          "passed": false
+        },
+        "roles_worse_than_incumbent": {
+          "actual": 4,
+          "roles": [
+            "unknown",
+            "procedure",
+            "caveat",
+            "result"
+          ],
+          "maximum": 2,
+          "passed": false
+        },
+        "runtime_gate": {
+          "actual": {
+            "ok": 33,
+            "invalid": 0,
+            "error": 0
+          },
+          "required": {
+            "ok": 33,
+            "invalid": 0,
+            "error": 0
+          },
+          "passed": true
+        }
+      },
+      "qualifies_to_replace_incumbent": false
+    },
+    "MiniCPM-V-4.6": {
+      "exact_correct": 8,
+      "per_role_correct": {
+        "unknown": 0,
+        "claim": 2,
+        "definition": 1,
+        "procedure": 2,
+        "parameter": 1,
+        "caveat": 0,
+        "result": 0,
+        "example": 0,
+        "decision": 1,
+        "assumption": 0,
+        "limitation": 1
+      },
+      "roles_three_of_three": 0,
+      "roles_at_least_two_of_three": 2,
+      "statuses": {
+        "ok": 33,
+        "invalid": 0,
+        "error": 0
+      },
+      "runtime_gate_passed": true,
+      "switch_conditions": {
+        "total_correct_advantage": {
+          "actual": -7,
+          "minimum": 4,
+          "passed": false
+        },
+        "roles_worse_than_incumbent": {
+          "actual": 5,
+          "roles": [
+            "unknown",
+            "claim",
+            "procedure",
+            "caveat",
+            "result"
+          ],
+          "maximum": 2,
+          "passed": false
+        },
+        "runtime_gate": {
+          "actual": {
+            "ok": 33,
+            "invalid": 0,
+            "error": 0
+          },
+          "required": {
+            "ok": 33,
+            "invalid": 0,
+            "error": 0
+          },
+          "passed": true
+        }
+      },
+      "qualifies_to_replace_incumbent": false
+    },
+    "Ornith-1.5-35B-A3B": {
+      "exact_correct": 15,
+      "per_role_correct": {
+        "unknown": 3,
+        "claim": 3,
+        "definition": 0,
+        "procedure": 3,
+        "parameter": 0,
+        "caveat": 3,
+        "result": 3,
+        "example": 0,
+        "decision": 0,
+        "assumption": 0,
+        "limitation": 0
+      },
+      "roles_three_of_three": 5,
+      "roles_at_least_two_of_three": 5,
+      "statuses": {
+        "ok": 33,
+        "invalid": 0,
+        "error": 0
+      },
+      "runtime_gate_passed": true,
+      "switch_conditions": null,
+      "qualifies_to_replace_incumbent": false
+    }
+  },
+  "selection": {
+    "selected_candidate": "Ornith-1.5-35B-A3B",
+    "retained_incumbent": true,
+    "qualifying_challengers": [],
+    "unresolved_artifact_size_tie": [],
+    "reason": "no challenger cleared every frozen switch condition"
+  },
+  "frozen_rule": {
+    "minimum_total_correct_advantage": 4,
+    "maximum_roles_worse_than_incumbent": 2,
+    "required_statuses": {
+      "ok": 33,
+      "invalid": 0,
+      "error": 0
+    },
+    "known_artifact_tie_order": [
+      "MiniCPM-V-4.6",
+      "Granite-4.2-3B",
+      "Granite-4.2-8B",
+      "Gemma-4-26B-A4B-QAT",
+      "Ornith-1.5-35B-A3B"
+    ],
+    "unknown_artifact_tie": "retain-incumbent"
+  },
+  "hashes": {
+    "items_sha256": "f6f363f5cd2517a4e3cfc6a7e6ea599f5d0377819af1690859a14c19c8d1fdbc",
+    "labels_sha256": "76a409a74ec7d5223a3d199773b40db8604570e991c9cfc86932aac0604b6ffb",
+    "policy_sha256": "00ca73a0cd87d1b789ce8049d6c2173dc34077c5c56c6a5751a8f361ae24d0d6",
+    "predictions": {
+      "Gemma-4-26B-A4B-QAT": "57ff80e9d69e09b2f25303c296da53a82ea0e2a47007a603ee7f8135feb4e8b0",
+      "Granite-4.2-3B": "c63438e5883d96fd87eecc05c11be0bbc74a646327696c4ab6aeac35856ea1b4",
+      "Granite-4.2-8B": "e9fe4e787ca8b3d687810378c23bc95bb3aa0e316d3ef721c93da47194f335ea",
+      "MiniCPM-V-4.6": "b4be703033b531428813b072c4a9f6b8b29c99cbf7e56bf3f7b70910fee2f2d3",
+      "Ornith-1.5-35B-A3B": "420cf4d886d36d44c712c010943c2b600c48a1f0a5939c216f1f50e338f08843"
+    }
+  }
+}

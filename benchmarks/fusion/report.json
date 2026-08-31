@@ -1,0 +1,4771 @@
+{
+  "aggregate_is_gate": false,
+  "benchmark": "stage4-model-free-fusion-v1",
+  "corpus_validation": {
+    "splits": {
+      "dev": {
+        "collections": 2,
+        "gaps": 1,
+        "relations": 28,
+        "source_tree_sha256": "667fb23e3b5033116921107cffb07d83d25f3ffad9982b1b0684af49a25f7602",
+        "sources": 11,
+        "units": 59
+      },
+      "scored": {
+        "collections": 6,
+        "gaps": 6,
+        "relations": 122,
+        "source_tree_sha256": "5e4f8c1f3132395f40527949dc7b5410b3ade5f208c5401d70bca26cc9ac5db6",
+        "sources": 34,
+        "units": 222
+      }
+    },
+    "status": "valid"
+  },
+  "label_validation": {
+    "hard_negative_classes": {
+      "contradiction": [
+        "approximate-vs-scalar",
+        "derived-vs-declared",
+        "equivalent-number",
+        "multi-valued-profile",
+        "namespace-collision",
+        "range-vs-scalar",
+        "unit-name-mismatch"
+      ],
+      "identifier": [
+        "common-token",
+        "namespace-collision",
+        "one-token-overlap",
+        "prose-only-overlap",
+        "same-spelling-different-domain"
+      ],
+      "literal": [
+        "ambiguous-basename",
+        "external-import",
+        "external-url",
+        "query-or-fragment",
+        "substring-basename"
+      ],
+      "structural": [
+        "generic-fields",
+        "incompatible-types",
+        "low-overlap",
+        "same-width-different-fields"
+      ],
+      "unresolved": [
+        "external-doi",
+        "external-import",
+        "external-url",
+        "resolved-local"
+      ]
+    },
+    "label_rows": 127,
+    "labels_sha256": "4a208074cdad1e6ec60fc39b778916eedaf8aad4c1be85f7f55cb755a5a9ae9c",
+    "positive_support": {
+      "contradiction": 12,
+      "identifier": 171,
+      "literal": 23,
+      "orphan": 7,
+      "structural": 10,
+      "unresolved": 9
+    },
+    "source_groups": {
+      "contradiction": 6,
+      "identifier": 6,
+      "literal": 6,
+      "orphan": 6,
+      "structural": 6,
+      "unresolved": 6
+    },
+    "split": "scored",
+    "status": "valid",
+    "subtype_support": {
+      "contradiction:constant-constant": 12,
+      "identifier:explicit-prose-native": 96,
+      "identifier:native-native": 63,
+      "identifier:prose-prose": 12,
+      "literal:label-key": 1,
+      "literal:local-path": 22,
+      "orphan:no-accepted-relation": 7,
+      "structural:record-schema-record-schema": 3,
+      "structural:table-record-schema": 7,
+      "unresolved:ambiguous-local-path": 1,
+      "unresolved:citation-key": 1,
+      "unresolved:label-key": 1,
+      "unresolved:local-path": 6
+    },
+    "warnings": []
+  },
+  "models": [],
+  "prediction_manifest": {
+    "collections": 6,
+    "evaluator_sha256": "331d14c93d9d9d0195121b1a8a4d1cc0a6d48064fb89c74aacb4d85272cca402",
+    "evaluator_version": "stage4-fusion-evaluator-v2",
+    "extractions_sha256": "f83b4dd639ed5a4d24721d43f524370cc25854349f27cd3abed2791e84978cc5",
+    "implementation_sha256": "830d42e7efcdf3fd20beac11733acf9276c0484af810e439dd70122de8dc8420",
+    "labels_sha256_recorded_but_not_loaded": "4a208074cdad1e6ec60fc39b778916eedaf8aad4c1be85f7f55cb755a5a9ae9c",
+    "models": [],
+    "policy_sha256": "b015d48e048b895d0002ad56f60a4ee4bd3bbc02229af886827671be37737ff3",
+    "predictions_sha256": "c9fd530184b14219cbc6f409380dd0a1e6ac45c12efda445c90ef5a184d17ac9",
+    "robustness": {
+      "all_unknown_equal": true,
+      "deterministic_repeat": true,
+      "full_existing_unit_ids": true,
+      "input_permutation_equal": true,
+      "root_relocation_equal": true
+    },
+    "schema": 2,
+    "source_tree_sha256": "5e4f8c1f3132395f40527949dc7b5410b3ade5f208c5401d70bca26cc9ac5db6",
+    "split": "scored",
+    "status": "complete",
+    "structured_trace_only": true
+  },
+  "schema": 2,
+  "signals": {
+    "contradiction": {
+      "diagnostic_would_pass_scored_gate": false,
+      "disposition": {
+        "status": "disable",
+        "subtypes": []
+      },
+      "duplicate_fp": 0,
+      "duplicate_prediction_keys": [],
+      "f1": 0.8,
+      "false_negative_keys": [
+        [
+          "contradiction",
+          "capacity",
+          "capacity.xlsx",
+          "overview.md",
+          [
+            "safety",
+            "margin",
+            "pct"
+          ],
+          [
+            [
+              "number",
+              "10"
+            ],
+            [
+              "number",
+              "12"
+            ]
+          ]
+        ],
+        [
+          "contradiction",
+          "capacity",
+          "overview.md",
+          "schema.xml",
+          [
+            "rack",
+            "limit"
+          ],
+          [
+            [
+              "number",
+              "16"
+            ],
+            [
+              "number",
+              "20"
+            ]
+          ]
+        ],
+        [
+          "contradiction",
+          "water_billing",
+          "spec.html",
+          "tariff.json",
+          [
+            "grace",
+            "period",
+            "days"
+          ],
+          [
+            [
+              "number",
+              "10"
+            ],
+            [
+              "number",
+              "7"
+            ]
+          ]
+        ],
+        [
+          "contradiction",
+          "water_billing",
+          "spec.html",
+          "tariff.json",
+          [
+            "late",
+            "fee",
+            "pct"
+          ],
+          [
+            [
+              "number",
+              "2"
+            ],
+            [
+              "number",
+              "3"
+            ]
+          ]
+        ]
+      ],
+      "false_positive_keys": [],
+      "fn": 4,
+      "format_pair_slices": {
+        "html<->json": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": null,
+          "false_negative_keys": [
+            [
+              "contradiction",
+              "water_billing",
+              "spec.html",
+              "tariff.json",
+              [
+                "grace",
+                "period",
+                "days"
+              ],
+              [
+                [
+                  "number",
+                  "10"
+                ],
+                [
+                  "number",
+                  "7"
+                ]
+              ]
+            ],
+            [
+              "contradiction",
+              "water_billing",
+              "spec.html",
+              "tariff.json",
+              [
+                "late",
+                "fee",
+                "pct"
+              ],
+              [
+                [
+                  "number",
+                  "2"
+                ],
+                [
+                  "number",
+                  "3"
+                ]
+              ]
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 2,
+          "fp": 0,
+          "precision": null,
+          "precision_wilson_95": null,
+          "predictions": 0,
+          "recall": 0.0,
+          "recall_wilson_95": [
+            0.0,
+            0.65762
+          ],
+          "support": 2,
+          "tp": 0
+        },
+        "json<->markdown": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "predictions": 2,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "support": 2,
+          "tp": 2
+        },
+        "latex<->yaml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "predictions": 2,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "support": 2,
+          "tp": 2
+        },
+        "markdown<->toml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "predictions": 2,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "support": 2,
+          "tp": 2
+        },
+        "markdown<->xlsx": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": null,
+          "false_negative_keys": [
+            [
+              "contradiction",
+              "capacity",
+              "capacity.xlsx",
+              "overview.md",
+              [
+                "safety",
+                "margin",
+                "pct"
+              ],
+              [
+                [
+                  "number",
+                  "10"
+                ],
+                [
+                  "number",
+                  "12"
+                ]
+              ]
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 1,
+          "fp": 0,
+          "precision": null,
+          "precision_wilson_95": null,
+          "predictions": 0,
+          "recall": 0.0,
+          "recall_wilson_95": [
+            0.0,
+            0.793451
+          ],
+          "support": 1,
+          "tp": 0
+        },
+        "markdown<->xml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": null,
+          "false_negative_keys": [
+            [
+              "contradiction",
+              "capacity",
+              "overview.md",
+              "schema.xml",
+              [
+                "rack",
+                "limit"
+              ],
+              [
+                [
+                  "number",
+                  "16"
+                ],
+                [
+                  "number",
+                  "20"
+                ]
+              ]
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 1,
+          "fp": 0,
+          "precision": null,
+          "precision_wilson_95": null,
+          "predictions": 0,
+          "recall": 0.0,
+          "recall_wilson_95": [
+            0.0,
+            0.793451
+          ],
+          "support": 1,
+          "tp": 0
+        },
+        "rst<->toml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "predictions": 2,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "support": 2,
+          "tp": 2
+        }
+      },
+      "fp": 0,
+      "gate": {
+        "minimum_groups": 6,
+        "minimum_precision": 1.0,
+        "minimum_recall": 0.7,
+        "minimum_support": 12
+      },
+      "groups": 6,
+      "hard_negative_false_positives": {},
+      "passes": false,
+      "precision": 1.0,
+      "precision_wilson_95": [
+        0.675592,
+        1.0
+      ],
+      "predictions": 8,
+      "recall": 0.666667,
+      "recall_wilson_95": [
+        0.390622,
+        0.86188
+      ],
+      "subtype_attribution": {
+        "ambiguous_predictions": 0,
+        "assignment_counts": {
+          "constant-constant": 8
+        },
+        "basis": [
+          "left_basis+right_basis"
+        ],
+        "complete": true,
+        "gold_complete": true,
+        "prediction_complete": true,
+        "unclassified_prediction_keys": []
+      },
+      "subtypes": {
+        "constant-constant": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": true,
+          "f1": 0.8,
+          "false_negative_keys": [
+            [
+              "contradiction",
+              "capacity",
+              "capacity.xlsx",
+              "overview.md",
+              [
+                "safety",
+                "margin",
+                "pct"
+              ],
+              [
+                [
+                  "number",
+                  "10"
+                ],
+                [
+                  "number",
+                  "12"
+                ]
+              ]
+            ],
+            [
+              "contradiction",
+              "capacity",
+              "overview.md",
+              "schema.xml",
+              [
+                "rack",
+                "limit"
+              ],
+              [
+                [
+                  "number",
+                  "16"
+                ],
+                [
+                  "number",
+                  "20"
+                ]
+              ]
+            ],
+            [
+              "contradiction",
+              "water_billing",
+              "spec.html",
+              "tariff.json",
+              [
+                "grace",
+                "period",
+                "days"
+              ],
+              [
+                [
+                  "number",
+                  "10"
+                ],
+                [
+                  "number",
+                  "7"
+                ]
+              ]
+            ],
+            [
+              "contradiction",
+              "water_billing",
+              "spec.html",
+              "tariff.json",
+              [
+                "late",
+                "fee",
+                "pct"
+              ],
+              [
+                [
+                  "number",
+                  "2"
+                ],
+                [
+                  "number",
+                  "3"
+                ]
+              ]
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 4,
+          "fp": 0,
+          "groups": 6,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.675592,
+            1.0
+          ],
+          "predictions": 8,
+          "recall": 0.666667,
+          "recall_wilson_95": [
+            0.390622,
+            0.86188
+          ],
+          "support": 12,
+          "tp": 8
+        }
+      },
+      "support": 12,
+      "tp": 8
+    },
+    "identifier": {
+      "diagnostic_would_pass_scored_gate": false,
+      "disposition": {
+        "status": "ship-preregistered-subtype",
+        "subtypes": [
+          "native-native"
+        ]
+      },
+      "duplicate_fp": 0,
+      "duplicate_prediction_keys": [],
+      "f1": 0.840237,
+      "false_negative_keys": [
+        [
+          "identifier",
+          "capacity",
+          [
+            "effective",
+            "capacity"
+          ],
+          "capacity.xlsx",
+          "overview.md"
+        ],
+        [
+          "identifier",
+          "capacity",
+          [
+            "node",
+            "count"
+          ],
+          "capacity.xlsx",
+          "export.csv"
+        ],
+        [
+          "identifier",
+          "capacity",
+          [
+            "node",
+            "count"
+          ],
+          "capacity.xlsx",
+          "overview.md"
+        ],
+        [
+          "identifier",
+          "capacity",
+          [
+            "node",
+            "count"
+          ],
+          "capacity.xlsx",
+          "schema.xml"
+        ],
+        [
+          "identifier",
+          "capacity",
+          [
+            "node",
+            "count"
+          ],
+          "export.csv",
+          "overview.md"
+        ],
+        [
+          "identifier",
+          "capacity",
+          [
+            "node",
+            "count"
+          ],
+          "export.csv",
+          "schema.xml"
+        ],
+        [
+          "identifier",
+          "capacity",
+          [
+            "node",
+            "count"
+          ],
+          "overview.md",
+          "schema.xml"
+        ],
+        [
+          "identifier",
+          "greenhouse",
+          [
+            "sample",
+            "interval",
+            "s"
+          ],
+          "layout.json",
+          "protocol.md"
+        ],
+        [
+          "identifier",
+          "telescope",
+          [
+            "frame",
+            "id"
+          ],
+          "appendix.tex",
+          "frames.csv"
+        ],
+        [
+          "identifier",
+          "telescope",
+          [
+            "frame",
+            "id"
+          ],
+          "appendix.tex",
+          "frames.jsonl"
+        ],
+        [
+          "identifier",
+          "telescope",
+          [
+            "frame",
+            "id"
+          ],
+          "appendix.tex",
+          "instrument.yaml"
+        ],
+        [
+          "identifier",
+          "telescope",
+          [
+            "frame",
+            "id"
+          ],
+          "appendix.tex",
+          "methods.tex"
+        ],
+        [
+          "identifier",
+          "telescope",
+          [
+            "frame",
+            "id"
+          ],
+          "appendix.tex",
+          "reduce.ipynb"
+        ],
+        [
+          "identifier",
+          "telescope",
+          [
+            "frame",
+            "id"
+          ],
+          "frames.csv",
+          "frames.jsonl"
+        ],
+        [
+          "identifier",
+          "telescope",
+          [
+            "frame",
+            "id"
+          ],
+          "frames.csv",
+          "instrument.yaml"
+        ],
+        [
+          "identifier",
+          "telescope",
+          [
+            "frame",
+            "id"
+          ],
+          "frames.csv",
+          "methods.tex"
+        ],
+        [
+          "identifier",
+          "telescope",
+          [
+            "frame",
+            "id"
+          ],
+          "frames.csv",
+          "reduce.ipynb"
+        ],
+        [
+          "identifier",
+          "telescope",
+          [
+            "frame",
+            "id"
+          ],
+          "frames.jsonl",
+          "instrument.yaml"
+        ],
+        [
+          "identifier",
+          "telescope",
+          [
+            "frame",
+            "id"
+          ],
+          "frames.jsonl",
+          "methods.tex"
+        ],
+        [
+          "identifier",
+          "telescope",
+          [
+            "frame",
+            "id"
+          ],
+          "frames.jsonl",
+          "reduce.ipynb"
+        ],
+        [
+          "identifier",
+          "telescope",
+          [
+            "frame",
+            "id"
+          ],
+          "instrument.yaml",
+          "methods.tex"
+        ],
+        [
+          "identifier",
+          "telescope",
+          [
+            "frame",
+            "id"
+          ],
+          "instrument.yaml",
+          "reduce.ipynb"
+        ],
+        [
+          "identifier",
+          "telescope",
+          [
+            "frame",
+            "id"
+          ],
+          "methods.tex",
+          "reduce.ipynb"
+        ],
+        [
+          "identifier",
+          "water_billing",
+          [
+            "account",
+            "ref"
+          ],
+          "meters.jsonl",
+          "spec.html"
+        ],
+        [
+          "identifier",
+          "water_billing",
+          [
+            "account",
+            "ref"
+          ],
+          "meters.jsonl",
+          "tariff.json"
+        ],
+        [
+          "identifier",
+          "water_billing",
+          [
+            "account",
+            "ref"
+          ],
+          "meters.jsonl",
+          "tariff.py"
+        ],
+        [
+          "identifier",
+          "water_billing",
+          [
+            "account",
+            "ref"
+          ],
+          "spec.html",
+          "tariff.json"
+        ],
+        [
+          "identifier",
+          "water_billing",
+          [
+            "account",
+            "ref"
+          ],
+          "spec.html",
+          "tariff.py"
+        ],
+        [
+          "identifier",
+          "water_billing",
+          [
+            "account",
+            "ref"
+          ],
+          "tariff.json",
+          "tariff.py"
+        ]
+      ],
+      "false_positive_keys": [
+        [
+          "identifier",
+          "capacity",
+          [
+            "capacity"
+          ],
+          "capacity.xlsx",
+          "overview.md"
+        ],
+        [
+          "identifier",
+          "capacity",
+          [
+            "capacity"
+          ],
+          "capacity.xlsx",
+          "schema.xml"
+        ],
+        [
+          "identifier",
+          "capacity",
+          [
+            "capacity"
+          ],
+          "capacity.xlsx",
+          "unused.md"
+        ],
+        [
+          "identifier",
+          "capacity",
+          [
+            "capacity"
+          ],
+          "overview.md",
+          "schema.xml"
+        ],
+        [
+          "identifier",
+          "capacity",
+          [
+            "capacity"
+          ],
+          "overview.md",
+          "unused.md"
+        ],
+        [
+          "identifier",
+          "capacity",
+          [
+            "capacity"
+          ],
+          "schema.xml",
+          "unused.md"
+        ],
+        [
+          "identifier",
+          "greenhouse",
+          [
+            "readings"
+          ],
+          "layout.json",
+          "old-notes.txt"
+        ],
+        [
+          "identifier",
+          "greenhouse",
+          [
+            "readings"
+          ],
+          "layout.json",
+          "protocol.md"
+        ],
+        [
+          "identifier",
+          "greenhouse",
+          [
+            "readings"
+          ],
+          "old-notes.txt",
+          "protocol.md"
+        ],
+        [
+          "identifier",
+          "parcel_dispatch",
+          [
+            "handoff",
+            "timeout"
+          ],
+          "policy.toml",
+          "runbook.rst"
+        ],
+        [
+          "identifier",
+          "parcel_dispatch",
+          [
+            "parcel",
+            "id"
+          ],
+          "current/parcels.tsv",
+          "draft.json"
+        ],
+        [
+          "identifier",
+          "parcel_dispatch",
+          [
+            "parcel",
+            "id"
+          ],
+          "dispatch.py",
+          "draft.json"
+        ],
+        [
+          "identifier",
+          "parcel_dispatch",
+          [
+            "parcel",
+            "id"
+          ],
+          "draft.json",
+          "policy.toml"
+        ],
+        [
+          "identifier",
+          "parcel_dispatch",
+          [
+            "parcel",
+            "id"
+          ],
+          "draft.json",
+          "runbook.rst"
+        ],
+        [
+          "identifier",
+          "parcel_dispatch",
+          [
+            "route",
+            "bucket"
+          ],
+          "current/parcels.tsv",
+          "draft.json"
+        ],
+        [
+          "identifier",
+          "parcel_dispatch",
+          [
+            "route",
+            "bucket"
+          ],
+          "dispatch.py",
+          "draft.json"
+        ],
+        [
+          "identifier",
+          "parcel_dispatch",
+          [
+            "route",
+            "bucket"
+          ],
+          "draft.json",
+          "policy.toml"
+        ],
+        [
+          "identifier",
+          "parcel_dispatch",
+          [
+            "route",
+            "bucket"
+          ],
+          "draft.json",
+          "runbook.rst"
+        ],
+        [
+          "identifier",
+          "telescope",
+          [
+            "frames"
+          ],
+          "appendix.tex",
+          "instrument.yaml"
+        ],
+        [
+          "identifier",
+          "telescope",
+          [
+            "frames"
+          ],
+          "appendix.tex",
+          "methods.tex"
+        ],
+        [
+          "identifier",
+          "telescope",
+          [
+            "frames"
+          ],
+          "appendix.tex",
+          "reduce.ipynb"
+        ],
+        [
+          "identifier",
+          "telescope",
+          [
+            "frames"
+          ],
+          "instrument.yaml",
+          "methods.tex"
+        ],
+        [
+          "identifier",
+          "telescope",
+          [
+            "frames"
+          ],
+          "instrument.yaml",
+          "reduce.ipynb"
+        ],
+        [
+          "identifier",
+          "telescope",
+          [
+            "frames"
+          ],
+          "methods.tex",
+          "reduce.ipynb"
+        ],
+        [
+          "identifier",
+          "water_billing",
+          [
+            "meters"
+          ],
+          "spec.html",
+          "tariff.json"
+        ]
+      ],
+      "fn": 29,
+      "format_pair_slices": {
+        "csv<->json": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.510109,
+            1.0
+          ],
+          "predictions": 4,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.510109,
+            1.0
+          ],
+          "support": 4,
+          "tp": 4
+        },
+        "csv<->jsonl": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.923077,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "telescope",
+              [
+                "frame",
+                "id"
+              ],
+              "frames.csv",
+              "frames.jsonl"
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 1,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.609666,
+            1.0
+          ],
+          "predictions": 6,
+          "recall": 0.857143,
+          "recall_wilson_95": [
+            0.486872,
+            0.97432
+          ],
+          "support": 7,
+          "tp": 6
+        },
+        "csv<->latex": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.8,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "telescope",
+              [
+                "frame",
+                "id"
+              ],
+              "appendix.tex",
+              "frames.csv"
+            ],
+            [
+              "identifier",
+              "telescope",
+              [
+                "frame",
+                "id"
+              ],
+              "frames.csv",
+              "methods.tex"
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 2,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.510109,
+            1.0
+          ],
+          "predictions": 4,
+          "recall": 0.666667,
+          "recall_wilson_95": [
+            0.299993,
+            0.903229
+          ],
+          "support": 6,
+          "tp": 4
+        },
+        "csv<->markdown": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.947368,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "capacity",
+              [
+                "node",
+                "count"
+              ],
+              "export.csv",
+              "overview.md"
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 1,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.700855,
+            1.0
+          ],
+          "predictions": 9,
+          "recall": 0.9,
+          "recall_wilson_95": [
+            0.59585,
+            0.982124
+          ],
+          "support": 10,
+          "tp": 9
+        },
+        "csv<->notebook": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.909091,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "telescope",
+              [
+                "frame",
+                "id"
+              ],
+              "frames.csv",
+              "reduce.ipynb"
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 1,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.565518,
+            1.0
+          ],
+          "predictions": 5,
+          "recall": 0.833333,
+          "recall_wilson_95": [
+            0.436497,
+            0.969947
+          ],
+          "support": 6,
+          "tp": 5
+        },
+        "csv<->python": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.510109,
+            1.0
+          ],
+          "predictions": 4,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.510109,
+            1.0
+          ],
+          "support": 4,
+          "tp": 4
+        },
+        "csv<->toml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        },
+        "csv<->xlsx": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.8,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "capacity",
+              [
+                "node",
+                "count"
+              ],
+              "capacity.xlsx",
+              "export.csv"
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 1,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "predictions": 2,
+          "recall": 0.666667,
+          "recall_wilson_95": [
+            0.20766,
+            0.938508
+          ],
+          "support": 3,
+          "tp": 2
+        },
+        "csv<->xml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.8,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "capacity",
+              [
+                "node",
+                "count"
+              ],
+              "export.csv",
+              "schema.xml"
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 1,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "predictions": 2,
+          "recall": 0.666667,
+          "recall_wilson_95": [
+            0.20766,
+            0.938508
+          ],
+          "support": 3,
+          "tp": 2
+        },
+        "csv<->yaml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.8,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "telescope",
+              [
+                "frame",
+                "id"
+              ],
+              "frames.csv",
+              "instrument.yaml"
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 1,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "predictions": 2,
+          "recall": 0.666667,
+          "recall_wilson_95": [
+            0.20766,
+            0.938508
+          ],
+          "support": 3,
+          "tp": 2
+        },
+        "html<->json": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.8,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "water_billing",
+              [
+                "account",
+                "ref"
+              ],
+              "spec.html",
+              "tariff.json"
+            ]
+          ],
+          "false_positive_keys": [
+            [
+              "identifier",
+              "water_billing",
+              [
+                "meters"
+              ],
+              "spec.html",
+              "tariff.json"
+            ]
+          ],
+          "fn": 1,
+          "fp": 1,
+          "precision": 0.8,
+          "precision_wilson_95": [
+            0.375535,
+            0.963776
+          ],
+          "predictions": 5,
+          "recall": 0.8,
+          "recall_wilson_95": [
+            0.375535,
+            0.963776
+          ],
+          "support": 5,
+          "tp": 4
+        },
+        "html<->jsonl": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.8,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "water_billing",
+              [
+                "account",
+                "ref"
+              ],
+              "meters.jsonl",
+              "spec.html"
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 1,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "predictions": 2,
+          "recall": 0.666667,
+          "recall_wilson_95": [
+            0.20766,
+            0.938508
+          ],
+          "support": 3,
+          "tp": 2
+        },
+        "html<->python": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.8,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "water_billing",
+              [
+                "account",
+                "ref"
+              ],
+              "spec.html",
+              "tariff.py"
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 1,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "predictions": 2,
+          "recall": 0.666667,
+          "recall_wilson_95": [
+            0.20766,
+            0.938508
+          ],
+          "support": 3,
+          "tp": 2
+        },
+        "json<->jsonl": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.923077,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "water_billing",
+              [
+                "account",
+                "ref"
+              ],
+              "meters.jsonl",
+              "tariff.json"
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 1,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.609666,
+            1.0
+          ],
+          "predictions": 6,
+          "recall": 0.857143,
+          "recall_wilson_95": [
+            0.486872,
+            0.97432
+          ],
+          "support": 7,
+          "tp": 6
+        },
+        "json<->markdown": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.833333,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "greenhouse",
+              [
+                "sample",
+                "interval",
+                "s"
+              ],
+              "layout.json",
+              "protocol.md"
+            ]
+          ],
+          "false_positive_keys": [
+            [
+              "identifier",
+              "greenhouse",
+              [
+                "readings"
+              ],
+              "layout.json",
+              "protocol.md"
+            ]
+          ],
+          "fn": 1,
+          "fp": 1,
+          "precision": 0.833333,
+          "precision_wilson_95": [
+            0.436497,
+            0.969947
+          ],
+          "predictions": 6,
+          "recall": 0.833333,
+          "recall_wilson_95": [
+            0.436497,
+            0.969947
+          ],
+          "support": 6,
+          "tp": 5
+        },
+        "json<->python": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.8,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "water_billing",
+              [
+                "account",
+                "ref"
+              ],
+              "tariff.json",
+              "tariff.py"
+            ]
+          ],
+          "false_positive_keys": [
+            [
+              "identifier",
+              "parcel_dispatch",
+              [
+                "parcel",
+                "id"
+              ],
+              "dispatch.py",
+              "draft.json"
+            ],
+            [
+              "identifier",
+              "parcel_dispatch",
+              [
+                "route",
+                "bucket"
+              ],
+              "dispatch.py",
+              "draft.json"
+            ]
+          ],
+          "fn": 1,
+          "fp": 2,
+          "precision": 0.75,
+          "precision_wilson_95": [
+            0.409275,
+            0.928521
+          ],
+          "predictions": 8,
+          "recall": 0.857143,
+          "recall_wilson_95": [
+            0.486872,
+            0.97432
+          ],
+          "support": 7,
+          "tp": 6
+        },
+        "json<->rst": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": null,
+          "false_negative_keys": [],
+          "false_positive_keys": [
+            [
+              "identifier",
+              "parcel_dispatch",
+              [
+                "parcel",
+                "id"
+              ],
+              "draft.json",
+              "runbook.rst"
+            ],
+            [
+              "identifier",
+              "parcel_dispatch",
+              [
+                "route",
+                "bucket"
+              ],
+              "draft.json",
+              "runbook.rst"
+            ]
+          ],
+          "fn": 0,
+          "fp": 2,
+          "precision": 0.0,
+          "precision_wilson_95": [
+            0.0,
+            0.65762
+          ],
+          "predictions": 2,
+          "recall": null,
+          "recall_wilson_95": null,
+          "support": 0,
+          "tp": 0
+        },
+        "json<->text": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": null,
+          "false_negative_keys": [],
+          "false_positive_keys": [
+            [
+              "identifier",
+              "greenhouse",
+              [
+                "readings"
+              ],
+              "layout.json",
+              "old-notes.txt"
+            ]
+          ],
+          "fn": 0,
+          "fp": 1,
+          "precision": 0.0,
+          "precision_wilson_95": [
+            0.0,
+            0.793451
+          ],
+          "predictions": 1,
+          "recall": null,
+          "recall_wilson_95": null,
+          "support": 0,
+          "tp": 0
+        },
+        "json<->toml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": null,
+          "false_negative_keys": [],
+          "false_positive_keys": [
+            [
+              "identifier",
+              "parcel_dispatch",
+              [
+                "parcel",
+                "id"
+              ],
+              "draft.json",
+              "policy.toml"
+            ],
+            [
+              "identifier",
+              "parcel_dispatch",
+              [
+                "route",
+                "bucket"
+              ],
+              "draft.json",
+              "policy.toml"
+            ]
+          ],
+          "fn": 0,
+          "fp": 2,
+          "precision": 0.0,
+          "precision_wilson_95": [
+            0.0,
+            0.65762
+          ],
+          "predictions": 2,
+          "recall": null,
+          "recall_wilson_95": null,
+          "support": 0,
+          "tp": 0
+        },
+        "json<->tsv": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": null,
+          "false_negative_keys": [],
+          "false_positive_keys": [
+            [
+              "identifier",
+              "parcel_dispatch",
+              [
+                "parcel",
+                "id"
+              ],
+              "current/parcels.tsv",
+              "draft.json"
+            ],
+            [
+              "identifier",
+              "parcel_dispatch",
+              [
+                "route",
+                "bucket"
+              ],
+              "current/parcels.tsv",
+              "draft.json"
+            ]
+          ],
+          "fn": 0,
+          "fp": 2,
+          "precision": 0.0,
+          "precision_wilson_95": [
+            0.0,
+            0.65762
+          ],
+          "predictions": 2,
+          "recall": null,
+          "recall_wilson_95": null,
+          "support": 0,
+          "tp": 0
+        },
+        "jsonl<->latex": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.8,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "telescope",
+              [
+                "frame",
+                "id"
+              ],
+              "appendix.tex",
+              "frames.jsonl"
+            ],
+            [
+              "identifier",
+              "telescope",
+              [
+                "frame",
+                "id"
+              ],
+              "frames.jsonl",
+              "methods.tex"
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 2,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.510109,
+            1.0
+          ],
+          "predictions": 4,
+          "recall": 0.666667,
+          "recall_wilson_95": [
+            0.299993,
+            0.903229
+          ],
+          "support": 6,
+          "tp": 4
+        },
+        "jsonl<->markdown": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.510109,
+            1.0
+          ],
+          "predictions": 4,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.510109,
+            1.0
+          ],
+          "support": 4,
+          "tp": 4
+        },
+        "jsonl<->notebook": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.8,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "telescope",
+              [
+                "frame",
+                "id"
+              ],
+              "frames.jsonl",
+              "reduce.ipynb"
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 1,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "predictions": 2,
+          "recall": 0.666667,
+          "recall_wilson_95": [
+            0.20766,
+            0.938508
+          ],
+          "support": 3,
+          "tp": 2
+        },
+        "jsonl<->python": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.923077,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "water_billing",
+              [
+                "account",
+                "ref"
+              ],
+              "meters.jsonl",
+              "tariff.py"
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 1,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.609666,
+            1.0
+          ],
+          "predictions": 6,
+          "recall": 0.857143,
+          "recall_wilson_95": [
+            0.486872,
+            0.97432
+          ],
+          "support": 7,
+          "tp": 6
+        },
+        "jsonl<->yaml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.8,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "telescope",
+              [
+                "frame",
+                "id"
+              ],
+              "frames.jsonl",
+              "instrument.yaml"
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 1,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "predictions": 2,
+          "recall": 0.666667,
+          "recall_wilson_95": [
+            0.20766,
+            0.938508
+          ],
+          "support": 3,
+          "tp": 2
+        },
+        "latex<->latex": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.666667,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "telescope",
+              [
+                "frame",
+                "id"
+              ],
+              "appendix.tex",
+              "methods.tex"
+            ]
+          ],
+          "false_positive_keys": [
+            [
+              "identifier",
+              "telescope",
+              [
+                "frames"
+              ],
+              "appendix.tex",
+              "methods.tex"
+            ]
+          ],
+          "fn": 1,
+          "fp": 1,
+          "precision": 0.666667,
+          "precision_wilson_95": [
+            0.20766,
+            0.938508
+          ],
+          "predictions": 3,
+          "recall": 0.666667,
+          "recall_wilson_95": [
+            0.20766,
+            0.938508
+          ],
+          "support": 3,
+          "tp": 2
+        },
+        "latex<->notebook": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.666667,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "telescope",
+              [
+                "frame",
+                "id"
+              ],
+              "appendix.tex",
+              "reduce.ipynb"
+            ],
+            [
+              "identifier",
+              "telescope",
+              [
+                "frame",
+                "id"
+              ],
+              "methods.tex",
+              "reduce.ipynb"
+            ]
+          ],
+          "false_positive_keys": [
+            [
+              "identifier",
+              "telescope",
+              [
+                "frames"
+              ],
+              "appendix.tex",
+              "reduce.ipynb"
+            ],
+            [
+              "identifier",
+              "telescope",
+              [
+                "frames"
+              ],
+              "methods.tex",
+              "reduce.ipynb"
+            ]
+          ],
+          "fn": 2,
+          "fp": 2,
+          "precision": 0.666667,
+          "precision_wilson_95": [
+            0.299993,
+            0.903229
+          ],
+          "predictions": 6,
+          "recall": 0.666667,
+          "recall_wilson_95": [
+            0.299993,
+            0.903229
+          ],
+          "support": 6,
+          "tp": 4
+        },
+        "latex<->yaml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.75,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "telescope",
+              [
+                "frame",
+                "id"
+              ],
+              "appendix.tex",
+              "instrument.yaml"
+            ],
+            [
+              "identifier",
+              "telescope",
+              [
+                "frame",
+                "id"
+              ],
+              "instrument.yaml",
+              "methods.tex"
+            ]
+          ],
+          "false_positive_keys": [
+            [
+              "identifier",
+              "telescope",
+              [
+                "frames"
+              ],
+              "appendix.tex",
+              "instrument.yaml"
+            ],
+            [
+              "identifier",
+              "telescope",
+              [
+                "frames"
+              ],
+              "instrument.yaml",
+              "methods.tex"
+            ]
+          ],
+          "fn": 2,
+          "fp": 2,
+          "precision": 0.75,
+          "precision_wilson_95": [
+            0.409275,
+            0.928521
+          ],
+          "predictions": 8,
+          "recall": 0.75,
+          "recall_wilson_95": [
+            0.409275,
+            0.928521
+          ],
+          "support": 8,
+          "tp": 6
+        },
+        "markdown<->markdown": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": null,
+          "false_negative_keys": [],
+          "false_positive_keys": [
+            [
+              "identifier",
+              "capacity",
+              [
+                "capacity"
+              ],
+              "overview.md",
+              "unused.md"
+            ]
+          ],
+          "fn": 0,
+          "fp": 1,
+          "precision": 0.0,
+          "precision_wilson_95": [
+            0.0,
+            0.793451
+          ],
+          "predictions": 1,
+          "recall": null,
+          "recall_wilson_95": null,
+          "support": 0,
+          "tp": 0
+        },
+        "markdown<->notebook": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        },
+        "markdown<->python": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.510109,
+            1.0
+          ],
+          "predictions": 4,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.510109,
+            1.0
+          ],
+          "support": 4,
+          "tp": 4
+        },
+        "markdown<->text": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": null,
+          "false_negative_keys": [],
+          "false_positive_keys": [
+            [
+              "identifier",
+              "greenhouse",
+              [
+                "readings"
+              ],
+              "old-notes.txt",
+              "protocol.md"
+            ]
+          ],
+          "fn": 0,
+          "fp": 1,
+          "precision": 0.0,
+          "precision_wilson_95": [
+            0.0,
+            0.793451
+          ],
+          "predictions": 1,
+          "recall": null,
+          "recall_wilson_95": null,
+          "support": 0,
+          "tp": 0
+        },
+        "markdown<->toml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.609666,
+            1.0
+          ],
+          "predictions": 6,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.609666,
+            1.0
+          ],
+          "support": 6,
+          "tp": 6
+        },
+        "markdown<->xlsx": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.6,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "capacity",
+              [
+                "effective",
+                "capacity"
+              ],
+              "capacity.xlsx",
+              "overview.md"
+            ],
+            [
+              "identifier",
+              "capacity",
+              [
+                "node",
+                "count"
+              ],
+              "capacity.xlsx",
+              "overview.md"
+            ]
+          ],
+          "false_positive_keys": [
+            [
+              "identifier",
+              "capacity",
+              [
+                "capacity"
+              ],
+              "capacity.xlsx",
+              "overview.md"
+            ],
+            [
+              "identifier",
+              "capacity",
+              [
+                "capacity"
+              ],
+              "capacity.xlsx",
+              "unused.md"
+            ]
+          ],
+          "fn": 2,
+          "fp": 2,
+          "precision": 0.6,
+          "precision_wilson_95": [
+            0.230724,
+            0.882379
+          ],
+          "predictions": 5,
+          "recall": 0.6,
+          "recall_wilson_95": [
+            0.230724,
+            0.882379
+          ],
+          "support": 5,
+          "tp": 3
+        },
+        "markdown<->xml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.666667,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "capacity",
+              [
+                "node",
+                "count"
+              ],
+              "overview.md",
+              "schema.xml"
+            ]
+          ],
+          "false_positive_keys": [
+            [
+              "identifier",
+              "capacity",
+              [
+                "capacity"
+              ],
+              "overview.md",
+              "schema.xml"
+            ],
+            [
+              "identifier",
+              "capacity",
+              [
+                "capacity"
+              ],
+              "schema.xml",
+              "unused.md"
+            ]
+          ],
+          "fn": 1,
+          "fp": 2,
+          "precision": 0.6,
+          "precision_wilson_95": [
+            0.230724,
+            0.882379
+          ],
+          "predictions": 5,
+          "recall": 0.75,
+          "recall_wilson_95": [
+            0.300642,
+            0.954413
+          ],
+          "support": 4,
+          "tp": 3
+        },
+        "notebook<->toml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        },
+        "notebook<->yaml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.666667,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "telescope",
+              [
+                "frame",
+                "id"
+              ],
+              "instrument.yaml",
+              "reduce.ipynb"
+            ]
+          ],
+          "false_positive_keys": [
+            [
+              "identifier",
+              "telescope",
+              [
+                "frames"
+              ],
+              "instrument.yaml",
+              "reduce.ipynb"
+            ]
+          ],
+          "fn": 1,
+          "fp": 1,
+          "precision": 0.666667,
+          "precision_wilson_95": [
+            0.20766,
+            0.938508
+          ],
+          "predictions": 3,
+          "recall": 0.666667,
+          "recall_wilson_95": [
+            0.20766,
+            0.938508
+          ],
+          "support": 3,
+          "tp": 2
+        },
+        "python<->rst": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        },
+        "python<->toml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        },
+        "python<->tsv": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        },
+        "rst<->toml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.909091,
+          "false_negative_keys": [],
+          "false_positive_keys": [
+            [
+              "identifier",
+              "parcel_dispatch",
+              [
+                "handoff",
+                "timeout"
+              ],
+              "policy.toml",
+              "runbook.rst"
+            ]
+          ],
+          "fn": 0,
+          "fp": 1,
+          "precision": 0.833333,
+          "precision_wilson_95": [
+            0.436497,
+            0.969947
+          ],
+          "predictions": 6,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.565518,
+            1.0
+          ],
+          "support": 5,
+          "tp": 5
+        },
+        "rst<->tsv": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        },
+        "toml<->tsv": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        },
+        "xlsx<->xml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.666667,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "capacity",
+              [
+                "node",
+                "count"
+              ],
+              "capacity.xlsx",
+              "schema.xml"
+            ]
+          ],
+          "false_positive_keys": [
+            [
+              "identifier",
+              "capacity",
+              [
+                "capacity"
+              ],
+              "capacity.xlsx",
+              "schema.xml"
+            ]
+          ],
+          "fn": 1,
+          "fp": 1,
+          "precision": 0.666667,
+          "precision_wilson_95": [
+            0.20766,
+            0.938508
+          ],
+          "predictions": 3,
+          "recall": 0.666667,
+          "recall_wilson_95": [
+            0.20766,
+            0.938508
+          ],
+          "support": 3,
+          "tp": 2
+        }
+      },
+      "fp": 25,
+      "gate": {
+        "minimum_groups": 6,
+        "minimum_precision": 0.9,
+        "minimum_recall": 0.7,
+        "minimum_support": 171
+      },
+      "groups": 6,
+      "hard_negative_false_positives": {},
+      "passes": false,
+      "precision": 0.850299,
+      "precision_wilson_95": [
+        0.788347,
+        0.896499
+      ],
+      "predictions": 167,
+      "recall": 0.830409,
+      "recall_wilson_95": [
+        0.767053,
+        0.879247
+      ],
+      "subtype_attribution": {
+        "ambiguous_predictions": 0,
+        "assignment_counts": {
+          "explicit-prose-native": 91,
+          "native-native": 60,
+          "prose-prose": 16
+        },
+        "basis": [
+          "left_native+right_native"
+        ],
+        "complete": true,
+        "gold_complete": true,
+        "prediction_complete": true,
+        "unclassified_prediction_keys": []
+      },
+      "subtypes": {
+        "explicit-prose-native": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": true,
+          "f1": 0.84492,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "capacity",
+              [
+                "effective",
+                "capacity"
+              ],
+              "capacity.xlsx",
+              "overview.md"
+            ],
+            [
+              "identifier",
+              "capacity",
+              [
+                "node",
+                "count"
+              ],
+              "capacity.xlsx",
+              "overview.md"
+            ],
+            [
+              "identifier",
+              "capacity",
+              [
+                "node",
+                "count"
+              ],
+              "export.csv",
+              "overview.md"
+            ],
+            [
+              "identifier",
+              "capacity",
+              [
+                "node",
+                "count"
+              ],
+              "overview.md",
+              "schema.xml"
+            ],
+            [
+              "identifier",
+              "greenhouse",
+              [
+                "sample",
+                "interval",
+                "s"
+              ],
+              "layout.json",
+              "protocol.md"
+            ],
+            [
+              "identifier",
+              "telescope",
+              [
+                "frame",
+                "id"
+              ],
+              "appendix.tex",
+              "frames.csv"
+            ],
+            [
+              "identifier",
+              "telescope",
+              [
+                "frame",
+                "id"
+              ],
+              "appendix.tex",
+              "frames.jsonl"
+            ],
+            [
+              "identifier",
+              "telescope",
+              [
+                "frame",
+                "id"
+              ],
+              "appendix.tex",
+              "instrument.yaml"
+            ],
+            [
+              "identifier",
+              "telescope",
+              [
+                "frame",
+                "id"
+              ],
+              "frames.csv",
+              "methods.tex"
+            ],
+            [
+              "identifier",
+              "telescope",
+              [
+                "frame",
+                "id"
+              ],
+              "frames.csv",
+              "reduce.ipynb"
+            ],
+            [
+              "identifier",
+              "telescope",
+              [
+                "frame",
+                "id"
+              ],
+              "frames.jsonl",
+              "methods.tex"
+            ],
+            [
+              "identifier",
+              "telescope",
+              [
+                "frame",
+                "id"
+              ],
+              "frames.jsonl",
+              "reduce.ipynb"
+            ],
+            [
+              "identifier",
+              "telescope",
+              [
+                "frame",
+                "id"
+              ],
+              "instrument.yaml",
+              "methods.tex"
+            ],
+            [
+              "identifier",
+              "telescope",
+              [
+                "frame",
+                "id"
+              ],
+              "instrument.yaml",
+              "reduce.ipynb"
+            ],
+            [
+              "identifier",
+              "water_billing",
+              [
+                "account",
+                "ref"
+              ],
+              "meters.jsonl",
+              "spec.html"
+            ],
+            [
+              "identifier",
+              "water_billing",
+              [
+                "account",
+                "ref"
+              ],
+              "spec.html",
+              "tariff.json"
+            ],
+            [
+              "identifier",
+              "water_billing",
+              [
+                "account",
+                "ref"
+              ],
+              "spec.html",
+              "tariff.py"
+            ]
+          ],
+          "false_positive_keys": [
+            [
+              "identifier",
+              "capacity",
+              [
+                "capacity"
+              ],
+              "capacity.xlsx",
+              "schema.xml"
+            ],
+            [
+              "identifier",
+              "capacity",
+              [
+                "capacity"
+              ],
+              "overview.md",
+              "schema.xml"
+            ],
+            [
+              "identifier",
+              "capacity",
+              [
+                "capacity"
+              ],
+              "schema.xml",
+              "unused.md"
+            ],
+            [
+              "identifier",
+              "greenhouse",
+              [
+                "readings"
+              ],
+              "layout.json",
+              "old-notes.txt"
+            ],
+            [
+              "identifier",
+              "greenhouse",
+              [
+                "readings"
+              ],
+              "layout.json",
+              "protocol.md"
+            ],
+            [
+              "identifier",
+              "parcel_dispatch",
+              [
+                "handoff",
+                "timeout"
+              ],
+              "policy.toml",
+              "runbook.rst"
+            ],
+            [
+              "identifier",
+              "parcel_dispatch",
+              [
+                "parcel",
+                "id"
+              ],
+              "draft.json",
+              "runbook.rst"
+            ],
+            [
+              "identifier",
+              "parcel_dispatch",
+              [
+                "route",
+                "bucket"
+              ],
+              "draft.json",
+              "runbook.rst"
+            ],
+            [
+              "identifier",
+              "telescope",
+              [
+                "frames"
+              ],
+              "appendix.tex",
+              "instrument.yaml"
+            ],
+            [
+              "identifier",
+              "telescope",
+              [
+                "frames"
+              ],
+              "instrument.yaml",
+              "methods.tex"
+            ],
+            [
+              "identifier",
+              "telescope",
+              [
+                "frames"
+              ],
+              "instrument.yaml",
+              "reduce.ipynb"
+            ],
+            [
+              "identifier",
+              "water_billing",
+              [
+                "meters"
+              ],
+              "spec.html",
+              "tariff.json"
+            ]
+          ],
+          "fn": 17,
+          "fp": 12,
+          "groups": 6,
+          "precision": 0.868132,
+          "precision_wilson_95": [
+            0.783513,
+            0.922929
+          ],
+          "predictions": 91,
+          "recall": 0.822917,
+          "recall_wilson_95": [
+            0.73459,
+            0.886395
+          ],
+          "support": 96,
+          "tp": 79
+        },
+        "native-native": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": true,
+          "f1": 0.878049,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "capacity",
+              [
+                "node",
+                "count"
+              ],
+              "capacity.xlsx",
+              "export.csv"
+            ],
+            [
+              "identifier",
+              "capacity",
+              [
+                "node",
+                "count"
+              ],
+              "capacity.xlsx",
+              "schema.xml"
+            ],
+            [
+              "identifier",
+              "capacity",
+              [
+                "node",
+                "count"
+              ],
+              "export.csv",
+              "schema.xml"
+            ],
+            [
+              "identifier",
+              "telescope",
+              [
+                "frame",
+                "id"
+              ],
+              "frames.csv",
+              "frames.jsonl"
+            ],
+            [
+              "identifier",
+              "telescope",
+              [
+                "frame",
+                "id"
+              ],
+              "frames.csv",
+              "instrument.yaml"
+            ],
+            [
+              "identifier",
+              "telescope",
+              [
+                "frame",
+                "id"
+              ],
+              "frames.jsonl",
+              "instrument.yaml"
+            ],
+            [
+              "identifier",
+              "water_billing",
+              [
+                "account",
+                "ref"
+              ],
+              "meters.jsonl",
+              "tariff.json"
+            ],
+            [
+              "identifier",
+              "water_billing",
+              [
+                "account",
+                "ref"
+              ],
+              "meters.jsonl",
+              "tariff.py"
+            ],
+            [
+              "identifier",
+              "water_billing",
+              [
+                "account",
+                "ref"
+              ],
+              "tariff.json",
+              "tariff.py"
+            ]
+          ],
+          "false_positive_keys": [
+            [
+              "identifier",
+              "parcel_dispatch",
+              [
+                "parcel",
+                "id"
+              ],
+              "current/parcels.tsv",
+              "draft.json"
+            ],
+            [
+              "identifier",
+              "parcel_dispatch",
+              [
+                "parcel",
+                "id"
+              ],
+              "dispatch.py",
+              "draft.json"
+            ],
+            [
+              "identifier",
+              "parcel_dispatch",
+              [
+                "parcel",
+                "id"
+              ],
+              "draft.json",
+              "policy.toml"
+            ],
+            [
+              "identifier",
+              "parcel_dispatch",
+              [
+                "route",
+                "bucket"
+              ],
+              "current/parcels.tsv",
+              "draft.json"
+            ],
+            [
+              "identifier",
+              "parcel_dispatch",
+              [
+                "route",
+                "bucket"
+              ],
+              "dispatch.py",
+              "draft.json"
+            ],
+            [
+              "identifier",
+              "parcel_dispatch",
+              [
+                "route",
+                "bucket"
+              ],
+              "draft.json",
+              "policy.toml"
+            ]
+          ],
+          "fn": 9,
+          "fp": 6,
+          "groups": 6,
+          "precision": 0.9,
+          "precision_wilson_95": [
+            0.798505,
+            0.953357
+          ],
+          "predictions": 60,
+          "recall": 0.857143,
+          "recall_wilson_95": [
+            0.750254,
+            0.922981
+          ],
+          "support": 63,
+          "tp": 54
+        },
+        "prose-prose": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": true,
+          "f1": 0.642857,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "telescope",
+              [
+                "frame",
+                "id"
+              ],
+              "appendix.tex",
+              "methods.tex"
+            ],
+            [
+              "identifier",
+              "telescope",
+              [
+                "frame",
+                "id"
+              ],
+              "appendix.tex",
+              "reduce.ipynb"
+            ],
+            [
+              "identifier",
+              "telescope",
+              [
+                "frame",
+                "id"
+              ],
+              "methods.tex",
+              "reduce.ipynb"
+            ]
+          ],
+          "false_positive_keys": [
+            [
+              "identifier",
+              "capacity",
+              [
+                "capacity"
+              ],
+              "capacity.xlsx",
+              "overview.md"
+            ],
+            [
+              "identifier",
+              "capacity",
+              [
+                "capacity"
+              ],
+              "capacity.xlsx",
+              "unused.md"
+            ],
+            [
+              "identifier",
+              "capacity",
+              [
+                "capacity"
+              ],
+              "overview.md",
+              "unused.md"
+            ],
+            [
+              "identifier",
+              "greenhouse",
+              [
+                "readings"
+              ],
+              "old-notes.txt",
+              "protocol.md"
+            ],
+            [
+              "identifier",
+              "telescope",
+              [
+                "frames"
+              ],
+              "appendix.tex",
+              "methods.tex"
+            ],
+            [
+              "identifier",
+              "telescope",
+              [
+                "frames"
+              ],
+              "appendix.tex",
+              "reduce.ipynb"
+            ],
+            [
+              "identifier",
+              "telescope",
+              [
+                "frames"
+              ],
+              "methods.tex",
+              "reduce.ipynb"
+            ]
+          ],
+          "fn": 3,
+          "fp": 7,
+          "groups": 2,
+          "precision": 0.5625,
+          "precision_wilson_95": [
+            0.331786,
+            0.769013
+          ],
+          "predictions": 16,
+          "recall": 0.75,
+          "recall_wilson_95": [
+            0.467695,
+            0.911058
+          ],
+          "support": 12,
+          "tp": 9
+        }
+      },
+      "support": 171,
+      "tp": 142
+    },
+    "literal": {
+      "diagnostic_would_pass_scored_gate": true,
+      "disposition": {
+        "status": "ship-complete",
+        "subtypes": []
+      },
+      "duplicate_fp": 0,
+      "duplicate_prediction_keys": [],
+      "f1": 0.977778,
+      "false_negative_keys": [
+        [
+          "literal",
+          "telescope",
+          "methods.tex",
+          "appendix.tex",
+          "label",
+          "tab:frames"
+        ]
+      ],
+      "false_positive_keys": [],
+      "fn": 1,
+      "format_pair_slices": {
+        "csv<->latex": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "csv<->markdown": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        },
+        "csv<->notebook": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "predictions": 2,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "support": 2,
+          "tp": 2
+        },
+        "html<->json": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "html<->jsonl": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "html<->python": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "json<->markdown": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "jsonl<->latex": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "jsonl<->markdown": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "latex<->latex": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": null,
+          "false_negative_keys": [
+            [
+              "literal",
+              "telescope",
+              "methods.tex",
+              "appendix.tex",
+              "label",
+              "tab:frames"
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 1,
+          "fp": 0,
+          "precision": null,
+          "precision_wilson_95": null,
+          "predictions": 0,
+          "recall": 0.0,
+          "recall_wilson_95": [
+            0.0,
+            0.793451
+          ],
+          "support": 1,
+          "tp": 0
+        },
+        "latex<->notebook": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "latex<->yaml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "markdown<->notebook": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "markdown<->python": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "markdown<->toml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "markdown<->xlsx": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "markdown<->xml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "python<->rst": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "rst<->toml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "rst<->tsv": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        }
+      },
+      "fp": 0,
+      "gate": {
+        "minimum_groups": 6,
+        "minimum_precision": 1.0,
+        "minimum_recall": 0.85,
+        "minimum_support": 23
+      },
+      "groups": 6,
+      "hard_negative_false_positives": {},
+      "passes": true,
+      "precision": 1.0,
+      "precision_wilson_95": [
+        0.851345,
+        1.0
+      ],
+      "predictions": 22,
+      "recall": 0.956522,
+      "recall_wilson_95": [
+        0.790088,
+        0.992283
+      ],
+      "subtype_attribution": {
+        "ambiguous_predictions": 0,
+        "assignment_counts": {
+          "local-path": 22
+        },
+        "basis": [
+          "ref_kind+resolution"
+        ],
+        "complete": true,
+        "gold_complete": true,
+        "prediction_complete": true,
+        "unclassified_prediction_keys": []
+      },
+      "subtypes": {
+        "label-key": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": true,
+          "f1": null,
+          "false_negative_keys": [
+            [
+              "literal",
+              "telescope",
+              "methods.tex",
+              "appendix.tex",
+              "label",
+              "tab:frames"
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 1,
+          "fp": 0,
+          "groups": 1,
+          "precision": null,
+          "precision_wilson_95": null,
+          "predictions": 0,
+          "recall": 0.0,
+          "recall_wilson_95": [
+            0.0,
+            0.793451
+          ],
+          "support": 1,
+          "tp": 0
+        },
+        "local-path": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": true,
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "groups": 6,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.851345,
+            1.0
+          ],
+          "predictions": 22,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.851345,
+            1.0
+          ],
+          "support": 22,
+          "tp": 22
+        }
+      },
+      "support": 23,
+      "tp": 22
+    },
+    "orphan": {
+      "diagnostic_would_pass_scored_gate": false,
+      "disposition": {
+        "status": "disable",
+        "subtypes": []
+      },
+      "duplicate_fp": 0,
+      "duplicate_prediction_keys": [],
+      "f1": 0.727273,
+      "false_negative_keys": [
+        [
+          "orphan",
+          "capacity",
+          "unused.md"
+        ],
+        [
+          "orphan",
+          "greenhouse",
+          "old-notes.txt"
+        ],
+        [
+          "orphan",
+          "parcel_dispatch",
+          "draft.json"
+        ]
+      ],
+      "false_positive_keys": [],
+      "fn": 3,
+      "format_pair_slices": {
+        "json": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": null,
+          "false_negative_keys": [
+            [
+              "orphan",
+              "parcel_dispatch",
+              "draft.json"
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 1,
+          "fp": 0,
+          "precision": null,
+          "precision_wilson_95": null,
+          "predictions": 0,
+          "recall": 0.0,
+          "recall_wilson_95": [
+            0.0,
+            0.793451
+          ],
+          "support": 1,
+          "tp": 0
+        },
+        "markdown": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.666667,
+          "false_negative_keys": [
+            [
+              "orphan",
+              "capacity",
+              "unused.md"
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 1,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 0.5,
+          "recall_wilson_95": [
+            0.094531,
+            0.905469
+          ],
+          "support": 2,
+          "tp": 1
+        },
+        "text": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.8,
+          "false_negative_keys": [
+            [
+              "orphan",
+              "greenhouse",
+              "old-notes.txt"
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 1,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "predictions": 2,
+          "recall": 0.666667,
+          "recall_wilson_95": [
+            0.20766,
+            0.938508
+          ],
+          "support": 3,
+          "tp": 2
+        },
+        "tsv": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        }
+      },
+      "fp": 0,
+      "gate": {
+        "minimum_groups": 6,
+        "minimum_precision": 1.0,
+        "minimum_recall": 0.9,
+        "minimum_support": 7
+      },
+      "groups": 6,
+      "hard_negative_false_positives": {},
+      "passes": false,
+      "precision": 1.0,
+      "precision_wilson_95": [
+        0.510109,
+        1.0
+      ],
+      "predictions": 4,
+      "recall": 0.571429,
+      "recall_wilson_95": [
+        0.250458,
+        0.84178
+      ],
+      "subtype_attribution": {
+        "ambiguous_predictions": 0,
+        "assignment_counts": {
+          "no-accepted-relation": 4
+        },
+        "basis": [
+          "absence-of-accepted-cross-source-relation"
+        ],
+        "complete": true,
+        "gold_complete": true,
+        "prediction_complete": true,
+        "unclassified_prediction_keys": []
+      },
+      "subtypes": {
+        "no-accepted-relation": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": true,
+          "f1": 0.727273,
+          "false_negative_keys": [
+            [
+              "orphan",
+              "capacity",
+              "unused.md"
+            ],
+            [
+              "orphan",
+              "greenhouse",
+              "old-notes.txt"
+            ],
+            [
+              "orphan",
+              "parcel_dispatch",
+              "draft.json"
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 3,
+          "fp": 0,
+          "groups": 6,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.510109,
+            1.0
+          ],
+          "predictions": 4,
+          "recall": 0.571429,
+          "recall_wilson_95": [
+            0.250458,
+            0.84178
+          ],
+          "support": 7,
+          "tp": 4
+        }
+      },
+      "support": 7,
+      "tp": 4
+    },
+    "structural": {
+      "diagnostic_would_pass_scored_gate": true,
+      "disposition": {
+        "status": "ship-complete",
+        "subtypes": []
+      },
+      "duplicate_fp": 0,
+      "duplicate_prediction_keys": [],
+      "f1": 0.888889,
+      "false_negative_keys": [
+        [
+          "structural",
+          "capacity",
+          "export.csv",
+          "schema.xml",
+          [
+            [
+              "node",
+              "count"
+            ],
+            [
+              "overhead",
+              "factor"
+            ],
+            [
+              "per",
+              "node",
+              "mbps"
+            ]
+          ]
+        ],
+        [
+          "structural",
+          "parcel_dispatch",
+          "current/parcels.tsv",
+          "policy.toml",
+          [
+            [
+              "handoff",
+              "delay",
+              "ms"
+            ],
+            [
+              "parcel",
+              "id"
+            ],
+            [
+              "route",
+              "bucket"
+            ]
+          ]
+        ]
+      ],
+      "false_positive_keys": [],
+      "fn": 2,
+      "format_pair_slices": {
+        "csv<->json": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "csv<->jsonl": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "predictions": 2,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "support": 2,
+          "tp": 2
+        },
+        "csv<->toml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "csv<->xml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": null,
+          "false_negative_keys": [
+            [
+              "structural",
+              "capacity",
+              "export.csv",
+              "schema.xml",
+              [
+                [
+                  "node",
+                  "count"
+                ],
+                [
+                  "overhead",
+                  "factor"
+                ],
+                [
+                  "per",
+                  "node",
+                  "mbps"
+                ]
+              ]
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 1,
+          "fp": 0,
+          "precision": null,
+          "precision_wilson_95": null,
+          "predictions": 0,
+          "recall": 0.0,
+          "recall_wilson_95": [
+            0.0,
+            0.793451
+          ],
+          "support": 1,
+          "tp": 0
+        },
+        "csv<->yaml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "json<->jsonl": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "predictions": 2,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "support": 2,
+          "tp": 2
+        },
+        "jsonl<->yaml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "toml<->tsv": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": null,
+          "false_negative_keys": [
+            [
+              "structural",
+              "parcel_dispatch",
+              "current/parcels.tsv",
+              "policy.toml",
+              [
+                [
+                  "handoff",
+                  "delay",
+                  "ms"
+                ],
+                [
+                  "parcel",
+                  "id"
+                ],
+                [
+                  "route",
+                  "bucket"
+                ]
+              ]
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 1,
+          "fp": 0,
+          "precision": null,
+          "precision_wilson_95": null,
+          "predictions": 0,
+          "recall": 0.0,
+          "recall_wilson_95": [
+            0.0,
+            0.793451
+          ],
+          "support": 1,
+          "tp": 0
+        }
+      },
+      "fp": 0,
+      "gate": {
+        "minimum_groups": 5,
+        "minimum_precision": 0.9,
+        "minimum_recall": 0.7,
+        "minimum_support": 10
+      },
+      "groups": 6,
+      "hard_negative_false_positives": {},
+      "passes": true,
+      "precision": 1.0,
+      "precision_wilson_95": [
+        0.675592,
+        1.0
+      ],
+      "predictions": 8,
+      "recall": 0.8,
+      "recall_wilson_95": [
+        0.490162,
+        0.943318
+      ],
+      "subtype_attribution": {
+        "ambiguous_predictions": 0,
+        "assignment_counts": {
+          "record-schema-record-schema": 3,
+          "table-record-schema": 5
+        },
+        "basis": [
+          "source_kind+container_family"
+        ],
+        "complete": true,
+        "gold_complete": true,
+        "prediction_complete": true,
+        "unclassified_prediction_keys": []
+      },
+      "subtypes": {
+        "record-schema-record-schema": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": true,
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "groups": 3,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        },
+        "table-record-schema": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": true,
+          "f1": 0.833333,
+          "false_negative_keys": [
+            [
+              "structural",
+              "capacity",
+              "export.csv",
+              "schema.xml",
+              [
+                [
+                  "node",
+                  "count"
+                ],
+                [
+                  "overhead",
+                  "factor"
+                ],
+                [
+                  "per",
+                  "node",
+                  "mbps"
+                ]
+              ]
+            ],
+            [
+              "structural",
+              "parcel_dispatch",
+              "current/parcels.tsv",
+              "policy.toml",
+              [
+                [
+                  "handoff",
+                  "delay",
+                  "ms"
+                ],
+                [
+                  "parcel",
+                  "id"
+                ],
+                [
+                  "route",
+                  "bucket"
+                ]
+              ]
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 2,
+          "fp": 0,
+          "groups": 5,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.565518,
+            1.0
+          ],
+          "predictions": 5,
+          "recall": 0.714286,
+          "recall_wilson_95": [
+            0.358934,
+            0.917781
+          ],
+          "support": 7,
+          "tp": 5
+        }
+      },
+      "support": 10,
+      "tp": 8
+    },
+    "unresolved": {
+      "diagnostic_would_pass_scored_gate": false,
+      "disposition": {
+        "status": "ship-preregistered-subtype",
+        "subtypes": [
+          "local-path"
+        ]
+      },
+      "duplicate_fp": 0,
+      "duplicate_prediction_keys": [],
+      "f1": 0.947368,
+      "false_negative_keys": [],
+      "false_positive_keys": [
+        [
+          "unresolved",
+          "telescope",
+          "methods.tex",
+          "label",
+          "tab:frames"
+        ]
+      ],
+      "fn": 0,
+      "format_pair_slices": {
+        "html": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "latex": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.8,
+          "false_negative_keys": [],
+          "false_positive_keys": [
+            [
+              "unresolved",
+              "telescope",
+              "methods.tex",
+              "label",
+              "tab:frames"
+            ]
+          ],
+          "fn": 0,
+          "fp": 1,
+          "precision": 0.666667,
+          "precision_wilson_95": [
+            0.20766,
+            0.938508
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "support": 2,
+          "tp": 2
+        },
+        "markdown": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        },
+        "rst": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "predictions": 2,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "support": 2,
+          "tp": 2
+        },
+        "text": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        }
+      },
+      "fp": 1,
+      "gate": {
+        "minimum_groups": 6,
+        "minimum_precision": 1.0,
+        "minimum_recall": 0.8,
+        "minimum_support": 9
+      },
+      "groups": 6,
+      "hard_negative_false_positives": {},
+      "passes": false,
+      "precision": 0.9,
+      "precision_wilson_95": [
+        0.59585,
+        0.982124
+      ],
+      "predictions": 10,
+      "recall": 1.0,
+      "recall_wilson_95": [
+        0.700855,
+        1.0
+      ],
+      "subtype_attribution": {
+        "ambiguous_predictions": 0,
+        "assignment_counts": {
+          "ambiguous-local-path": 1,
+          "citation-key": 1,
+          "label-key": 2,
+          "local-path": 6
+        },
+        "basis": [
+          "ref_kind+reason"
+        ],
+        "complete": true,
+        "gold_complete": true,
+        "prediction_complete": true,
+        "unclassified_prediction_keys": []
+      },
+      "subtypes": {
+        "ambiguous-local-path": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": true,
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "groups": 1,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "citation-key": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": true,
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "groups": 1,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "label-key": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": true,
+          "f1": 0.666667,
+          "false_negative_keys": [],
+          "false_positive_keys": [
+            [
+              "unresolved",
+              "telescope",
+              "methods.tex",
+              "label",
+              "tab:frames"
+            ]
+          ],
+          "fn": 0,
+          "fp": 1,
+          "groups": 1,
+          "precision": 0.5,
+          "precision_wilson_95": [
+            0.094531,
+            0.905469
+          ],
+          "predictions": 2,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "local-path": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": true,
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "groups": 5,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.609666,
+            1.0
+          ],
+          "predictions": 6,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.609666,
+            1.0
+          ],
+          "support": 6,
+          "tp": 6
+        }
+      },
+      "support": 9,
+      "tp": 9
+    }
+  },
+  "split": "scored"
+}

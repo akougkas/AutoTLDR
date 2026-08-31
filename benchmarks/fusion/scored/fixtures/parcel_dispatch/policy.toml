@@ -1,0 +1,17 @@
+retry_window_s = 60
+max_batch_parcels = 120
+handoff_timeout_ms = 1000
+
+[[parcel_examples]]
+parcel_id = "carrier-example-1"
+route_bucket = "60"
+handoff_delay_ms = 300
+
+[[parcel_examples]]
+parcel_id = "carrier-example-2"
+route_bucket = "75"
+handoff_delay_ms = 280
+
+[dispatch_namespace]
+routing_epoch = 7
+audit_window_s = 30

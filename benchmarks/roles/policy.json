@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "corpus": {
+    "expected_items": 200,
+    "expected_format_count": 5,
+    "items_per_format": 40,
+    "expected_role_counts": {
+      "unknown": 25,
+      "claim": 17,
+      "definition": 15,
+      "procedure": 24,
+      "parameter": 15,
+      "caveat": 15,
+      "result": 25,
+      "example": 16,
+      "decision": 15,
+      "assumption": 17,
+      "limitation": 16
+    },
+    "minimum_source_groups_per_role": 3
+  },
+  "prompt": {
+    "fields": [
+      "format",
+      "modality",
+      "content",
+      "structure",
+      "evidence"
+    ],
+    "temperature": 0,
+    "seed": 20260830,
+    "max_tokens": 32
+  },
+  "recoverability": {
+    "minimum_support": 15,
+    "minimum_source_groups": 3,
+    "minimum_precision": 0.8,
+    "minimum_recall": 0.7,
+    "rules_local_f1_close_delta": 0.05,
+    "material_f1_gain": 0.1
+  }
+}

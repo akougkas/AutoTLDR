@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "arm": "local",
+  "runner": "openai-compatible-chat-completions",
+  "created_at": "2026-08-30T17:31:50.852488Z",
+  "items": 33,
+  "model": "autotldr-granite-4.2-3b-q8",
+  "endpoint": "http://127.0.0.1",
+  "evaluator_commit": "54b2158a37e7dd42392494fbadf031e11d952289",
+  "settings": {
+    "temperature": 0,
+    "seed": 20260830,
+    "max_tokens": 32,
+    "timeout_seconds": 180.0,
+    "concurrency": 4,
+    "requests_per_item": 1,
+    "structured_output": "strict-json-schema",
+    "thinking": "disabled-via-reasoning-effort"
+  },
+  "hashes": {
+    "items_sha256": "f6f363f5cd2517a4e3cfc6a7e6ea599f5d0377819af1690859a14c19c8d1fdbc",
+    "prompt_sha256": "62f3bb2ef8371e29c8c077104472f12ab7651774d8558cb045a27b4feec658dc",
+    "policy_sha256": "f486dff85886e0a397b130328647ae077eb8db8deb05c24999ebbd2b507118e7",
+    "predictions_sha256": "c63438e5883d96fd87eecc05c11be0bbc74a646327696c4ab6aeac35856ea1b4",
+    "sanitized_config_sha256": "62b7c0ddfd7461fe16d9c4a050429777ab9328a5df3015a1d079aa25bb9e8a56"
+  },
+  "counts": {
+    "ok": 33,
+    "invalid": 0,
+    "error": 0
+  }
+}

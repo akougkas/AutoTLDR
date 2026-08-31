@@ -1,0 +1,2113 @@
+{
+  "aggregate_is_gate": false,
+  "benchmark": "stage4-model-free-fusion-v1",
+  "corpus_validation": {
+    "splits": {
+      "dev": {
+        "collections": 2,
+        "gaps": 1,
+        "relations": 28,
+        "source_tree_sha256": "667fb23e3b5033116921107cffb07d83d25f3ffad9982b1b0684af49a25f7602",
+        "sources": 11,
+        "units": 58
+      },
+      "scored": {
+        "collections": 6,
+        "gaps": 6,
+        "relations": 113,
+        "source_tree_sha256": "99a730adb10e8fc65dd25528377b8701971343860a04cd1d37051660e5757631",
+        "sources": 34,
+        "units": 210
+      }
+    },
+    "status": "valid"
+  },
+  "label_validation": {
+    "hard_negative_classes": {},
+    "label_rows": 21,
+    "labels_sha256": "1cc017b80e182f60c05b39947e8788d9c29c7e4420cf0ab01eb3ee3a3ba6dd80",
+    "positive_support": {
+      "contradiction": 2,
+      "identifier": 54,
+      "literal": 6,
+      "orphan": 2,
+      "structural": 2,
+      "unresolved": 2
+    },
+    "source_groups": {
+      "contradiction": 2,
+      "identifier": 2,
+      "literal": 2,
+      "orphan": 2,
+      "structural": 2,
+      "unresolved": 2
+    },
+    "split": "dev",
+    "status": "valid",
+    "subtype_support": {
+      "contradiction:constant-constant": 2,
+      "identifier:native-native": 54,
+      "literal:local-path": 6,
+      "orphan:no-accepted-relation": 2,
+      "structural:record-schema-record-schema": 1,
+      "structural:table-record-schema": 1,
+      "unresolved:local-path": 2
+    },
+    "warnings": [
+      "label dev-throughput-id-001: fact.prose_sources must be an explicit list",
+      "label dev-throughput-id-002: fact.prose_sources must be an explicit list",
+      "label dev-throughput-id-003: fact.prose_sources must be an explicit list",
+      "label dev-throughput-id-004: fact.prose_sources must be an explicit list",
+      "label dev-relay-id-001: fact.prose_sources must be an explicit list",
+      "label dev-relay-id-002: fact.prose_sources must be an explicit list",
+      "label dev-relay-id-003: fact.prose_sources must be an explicit list"
+    ]
+  },
+  "models": [],
+  "prediction_manifest": {
+    "collections": 2,
+    "evaluator_sha256": "13663804a118d3f4a1d55ef8a9cd6e9d3fc565ffe4611a7ec40ea8a2bcf6e691",
+    "evaluator_version": "stage4-fusion-evaluator-v2",
+    "extractions_sha256": "dfe79b46a4194947dcf549f1ac8c6311e7b01b417702ef6b92ef450c610685ab",
+    "implementation_sha256": "0ac451cb56765f39328a1b1a6390c1ee4c70cdfa30e2e986094b6aad11cee8b8",
+    "labels_sha256_recorded_but_not_loaded": "1cc017b80e182f60c05b39947e8788d9c29c7e4420cf0ab01eb3ee3a3ba6dd80",
+    "models": [],
+    "policy_sha256": "abf237e3370d51bb44c1416e5f3d6290fbd92c19f089c4f3b0cd093002c15747",
+    "predictions_sha256": "3b1b270f413b92d81cf5a597092ab1d4cc1aaed3d80ef147b5e6c355d6c1547b",
+    "robustness": {
+      "all_unknown_equal": true,
+      "deterministic_repeat": true,
+      "full_existing_unit_ids": true,
+      "input_permutation_equal": true,
+      "root_relocation_equal": true
+    },
+    "schema": 2,
+    "source_tree_sha256": "667fb23e3b5033116921107cffb07d83d25f3ffad9982b1b0684af49a25f7602",
+    "split": "dev",
+    "status": "complete",
+    "structured_trace_only": true
+  },
+  "schema": 2,
+  "signals": {
+    "contradiction": {
+      "diagnostic_would_pass_scored_gate": false,
+      "disposition": {
+        "status": "diagnostic-only",
+        "subtypes": []
+      },
+      "duplicate_fp": 0,
+      "duplicate_prediction_keys": [],
+      "f1": 1.0,
+      "false_negative_keys": [],
+      "false_positive_keys": [],
+      "fn": 0,
+      "format_pair_slices": {
+        "json<->markdown": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "rst<->toml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        }
+      },
+      "fp": 0,
+      "gate": {
+        "minimum_groups": 6,
+        "minimum_precision": 1.0,
+        "minimum_recall": 0.7,
+        "minimum_support": 12
+      },
+      "groups": 2,
+      "hard_negative_false_positives": {},
+      "passes": null,
+      "precision": 1.0,
+      "precision_wilson_95": [
+        0.34238,
+        1.0
+      ],
+      "predictions": 2,
+      "recall": 1.0,
+      "recall_wilson_95": [
+        0.34238,
+        1.0
+      ],
+      "subtype_attribution": {
+        "ambiguous_predictions": 0,
+        "assignment_counts": {
+          "constant-constant": 2
+        },
+        "basis": [
+          "left_basis+right_basis"
+        ],
+        "complete": true,
+        "gold_complete": true,
+        "prediction_complete": true,
+        "unclassified_prediction_keys": []
+      },
+      "subtypes": {
+        "constant-constant": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": true,
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "groups": 2,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "predictions": 2,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "support": 2,
+          "tp": 2
+        }
+      },
+      "support": 2,
+      "tp": 2
+    },
+    "identifier": {
+      "diagnostic_would_pass_scored_gate": false,
+      "disposition": {
+        "status": "diagnostic-only",
+        "subtypes": []
+      },
+      "duplicate_fp": 0,
+      "duplicate_prediction_keys": [],
+      "f1": 0.923077,
+      "false_negative_keys": [
+        [
+          "identifier",
+          "throughput_lab",
+          [
+            "run",
+            "id"
+          ],
+          "bench.py",
+          "config.json"
+        ],
+        [
+          "identifier",
+          "throughput_lab",
+          [
+            "run",
+            "id"
+          ],
+          "bench.py",
+          "results.csv"
+        ],
+        [
+          "identifier",
+          "throughput_lab",
+          [
+            "run",
+            "id"
+          ],
+          "bench.py",
+          "study.md"
+        ],
+        [
+          "identifier",
+          "throughput_lab",
+          [
+            "run",
+            "id"
+          ],
+          "config.json",
+          "results.csv"
+        ],
+        [
+          "identifier",
+          "throughput_lab",
+          [
+            "run",
+            "id"
+          ],
+          "config.json",
+          "study.md"
+        ],
+        [
+          "identifier",
+          "throughput_lab",
+          [
+            "run",
+            "id"
+          ],
+          "results.csv",
+          "study.md"
+        ]
+      ],
+      "false_positive_keys": [
+        [
+          "identifier",
+          "relay_service",
+          [
+            "max",
+            "delivery",
+            "attempts"
+          ],
+          "runbook.rst",
+          "settings.toml"
+        ],
+        [
+          "identifier",
+          "throughput_lab",
+          [
+            "repeat",
+            "count"
+          ],
+          "config.json",
+          "study.md"
+        ]
+      ],
+      "fn": 6,
+      "format_pair_slices": {
+        "csv<->json": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.857143,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "run",
+                "id"
+              ],
+              "config.json",
+              "results.csv"
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 1,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 0.75,
+          "recall_wilson_95": [
+            0.300642,
+            0.954413
+          ],
+          "support": 4,
+          "tp": 3
+        },
+        "csv<->markdown": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.857143,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "run",
+                "id"
+              ],
+              "results.csv",
+              "study.md"
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 1,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 0.75,
+          "recall_wilson_95": [
+            0.300642,
+            0.954413
+          ],
+          "support": 4,
+          "tp": 3
+        },
+        "csv<->python": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.857143,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "run",
+                "id"
+              ],
+              "bench.py",
+              "results.csv"
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 1,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 0.75,
+          "recall_wilson_95": [
+            0.300642,
+            0.954413
+          ],
+          "support": 4,
+          "tp": 3
+        },
+        "json<->markdown": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.75,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "run",
+                "id"
+              ],
+              "config.json",
+              "study.md"
+            ]
+          ],
+          "false_positive_keys": [
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "repeat",
+                "count"
+              ],
+              "config.json",
+              "study.md"
+            ]
+          ],
+          "fn": 1,
+          "fp": 1,
+          "precision": 0.75,
+          "precision_wilson_95": [
+            0.300642,
+            0.954413
+          ],
+          "predictions": 4,
+          "recall": 0.75,
+          "recall_wilson_95": [
+            0.300642,
+            0.954413
+          ],
+          "support": 4,
+          "tp": 3
+        },
+        "json<->python": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.857143,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "run",
+                "id"
+              ],
+              "bench.py",
+              "config.json"
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 1,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 0.75,
+          "recall_wilson_95": [
+            0.300642,
+            0.954413
+          ],
+          "support": 4,
+          "tp": 3
+        },
+        "jsonl<->notebook": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        },
+        "jsonl<->python": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        },
+        "jsonl<->rst": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        },
+        "jsonl<->toml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        },
+        "markdown<->python": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.857143,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "run",
+                "id"
+              ],
+              "bench.py",
+              "study.md"
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 1,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 0.75,
+          "recall_wilson_95": [
+            0.300642,
+            0.954413
+          ],
+          "support": 4,
+          "tp": 3
+        },
+        "notebook<->python": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        },
+        "notebook<->rst": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        },
+        "notebook<->toml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        },
+        "python<->rst": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        },
+        "python<->toml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        },
+        "rst<->toml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 0.857143,
+          "false_negative_keys": [],
+          "false_positive_keys": [
+            [
+              "identifier",
+              "relay_service",
+              [
+                "max",
+                "delivery",
+                "attempts"
+              ],
+              "runbook.rst",
+              "settings.toml"
+            ]
+          ],
+          "fn": 0,
+          "fp": 1,
+          "precision": 0.75,
+          "precision_wilson_95": [
+            0.300642,
+            0.954413
+          ],
+          "predictions": 4,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        }
+      },
+      "fp": 2,
+      "gate": {
+        "minimum_groups": 6,
+        "minimum_precision": 0.9,
+        "minimum_recall": 0.7,
+        "minimum_support": 157
+      },
+      "groups": 2,
+      "hard_negative_false_positives": {},
+      "passes": null,
+      "precision": 0.96,
+      "precision_wilson_95": [
+        0.865399,
+        0.988961
+      ],
+      "predictions": 50,
+      "recall": 0.888889,
+      "recall_wilson_95": [
+        0.778053,
+        0.94807
+      ],
+      "subtype_attribution": {
+        "ambiguous_predictions": 0,
+        "assignment_counts": {
+          "explicit-prose-native": 29,
+          "native-native": 18,
+          "prose-prose": 3
+        },
+        "basis": [
+          "left_native+right_native"
+        ],
+        "complete": false,
+        "gold_complete": false,
+        "prediction_complete": true,
+        "unclassified_prediction_keys": []
+      },
+      "subtypes": {
+        "explicit-prose-native": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": false,
+          "f1": null,
+          "false_negative_keys": [],
+          "false_positive_keys": [
+            [
+              "identifier",
+              "relay_service",
+              [
+                "ack",
+                "latency"
+              ],
+              "analysis.ipynb",
+              "events.jsonl"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "ack",
+                "latency"
+              ],
+              "analysis.ipynb",
+              "relay.py"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "ack",
+                "latency"
+              ],
+              "analysis.ipynb",
+              "settings.toml"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "ack",
+                "latency"
+              ],
+              "events.jsonl",
+              "runbook.rst"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "ack",
+                "latency"
+              ],
+              "relay.py",
+              "runbook.rst"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "ack",
+                "latency"
+              ],
+              "runbook.rst",
+              "settings.toml"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "delivery",
+                "attempts"
+              ],
+              "analysis.ipynb",
+              "events.jsonl"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "delivery",
+                "attempts"
+              ],
+              "analysis.ipynb",
+              "relay.py"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "delivery",
+                "attempts"
+              ],
+              "analysis.ipynb",
+              "settings.toml"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "delivery",
+                "attempts"
+              ],
+              "events.jsonl",
+              "runbook.rst"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "delivery",
+                "attempts"
+              ],
+              "relay.py",
+              "runbook.rst"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "delivery",
+                "attempts"
+              ],
+              "runbook.rst",
+              "settings.toml"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "max",
+                "delivery",
+                "attempts"
+              ],
+              "runbook.rst",
+              "settings.toml"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "message",
+                "id"
+              ],
+              "analysis.ipynb",
+              "events.jsonl"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "message",
+                "id"
+              ],
+              "analysis.ipynb",
+              "relay.py"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "message",
+                "id"
+              ],
+              "analysis.ipynb",
+              "settings.toml"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "message",
+                "id"
+              ],
+              "events.jsonl",
+              "runbook.rst"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "message",
+                "id"
+              ],
+              "relay.py",
+              "runbook.rst"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "message",
+                "id"
+              ],
+              "runbook.rst",
+              "settings.toml"
+            ],
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "payload",
+                "bytes"
+              ],
+              "bench.py",
+              "study.md"
+            ],
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "payload",
+                "bytes"
+              ],
+              "config.json",
+              "study.md"
+            ],
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "payload",
+                "bytes"
+              ],
+              "results.csv",
+              "study.md"
+            ],
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "repeat",
+                "count"
+              ],
+              "config.json",
+              "study.md"
+            ],
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "throughput"
+              ],
+              "bench.py",
+              "study.md"
+            ],
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "throughput"
+              ],
+              "config.json",
+              "study.md"
+            ],
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "throughput"
+              ],
+              "results.csv",
+              "study.md"
+            ],
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "worker",
+                "count"
+              ],
+              "bench.py",
+              "study.md"
+            ],
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "worker",
+                "count"
+              ],
+              "config.json",
+              "study.md"
+            ],
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "worker",
+                "count"
+              ],
+              "results.csv",
+              "study.md"
+            ]
+          ],
+          "fn": 0,
+          "fp": 29,
+          "groups": 0,
+          "precision": 0.0,
+          "precision_wilson_95": [
+            0.0,
+            0.11697
+          ],
+          "predictions": 29,
+          "recall": null,
+          "recall_wilson_95": null,
+          "support": 0,
+          "tp": 0
+        },
+        "native-native": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": false,
+          "f1": 0.5,
+          "false_negative_keys": [
+            [
+              "identifier",
+              "relay_service",
+              [
+                "ack",
+                "latency"
+              ],
+              "analysis.ipynb",
+              "events.jsonl"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "ack",
+                "latency"
+              ],
+              "analysis.ipynb",
+              "relay.py"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "ack",
+                "latency"
+              ],
+              "analysis.ipynb",
+              "runbook.rst"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "ack",
+                "latency"
+              ],
+              "analysis.ipynb",
+              "settings.toml"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "ack",
+                "latency"
+              ],
+              "events.jsonl",
+              "runbook.rst"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "ack",
+                "latency"
+              ],
+              "relay.py",
+              "runbook.rst"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "ack",
+                "latency"
+              ],
+              "runbook.rst",
+              "settings.toml"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "delivery",
+                "attempts"
+              ],
+              "analysis.ipynb",
+              "events.jsonl"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "delivery",
+                "attempts"
+              ],
+              "analysis.ipynb",
+              "relay.py"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "delivery",
+                "attempts"
+              ],
+              "analysis.ipynb",
+              "runbook.rst"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "delivery",
+                "attempts"
+              ],
+              "analysis.ipynb",
+              "settings.toml"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "delivery",
+                "attempts"
+              ],
+              "events.jsonl",
+              "runbook.rst"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "delivery",
+                "attempts"
+              ],
+              "relay.py",
+              "runbook.rst"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "delivery",
+                "attempts"
+              ],
+              "runbook.rst",
+              "settings.toml"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "message",
+                "id"
+              ],
+              "analysis.ipynb",
+              "events.jsonl"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "message",
+                "id"
+              ],
+              "analysis.ipynb",
+              "relay.py"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "message",
+                "id"
+              ],
+              "analysis.ipynb",
+              "runbook.rst"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "message",
+                "id"
+              ],
+              "analysis.ipynb",
+              "settings.toml"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "message",
+                "id"
+              ],
+              "events.jsonl",
+              "runbook.rst"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "message",
+                "id"
+              ],
+              "relay.py",
+              "runbook.rst"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "message",
+                "id"
+              ],
+              "runbook.rst",
+              "settings.toml"
+            ],
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "payload",
+                "bytes"
+              ],
+              "bench.py",
+              "study.md"
+            ],
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "payload",
+                "bytes"
+              ],
+              "config.json",
+              "study.md"
+            ],
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "payload",
+                "bytes"
+              ],
+              "results.csv",
+              "study.md"
+            ],
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "run",
+                "id"
+              ],
+              "bench.py",
+              "config.json"
+            ],
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "run",
+                "id"
+              ],
+              "bench.py",
+              "results.csv"
+            ],
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "run",
+                "id"
+              ],
+              "bench.py",
+              "study.md"
+            ],
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "run",
+                "id"
+              ],
+              "config.json",
+              "results.csv"
+            ],
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "run",
+                "id"
+              ],
+              "config.json",
+              "study.md"
+            ],
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "run",
+                "id"
+              ],
+              "results.csv",
+              "study.md"
+            ],
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "throughput"
+              ],
+              "bench.py",
+              "study.md"
+            ],
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "throughput"
+              ],
+              "config.json",
+              "study.md"
+            ],
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "throughput"
+              ],
+              "results.csv",
+              "study.md"
+            ],
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "worker",
+                "count"
+              ],
+              "bench.py",
+              "study.md"
+            ],
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "worker",
+                "count"
+              ],
+              "config.json",
+              "study.md"
+            ],
+            [
+              "identifier",
+              "throughput_lab",
+              [
+                "worker",
+                "count"
+              ],
+              "results.csv",
+              "study.md"
+            ]
+          ],
+          "false_positive_keys": [],
+          "fn": 36,
+          "fp": 0,
+          "groups": 2,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.824121,
+            1.0
+          ],
+          "predictions": 18,
+          "recall": 0.333333,
+          "recall_wilson_95": [
+            0.222414,
+            0.46639
+          ],
+          "support": 54,
+          "tp": 18
+        },
+        "prose-prose": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": false,
+          "f1": null,
+          "false_negative_keys": [],
+          "false_positive_keys": [
+            [
+              "identifier",
+              "relay_service",
+              [
+                "ack",
+                "latency"
+              ],
+              "analysis.ipynb",
+              "runbook.rst"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "delivery",
+                "attempts"
+              ],
+              "analysis.ipynb",
+              "runbook.rst"
+            ],
+            [
+              "identifier",
+              "relay_service",
+              [
+                "message",
+                "id"
+              ],
+              "analysis.ipynb",
+              "runbook.rst"
+            ]
+          ],
+          "fn": 0,
+          "fp": 3,
+          "groups": 0,
+          "precision": 0.0,
+          "precision_wilson_95": [
+            0.0,
+            0.561497
+          ],
+          "predictions": 3,
+          "recall": null,
+          "recall_wilson_95": null,
+          "support": 0,
+          "tp": 0
+        }
+      },
+      "support": 54,
+      "tp": 48
+    },
+    "literal": {
+      "diagnostic_would_pass_scored_gate": false,
+      "disposition": {
+        "status": "diagnostic-only",
+        "subtypes": []
+      },
+      "duplicate_fp": 0,
+      "duplicate_prediction_keys": [],
+      "f1": 1.0,
+      "false_negative_keys": [],
+      "false_positive_keys": [],
+      "fn": 0,
+      "format_pair_slices": {
+        "csv<->markdown": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "json<->markdown": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "jsonl<->rst": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "markdown<->python": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "python<->rst": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "rst<->toml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        }
+      },
+      "fp": 0,
+      "gate": {
+        "minimum_groups": 6,
+        "minimum_precision": 1.0,
+        "minimum_recall": 0.85,
+        "minimum_support": 21
+      },
+      "groups": 2,
+      "hard_negative_false_positives": {},
+      "passes": null,
+      "precision": 1.0,
+      "precision_wilson_95": [
+        0.609666,
+        1.0
+      ],
+      "predictions": 6,
+      "recall": 1.0,
+      "recall_wilson_95": [
+        0.609666,
+        1.0
+      ],
+      "subtype_attribution": {
+        "ambiguous_predictions": 0,
+        "assignment_counts": {
+          "local-path": 6
+        },
+        "basis": [
+          "ref_kind+resolution"
+        ],
+        "complete": true,
+        "gold_complete": true,
+        "prediction_complete": true,
+        "unclassified_prediction_keys": []
+      },
+      "subtypes": {
+        "local-path": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": true,
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "groups": 2,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.609666,
+            1.0
+          ],
+          "predictions": 6,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.609666,
+            1.0
+          ],
+          "support": 6,
+          "tp": 6
+        }
+      },
+      "support": 6,
+      "tp": 6
+    },
+    "orphan": {
+      "diagnostic_would_pass_scored_gate": false,
+      "disposition": {
+        "status": "diagnostic-only",
+        "subtypes": []
+      },
+      "duplicate_fp": 0,
+      "duplicate_prediction_keys": [],
+      "f1": 1.0,
+      "false_negative_keys": [],
+      "false_positive_keys": [],
+      "fn": 0,
+      "format_pair_slices": {
+        "text": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "predictions": 2,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "support": 2,
+          "tp": 2
+        }
+      },
+      "fp": 0,
+      "gate": {
+        "minimum_groups": 6,
+        "minimum_precision": 1.0,
+        "minimum_recall": 0.9,
+        "minimum_support": 7
+      },
+      "groups": 2,
+      "hard_negative_false_positives": {},
+      "passes": null,
+      "precision": 1.0,
+      "precision_wilson_95": [
+        0.34238,
+        1.0
+      ],
+      "predictions": 2,
+      "recall": 1.0,
+      "recall_wilson_95": [
+        0.34238,
+        1.0
+      ],
+      "subtype_attribution": {
+        "ambiguous_predictions": 0,
+        "assignment_counts": {
+          "no-accepted-relation": 2
+        },
+        "basis": [
+          "absence-of-accepted-cross-source-relation"
+        ],
+        "complete": true,
+        "gold_complete": true,
+        "prediction_complete": true,
+        "unclassified_prediction_keys": []
+      },
+      "subtypes": {
+        "no-accepted-relation": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": true,
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "groups": 2,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "predictions": 2,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "support": 2,
+          "tp": 2
+        }
+      },
+      "support": 2,
+      "tp": 2
+    },
+    "structural": {
+      "diagnostic_would_pass_scored_gate": false,
+      "disposition": {
+        "status": "diagnostic-only",
+        "subtypes": []
+      },
+      "duplicate_fp": 0,
+      "duplicate_prediction_keys": [],
+      "f1": 1.0,
+      "false_negative_keys": [],
+      "false_positive_keys": [],
+      "fn": 0,
+      "format_pair_slices": {
+        "csv<->json": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "jsonl<->toml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        }
+      },
+      "fp": 0,
+      "gate": {
+        "minimum_groups": 5,
+        "minimum_precision": 0.9,
+        "minimum_recall": 0.7,
+        "minimum_support": 10
+      },
+      "groups": 2,
+      "hard_negative_false_positives": {},
+      "passes": null,
+      "precision": 1.0,
+      "precision_wilson_95": [
+        0.34238,
+        1.0
+      ],
+      "predictions": 2,
+      "recall": 1.0,
+      "recall_wilson_95": [
+        0.34238,
+        1.0
+      ],
+      "subtype_attribution": {
+        "ambiguous_predictions": 0,
+        "assignment_counts": {
+          "record-schema-record-schema": 1,
+          "table-record-schema": 1
+        },
+        "basis": [
+          "source_kind+container_family"
+        ],
+        "complete": true,
+        "gold_complete": true,
+        "prediction_complete": true,
+        "unclassified_prediction_keys": []
+      },
+      "subtypes": {
+        "record-schema-record-schema": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": true,
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "groups": 1,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "table-record-schema": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": true,
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "groups": 1,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        }
+      },
+      "support": 2,
+      "tp": 2
+    },
+    "unresolved": {
+      "diagnostic_would_pass_scored_gate": false,
+      "disposition": {
+        "status": "diagnostic-only",
+        "subtypes": []
+      },
+      "duplicate_fp": 0,
+      "duplicate_prediction_keys": [],
+      "f1": 1.0,
+      "false_negative_keys": [],
+      "false_positive_keys": [],
+      "fn": 0,
+      "format_pair_slices": {
+        "markdown": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "rst": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        }
+      },
+      "fp": 0,
+      "gate": {
+        "minimum_groups": 6,
+        "minimum_precision": 1.0,
+        "minimum_recall": 0.8,
+        "minimum_support": 8
+      },
+      "groups": 2,
+      "hard_negative_false_positives": {},
+      "passes": null,
+      "precision": 1.0,
+      "precision_wilson_95": [
+        0.34238,
+        1.0
+      ],
+      "predictions": 2,
+      "recall": 1.0,
+      "recall_wilson_95": [
+        0.34238,
+        1.0
+      ],
+      "subtype_attribution": {
+        "ambiguous_predictions": 0,
+        "assignment_counts": {
+          "local-path": 2
+        },
+        "basis": [
+          "ref_kind+reason"
+        ],
+        "complete": true,
+        "gold_complete": true,
+        "prediction_complete": true,
+        "unclassified_prediction_keys": []
+      },
+      "subtypes": {
+        "local-path": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": true,
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "groups": 2,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "predictions": 2,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "support": 2,
+          "tp": 2
+        }
+      },
+      "support": 2,
+      "tp": 2
+    }
+  },
+  "split": "dev"
+}

@@ -1,0 +1,159 @@
+{
+  "schema": 1,
+  "frozen_at": "2026-08-30",
+  "purpose": "Stage 4 model-free fusion engineering gate; not a production-prevalence estimate",
+  "corpus": {
+    "dev_collections": 2,
+    "scored_collections": 6,
+    "scored_sources": 34,
+    "minimum_collection_sources": 5,
+    "expected_positive_support": {
+      "literal": 21,
+      "identifier": 157,
+      "structural": 10,
+      "contradiction": 12,
+      "orphan": 7,
+      "unresolved": 8
+    }
+  },
+  "gates": {
+    "literal": {
+      "minimum_support": 21,
+      "minimum_groups": 6,
+      "minimum_precision": 1.0,
+      "minimum_recall": 0.85
+    },
+    "identifier": {
+      "minimum_support": 157,
+      "minimum_groups": 6,
+      "minimum_precision": 0.9,
+      "minimum_recall": 0.7
+    },
+    "structural": {
+      "minimum_support": 10,
+      "minimum_groups": 5,
+      "minimum_precision": 0.9,
+      "minimum_recall": 0.7
+    },
+    "contradiction": {
+      "minimum_support": 12,
+      "minimum_groups": 6,
+      "minimum_precision": 1.0,
+      "minimum_recall": 0.7
+    },
+    "orphan": {
+      "minimum_support": 7,
+      "minimum_groups": 6,
+      "minimum_precision": 1.0,
+      "minimum_recall": 0.9
+    },
+    "unresolved": {
+      "minimum_support": 8,
+      "minimum_groups": 6,
+      "minimum_precision": 1.0,
+      "minimum_recall": 0.8
+    }
+  },
+  "subtypes": {
+    "literal": {
+      "minimum_support": 3,
+      "minimum_groups": 3,
+      "allowed": ["local-path", "label-key", "citation-key", "url-source-identity"]
+    },
+    "identifier": {
+      "minimum_support": 12,
+      "minimum_groups": 3,
+      "allowed": ["native-native", "explicit-prose-native"]
+    },
+    "structural": {
+      "minimum_support": 3,
+      "minimum_groups": 3,
+      "allowed": ["record-schema-record-schema", "table-record-schema"]
+    },
+    "contradiction": {
+      "minimum_support": 4,
+      "minimum_groups": 3,
+      "allowed": ["constant-constant", "declared-count-observed-count"]
+    },
+    "unresolved": {
+      "minimum_support": 3,
+      "minimum_groups": 3,
+      "allowed": ["local-path", "label-key", "citation-key", "ambiguous-local-path"]
+    }
+  },
+  "hard_negative_classes": {
+    "literal": [
+      "ambiguous-basename",
+      "external-import",
+      "external-url",
+      "query-or-fragment",
+      "substring-basename"
+    ],
+    "identifier": [
+      "common-token",
+      "namespace-collision",
+      "one-token-overlap",
+      "prose-only-overlap",
+      "same-spelling-different-domain"
+    ],
+    "structural": [
+      "generic-fields",
+      "incompatible-types",
+      "low-overlap",
+      "same-width-different-fields"
+    ],
+    "contradiction": [
+      "approximate-vs-scalar",
+      "derived-vs-declared",
+      "equivalent-number",
+      "multi-valued-profile",
+      "namespace-collision",
+      "range-vs-scalar",
+      "unit-name-mismatch"
+    ],
+    "unresolved": [
+      "external-doi",
+      "external-import",
+      "external-url",
+      "resolved-local"
+    ]
+  },
+  "normalization": {
+    "unicode": "NFC; ASCII casefold; non-ASCII case-sensitive-v1",
+    "paths": "collection-relative-posix-v1",
+    "numeric": "decimal-exact-v1",
+    "identifier": "separator-and-camel-token-v1",
+    "common_identifiers": [
+      "data",
+      "id",
+      "main",
+      "name",
+      "result",
+      "status",
+      "timestamp",
+      "value"
+    ]
+  },
+  "scoring": {
+    "primary": ["precision", "recall"],
+    "descriptive": ["f1", "wilson_95", "format_pair_slices", "subtype_slices"],
+    "zero_prediction_precision": null,
+    "duplicates_are_false_positives": true,
+    "identifier_multi_source_scoring": "per-identifier connected-component pair closure",
+    "aggregate_is_gate": false
+  },
+  "disposition": {
+    "order": ["ship-complete", "ship-preregistered-subtype", "disable"],
+    "post_scored_tuning": "forbidden; changed implementation requires a new scored source group",
+    "contradiction_false_positive_tolerance": 0,
+    "absence_false_positive_tolerance": 0
+  },
+  "robustness": {
+    "all_unknown_equal": true,
+    "deterministic_repeat": true,
+    "input_permutation_equal": true,
+    "full_existing_unit_ids": true,
+    "models": [],
+    "score_structured_trace_only": true
+  }
+}

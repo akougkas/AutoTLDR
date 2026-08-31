@@ -1,0 +1,33 @@
+{"annotation_rationale":"The top-level KEP title identifies the document but makes no claim, definition, instruction, decision, or other named semantic move.","id":"pilot-role-001"}
+{"annotation_rationale":"This paragraph asserts a causal performance advantage for HTTP/3 over HTTP/2; it reports no measurement performed by this document.","id":"pilot-role-002"}
+{"annotation_rationale":"The release signoff checklist prescribes checks and approvals that must be completed before a milestone or release.","id":"pilot-role-003"}
+{"annotation_rationale":"The paragraph qualifies the proposal by warning that the protocol is still a draft and may still change.","id":"pilot-role-004"}
+{"annotation_rationale":"The fenced Go snippet concretely demonstrates configuring an HTTP/3 round tripper in client-go.","id":"pilot-role-005"}
+{"annotation_rationale":"This status statement records the governance decision to defer the KEP until Go's standard library supports HTTP/3.","id":"pilot-role-006"}
+{"annotation_rationale":"The risk assessment rests on the unverified premise that HTTP/3 standardization is very likely because browsers and major companies already use it.","id":"pilot-role-007"}
+{"annotation_rationale":"The paragraph states concrete shortcomings of the available Go implementation: incomplete standard-library compatibility and substantial dependencies.","id":"pilot-role-008"}
+{"annotation_rationale":"The PEP front matter is bibliographic and workflow metadata rather than one of the ten named semantic roles.","id":"pilot-role-009"}
+{"annotation_rationale":"The PEP explicitly argues the evaluative proposition that its TOML-based format is best for each user category.","id":"pilot-role-010"}
+{"annotation_rationale":"The paragraph gives an imperative recipe for delimiting a metadata block and deriving its content.","id":"pilot-role-011"}
+{"annotation_rationale":"The list specifies two input fields, their value types, and validation constraints: dependencies and requires-python.","id":"pilot-role-012"}
+{"annotation_rationale":"The normative warning covers malformed nesting, the possible error response, and the special handling of unclosed blocks.","id":"pilot-role-013"}
+{"annotation_rationale":"This literal block is the concrete sample promised by the preceding sentence, even though the plain-text extractor exposes it as prose.","id":"pilot-role-014"}
+{"annotation_rationale":"The passage records why the original double-comment alternative was abandoned and the final single-comment syntax was selected.","id":"pilot-role-015"}
+{"annotation_rationale":"The argument explicitly says it is safe to assume a described programmer group knows TOML; that premise supports the format choice.","id":"pilot-role-016"}
+{"annotation_rationale":"The RFC masthead supplies authorship, category, identifier, and date metadata without performing a named semantic role.","id":"pilot-role-017"}
+{"annotation_rationale":"The introduction asserts that HTTP status codes sometimes fail to carry enough useful error information for non-human consumers.","id":"pilot-role-018"}
+{"annotation_rationale":"This conditional instruction tells an API designer what to create and document when no registered problem type is suitable.","id":"pilot-role-019"}
+{"annotation_rationale":"The paragraph specifies the type member's data type, allowed value domain, and interpretation as the primary identifier.","id":"pilot-role-020"}
+{"annotation_rationale":"The paragraph specifies the status member's JSON type and the value it carries for a problem occurrence.","id":"pilot-role-021"}
+{"annotation_rationale":"It qualifies relative-URI support with a warning that the values can confuse users and fail in some implementations.","id":"pilot-role-022"}
+{"annotation_rationale":"The JSON payload is a concrete fictional out-of-credit problem instance, not a general rule or a real measured result.","id":"pilot-role-023"}
+{"annotation_rationale":"The specification fixes a deliberate scope boundary: problem details avoid new error formats but do not replace domain-specific ones.","id":"pilot-role-024"}
+{"annotation_rationale":"The passage identifies an inherent ambiguity from duplicated status information and the inability of generic intermediaries to honor the member.","id":"pilot-role-025"}
+{"annotation_rationale":"The model description treats the residual as iid with zero mean and constant variance; these are premises required by the analysis.","id":"pilot-role-026"}
+{"annotation_rationale":"This reports the fitted Tobit outcome that 5029 of 5286 observations, or 95%, fell below both income thresholds.","id":"pilot-role-027"}
+{"annotation_rationale":"This reports the model comparison and its empirical conclusion about the best censoring threshold for the study data.","id":"pilot-role-028"}
+{"annotation_rationale":"The paragraph reports estimated directions and magnitudes of associations between education, household factors, and income.","id":"pilot-role-029"}
+{"annotation_rationale":"The authors explicitly enumerate four study limits: no control group, household-size composition, one outcome, and cross-sectional single-province data.","id":"pilot-role-030"}
+{"annotation_rationale":"The production schema unit defines the addressable shape and populated extent of the workbook's README sheet.","id":"pilot-role-031"}
+{"annotation_rationale":"The production schema unit defines the addressable shape and populated extent of the Data dictionary sheet.","id":"pilot-role-032"}
+{"annotation_rationale":"The production schema unit defines the addressable shape and populated extent of the Anonymized data sheet.","id":"pilot-role-033"}

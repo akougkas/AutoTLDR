@@ -1,0 +1,1285 @@
+{
+  "aggregate_is_gate": false,
+  "benchmark": "stage4-model-free-fusion-v1",
+  "corpus_validation": {
+    "splits": {
+      "dev": {
+        "collections": 2,
+        "gaps": 1,
+        "relations": 28,
+        "source_tree_sha256": "667fb23e3b5033116921107cffb07d83d25f3ffad9982b1b0684af49a25f7602",
+        "sources": 11,
+        "units": 59
+      },
+      "scored": {
+        "collections": 6,
+        "gaps": 6,
+        "relations": 122,
+        "source_tree_sha256": "5e4f8c1f3132395f40527949dc7b5410b3ade5f208c5401d70bca26cc9ac5db6",
+        "sources": 34,
+        "units": 222
+      }
+    },
+    "status": "valid"
+  },
+  "label_validation": {
+    "hard_negative_classes": {},
+    "label_rows": 24,
+    "labels_sha256": "502b81148e3b339b9da3d599751635270c0ab1923d61f44ff03c0a4d2890101c",
+    "positive_support": {
+      "contradiction": 2,
+      "identifier": 56,
+      "literal": 7,
+      "orphan": 2,
+      "structural": 2,
+      "unresolved": 2
+    },
+    "source_groups": {
+      "contradiction": 2,
+      "identifier": 2,
+      "literal": 2,
+      "orphan": 2,
+      "structural": 2,
+      "unresolved": 2
+    },
+    "split": "dev",
+    "status": "valid",
+    "subtype_support": {
+      "contradiction:constant-constant": 2,
+      "identifier:explicit-prose-native": 32,
+      "identifier:native-native": 21,
+      "identifier:prose-prose": 3,
+      "literal:local-path": 7,
+      "orphan:no-accepted-relation": 2,
+      "structural:record-schema-record-schema": 1,
+      "structural:table-record-schema": 1,
+      "unresolved:local-path": 2
+    },
+    "warnings": []
+  },
+  "models": [],
+  "prediction_manifest": {
+    "collections": 2,
+    "evaluator_sha256": "331d14c93d9d9d0195121b1a8a4d1cc0a6d48064fb89c74aacb4d85272cca402",
+    "evaluator_version": "stage4-fusion-evaluator-v2",
+    "extractions_sha256": "7c01a5834fbef4df810dcb515a525ff227726b905aff719575715f5c572ebf18",
+    "implementation_sha256": "830d42e7efcdf3fd20beac11733acf9276c0484af810e439dd70122de8dc8420",
+    "labels_sha256_recorded_but_not_loaded": "502b81148e3b339b9da3d599751635270c0ab1923d61f44ff03c0a4d2890101c",
+    "models": [],
+    "policy_sha256": "b015d48e048b895d0002ad56f60a4ee4bd3bbc02229af886827671be37737ff3",
+    "predictions_sha256": "5310019404e96cfad0db6be950756381ec7b6494c9f325e157d4db4b99306720",
+    "robustness": {
+      "all_unknown_equal": true,
+      "deterministic_repeat": true,
+      "full_existing_unit_ids": true,
+      "input_permutation_equal": true,
+      "root_relocation_equal": true
+    },
+    "schema": 2,
+    "source_tree_sha256": "667fb23e3b5033116921107cffb07d83d25f3ffad9982b1b0684af49a25f7602",
+    "split": "dev",
+    "status": "complete",
+    "structured_trace_only": true
+  },
+  "schema": 2,
+  "signals": {
+    "contradiction": {
+      "diagnostic_would_pass_scored_gate": false,
+      "disposition": {
+        "status": "diagnostic-only",
+        "subtypes": []
+      },
+      "duplicate_fp": 0,
+      "duplicate_prediction_keys": [],
+      "f1": 1.0,
+      "false_negative_keys": [],
+      "false_positive_keys": [],
+      "fn": 0,
+      "format_pair_slices": {
+        "json<->markdown": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "rst<->toml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        }
+      },
+      "fp": 0,
+      "gate": {
+        "minimum_groups": 6,
+        "minimum_precision": 1.0,
+        "minimum_recall": 0.7,
+        "minimum_support": 12
+      },
+      "groups": 2,
+      "hard_negative_false_positives": {},
+      "passes": null,
+      "precision": 1.0,
+      "precision_wilson_95": [
+        0.34238,
+        1.0
+      ],
+      "predictions": 2,
+      "recall": 1.0,
+      "recall_wilson_95": [
+        0.34238,
+        1.0
+      ],
+      "subtype_attribution": {
+        "ambiguous_predictions": 0,
+        "assignment_counts": {
+          "constant-constant": 2
+        },
+        "basis": [
+          "left_basis+right_basis"
+        ],
+        "complete": true,
+        "gold_complete": true,
+        "prediction_complete": true,
+        "unclassified_prediction_keys": []
+      },
+      "subtypes": {
+        "constant-constant": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": true,
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "groups": 2,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "predictions": 2,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "support": 2,
+          "tp": 2
+        }
+      },
+      "support": 2,
+      "tp": 2
+    },
+    "identifier": {
+      "diagnostic_would_pass_scored_gate": false,
+      "disposition": {
+        "status": "diagnostic-only",
+        "subtypes": []
+      },
+      "duplicate_fp": 0,
+      "duplicate_prediction_keys": [],
+      "f1": 1.0,
+      "false_negative_keys": [],
+      "false_positive_keys": [],
+      "fn": 0,
+      "format_pair_slices": {
+        "csv<->json": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.510109,
+            1.0
+          ],
+          "predictions": 4,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.510109,
+            1.0
+          ],
+          "support": 4,
+          "tp": 4
+        },
+        "csv<->markdown": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.510109,
+            1.0
+          ],
+          "predictions": 4,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.510109,
+            1.0
+          ],
+          "support": 4,
+          "tp": 4
+        },
+        "csv<->python": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.510109,
+            1.0
+          ],
+          "predictions": 4,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.510109,
+            1.0
+          ],
+          "support": 4,
+          "tp": 4
+        },
+        "json<->markdown": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.565518,
+            1.0
+          ],
+          "predictions": 5,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.565518,
+            1.0
+          ],
+          "support": 5,
+          "tp": 5
+        },
+        "json<->python": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.510109,
+            1.0
+          ],
+          "predictions": 4,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.510109,
+            1.0
+          ],
+          "support": 4,
+          "tp": 4
+        },
+        "jsonl<->notebook": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        },
+        "jsonl<->python": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        },
+        "jsonl<->rst": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        },
+        "jsonl<->toml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        },
+        "markdown<->python": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.510109,
+            1.0
+          ],
+          "predictions": 4,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.510109,
+            1.0
+          ],
+          "support": 4,
+          "tp": 4
+        },
+        "notebook<->python": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        },
+        "notebook<->rst": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        },
+        "notebook<->toml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        },
+        "python<->rst": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        },
+        "python<->toml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        },
+        "rst<->toml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.510109,
+            1.0
+          ],
+          "predictions": 4,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.510109,
+            1.0
+          ],
+          "support": 4,
+          "tp": 4
+        }
+      },
+      "fp": 0,
+      "gate": {
+        "minimum_groups": 6,
+        "minimum_precision": 0.9,
+        "minimum_recall": 0.7,
+        "minimum_support": 171
+      },
+      "groups": 2,
+      "hard_negative_false_positives": {},
+      "passes": null,
+      "precision": 1.0,
+      "precision_wilson_95": [
+        0.935806,
+        1.0
+      ],
+      "predictions": 56,
+      "recall": 1.0,
+      "recall_wilson_95": [
+        0.935806,
+        1.0
+      ],
+      "subtype_attribution": {
+        "ambiguous_predictions": 0,
+        "assignment_counts": {
+          "explicit-prose-native": 32,
+          "native-native": 21,
+          "prose-prose": 3
+        },
+        "basis": [
+          "left_native+right_native"
+        ],
+        "complete": true,
+        "gold_complete": true,
+        "prediction_complete": true,
+        "unclassified_prediction_keys": []
+      },
+      "subtypes": {
+        "explicit-prose-native": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": true,
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "groups": 2,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.892821,
+            1.0
+          ],
+          "predictions": 32,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.892821,
+            1.0
+          ],
+          "support": 32,
+          "tp": 32
+        },
+        "native-native": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": true,
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "groups": 2,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.845361,
+            1.0
+          ],
+          "predictions": 21,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.845361,
+            1.0
+          ],
+          "support": 21,
+          "tp": 21
+        },
+        "prose-prose": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": true,
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "groups": 1,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "predictions": 3,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.438503,
+            1.0
+          ],
+          "support": 3,
+          "tp": 3
+        }
+      },
+      "support": 56,
+      "tp": 56
+    },
+    "literal": {
+      "diagnostic_would_pass_scored_gate": false,
+      "disposition": {
+        "status": "diagnostic-only",
+        "subtypes": []
+      },
+      "duplicate_fp": 0,
+      "duplicate_prediction_keys": [],
+      "f1": 1.0,
+      "false_negative_keys": [],
+      "false_positive_keys": [],
+      "fn": 0,
+      "format_pair_slices": {
+        "csv<->markdown": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "json<->markdown": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "jsonl<->notebook": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "jsonl<->rst": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "markdown<->python": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "python<->rst": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "rst<->toml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        }
+      },
+      "fp": 0,
+      "gate": {
+        "minimum_groups": 6,
+        "minimum_precision": 1.0,
+        "minimum_recall": 0.85,
+        "minimum_support": 23
+      },
+      "groups": 2,
+      "hard_negative_false_positives": {},
+      "passes": null,
+      "precision": 1.0,
+      "precision_wilson_95": [
+        0.64567,
+        1.0
+      ],
+      "predictions": 7,
+      "recall": 1.0,
+      "recall_wilson_95": [
+        0.64567,
+        1.0
+      ],
+      "subtype_attribution": {
+        "ambiguous_predictions": 0,
+        "assignment_counts": {
+          "local-path": 7
+        },
+        "basis": [
+          "ref_kind+resolution"
+        ],
+        "complete": true,
+        "gold_complete": true,
+        "prediction_complete": true,
+        "unclassified_prediction_keys": []
+      },
+      "subtypes": {
+        "local-path": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": true,
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "groups": 2,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.64567,
+            1.0
+          ],
+          "predictions": 7,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.64567,
+            1.0
+          ],
+          "support": 7,
+          "tp": 7
+        }
+      },
+      "support": 7,
+      "tp": 7
+    },
+    "orphan": {
+      "diagnostic_would_pass_scored_gate": false,
+      "disposition": {
+        "status": "diagnostic-only",
+        "subtypes": []
+      },
+      "duplicate_fp": 0,
+      "duplicate_prediction_keys": [],
+      "f1": 1.0,
+      "false_negative_keys": [],
+      "false_positive_keys": [],
+      "fn": 0,
+      "format_pair_slices": {
+        "text": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "predictions": 2,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "support": 2,
+          "tp": 2
+        }
+      },
+      "fp": 0,
+      "gate": {
+        "minimum_groups": 6,
+        "minimum_precision": 1.0,
+        "minimum_recall": 0.9,
+        "minimum_support": 7
+      },
+      "groups": 2,
+      "hard_negative_false_positives": {},
+      "passes": null,
+      "precision": 1.0,
+      "precision_wilson_95": [
+        0.34238,
+        1.0
+      ],
+      "predictions": 2,
+      "recall": 1.0,
+      "recall_wilson_95": [
+        0.34238,
+        1.0
+      ],
+      "subtype_attribution": {
+        "ambiguous_predictions": 0,
+        "assignment_counts": {
+          "no-accepted-relation": 2
+        },
+        "basis": [
+          "absence-of-accepted-cross-source-relation"
+        ],
+        "complete": true,
+        "gold_complete": true,
+        "prediction_complete": true,
+        "unclassified_prediction_keys": []
+      },
+      "subtypes": {
+        "no-accepted-relation": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": true,
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "groups": 2,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "predictions": 2,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "support": 2,
+          "tp": 2
+        }
+      },
+      "support": 2,
+      "tp": 2
+    },
+    "structural": {
+      "diagnostic_would_pass_scored_gate": false,
+      "disposition": {
+        "status": "diagnostic-only",
+        "subtypes": []
+      },
+      "duplicate_fp": 0,
+      "duplicate_prediction_keys": [],
+      "f1": 1.0,
+      "false_negative_keys": [],
+      "false_positive_keys": [],
+      "fn": 0,
+      "format_pair_slices": {
+        "csv<->json": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "jsonl<->toml": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        }
+      },
+      "fp": 0,
+      "gate": {
+        "minimum_groups": 5,
+        "minimum_precision": 0.9,
+        "minimum_recall": 0.7,
+        "minimum_support": 10
+      },
+      "groups": 2,
+      "hard_negative_false_positives": {},
+      "passes": null,
+      "precision": 1.0,
+      "precision_wilson_95": [
+        0.34238,
+        1.0
+      ],
+      "predictions": 2,
+      "recall": 1.0,
+      "recall_wilson_95": [
+        0.34238,
+        1.0
+      ],
+      "subtype_attribution": {
+        "ambiguous_predictions": 0,
+        "assignment_counts": {
+          "record-schema-record-schema": 1,
+          "table-record-schema": 1
+        },
+        "basis": [
+          "source_kind+container_family"
+        ],
+        "complete": true,
+        "gold_complete": true,
+        "prediction_complete": true,
+        "unclassified_prediction_keys": []
+      },
+      "subtypes": {
+        "record-schema-record-schema": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": true,
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "groups": 1,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "table-record-schema": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": true,
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "groups": 1,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        }
+      },
+      "support": 2,
+      "tp": 2
+    },
+    "unresolved": {
+      "diagnostic_would_pass_scored_gate": false,
+      "disposition": {
+        "status": "diagnostic-only",
+        "subtypes": []
+      },
+      "duplicate_fp": 0,
+      "duplicate_prediction_keys": [],
+      "f1": 1.0,
+      "false_negative_keys": [],
+      "false_positive_keys": [],
+      "fn": 0,
+      "format_pair_slices": {
+        "markdown": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        },
+        "rst": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "predictions": 1,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.206549,
+            1.0
+          ],
+          "support": 1,
+          "tp": 1
+        }
+      },
+      "fp": 0,
+      "gate": {
+        "minimum_groups": 6,
+        "minimum_precision": 1.0,
+        "minimum_recall": 0.8,
+        "minimum_support": 9
+      },
+      "groups": 2,
+      "hard_negative_false_positives": {},
+      "passes": null,
+      "precision": 1.0,
+      "precision_wilson_95": [
+        0.34238,
+        1.0
+      ],
+      "predictions": 2,
+      "recall": 1.0,
+      "recall_wilson_95": [
+        0.34238,
+        1.0
+      ],
+      "subtype_attribution": {
+        "ambiguous_predictions": 0,
+        "assignment_counts": {
+          "local-path": 2
+        },
+        "basis": [
+          "ref_kind+reason"
+        ],
+        "complete": true,
+        "gold_complete": true,
+        "prediction_complete": true,
+        "unclassified_prediction_keys": []
+      },
+      "subtypes": {
+        "local-path": {
+          "duplicate_fp": 0,
+          "duplicate_prediction_keys": [],
+          "eligible": true,
+          "f1": 1.0,
+          "false_negative_keys": [],
+          "false_positive_keys": [],
+          "fn": 0,
+          "fp": 0,
+          "groups": 2,
+          "precision": 1.0,
+          "precision_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "predictions": 2,
+          "recall": 1.0,
+          "recall_wilson_95": [
+            0.34238,
+            1.0
+          ],
+          "support": 2,
+          "tp": 2
+        }
+      },
+      "support": 2,
+      "tp": 2
+    }
+  },
+  "split": "dev"
+}
