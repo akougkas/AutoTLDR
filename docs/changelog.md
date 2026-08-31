@@ -7,6 +7,26 @@ rather than promising semantic-version compatibility.
 
 No changes yet.
 
+## 0.1.1 — audited private-alpha checkpoint — 2026-08-31
+
+- Made ordinary product runs fail closed on ambiguous local-model identities, malformed
+  provider responses, unavailable selected models, and unsupported synthesis envelopes.
+- Added a measured same-name spreadsheet disposition that drops unqualified claims which
+  confuse a derived formula with an independent constant, while leaving the frozen Stage 5
+  evaluation path unchanged.
+- Made file, URL, collection, watch, Python, MCP, and Agent Skill entry points converge on
+  the same detail, fallback, output-inference, validation, and root-boundary semantics.
+- Split logical crawl-page limits from physical HTTP-request limits, reserved the root
+  request across discovery redirects, and made request accounting visible and exact.
+- Hardened HTML, Markdown, ANSI, and PDF output against hostile source controls, raw HTML,
+  forged Markdown structure, unsafe link destinations, and misleading no-cite links.
+- Preserved every omitted unit and statement origin in no-cite source maps while keeping
+  presentation records origin-free and machine drop records unchanged.
+- Corrected compact LaTeX extraction, linked-HTML text handling, scalar path acquisition,
+  dynamic command naming, source-type labels, and unsupported-URL diagnostics.
+- Expanded adversarial coverage across setup, model discovery, acquisition, synthesis,
+  rendering, output inference, MCP configuration, and installed integration surfaces.
+
 ## 0.1.0a1 — first-user alpha candidate — 2026-08-31
 
 - Ordinary CLI, watch, product Python API, and MCP runs use one configured local-model

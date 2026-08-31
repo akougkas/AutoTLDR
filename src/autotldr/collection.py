@@ -87,6 +87,11 @@ class CollectionLimits:
     max_crawl_page_bytes: int = 8 * 1024 * 1024
     max_crawl_total_bytes: int = 64 * 1024 * 1024
     crawl_timeout_seconds: float = 20.0
+    # One origin-level discovery request, one request for every page, and one
+    # redirect per page fit under the default.  Longer redirect churn remains
+    # bounded independently from the public page-count promise.  This field is
+    # appended so the original public positional layout remains unchanged.
+    max_crawl_requests: int = 129
 
     def __post_init__(self) -> None:
         integer_fields = (
@@ -97,6 +102,7 @@ class CollectionLimits:
             "max_archive_path_depth",
             "max_archive_container_bytes",
             "max_crawl_pages",
+            "max_crawl_requests",
             "max_crawl_page_bytes",
             "max_crawl_total_bytes",
         )
@@ -294,6 +300,10 @@ class _RouteFailure(Exception):
     content: str
     detected_kind: str | None = None
     tier: int | None = None
+
+
+class _CrawlRequestLimit(Exception):
+    """The shared crawl/discovery HTTP request ceiling is exhausted."""
 
 
 def validate_extension_registry(registry: object) -> None:
@@ -506,13 +516,36 @@ def crawl_documentation_site(
     frontier: list[tuple[int, str]] = [(0, root)]
     scheduled = {root}
     acquired_sources: set[str] = set()
+    page_attempts = 0
     requests = 0
+    discovery_requests = 0
+    source_requests = 0
+    discovery_considered = False
     crawl_bytes = 0
+    discovery_request_ceiling = selected_limits.max_crawl_requests - 1
+
+    def observe_request(operation: str, _url: str) -> bool:
+        nonlocal requests, discovery_requests, source_requests
+        if requests >= selected_limits.max_crawl_requests:
+            return False
+        # Optional discovery may follow redirects, but it never owns the final
+        # slot reserved for acquiring the explicitly requested page.
+        if (
+            operation == "llms.txt-discovery"
+            and requests >= discovery_request_ceiling
+        ):
+            return False
+        requests += 1
+        if operation == "llms.txt-discovery":
+            discovery_requests += 1
+        else:
+            source_requests += 1
+        return True
 
     while frontier:
         frontier.sort(key=lambda item: (item[0], item[1]))
         depth, requested = frontier.pop(0)
-        if requests >= selected_limits.max_crawl_pages:
+        if page_attempts >= selected_limits.max_crawl_pages:
             state.decline(
                 requested,
                 DeclineKind.LIMIT,
@@ -537,7 +570,39 @@ def crawl_documentation_site(
                     },
                 )
             break
-        requests += 1
+        if requests >= selected_limits.max_crawl_requests:
+            state.decline(
+                requested,
+                DeclineKind.LIMIT,
+                f"Documentation request {requested!r} exceeds the crawl HTTP "
+                f"request limit of {selected_limits.max_crawl_requests}.",
+                details={
+                    "limit": "max_crawl_requests",
+                    "maximum": selected_limits.max_crawl_requests,
+                    "depth": depth,
+                },
+            )
+            for queued_depth, queued in frontier:
+                state.decline(
+                    queued,
+                    DeclineKind.LIMIT,
+                    f"Documentation page {queued!r} was not acquired because "
+                    f"the crawl HTTP request limit is "
+                    f"{selected_limits.max_crawl_requests}.",
+                    details={
+                        "limit": "max_crawl_requests",
+                        "maximum": selected_limits.max_crawl_requests,
+                        "depth": queued_depth,
+                    },
+                )
+            break
+        remaining_requests = selected_limits.max_crawl_requests - requests
+        # A one-request crawl must still be able to acquire its explicitly
+        # requested root.  With two or more slots, probe /llms.txt exactly once
+        # for this origin and account it against the same hard request ceiling.
+        probe_llms_txt = not discovery_considered and remaining_requests >= 2
+        discovery_considered = True
+        page_attempts += 1
 
         try:
             result = _route_url(
@@ -546,7 +611,35 @@ def crawl_documentation_site(
                 max_bytes=selected_limits.max_crawl_page_bytes,
                 registry=registry,
                 same_origin_with=root,
+                probe_llms_txt=probe_llms_txt,
+                request_observer=observe_request,
             )
+        except _CrawlRequestLimit:
+            state.decline(
+                requested,
+                DeclineKind.LIMIT,
+                f"Documentation request {requested!r} exceeds the HTTP request "
+                f"limit of {selected_limits.max_crawl_requests}.",
+                details={
+                    "limit": "max_crawl_requests",
+                    "maximum": selected_limits.max_crawl_requests,
+                    "depth": depth,
+                },
+            )
+            for queued_depth, queued in frontier:
+                state.decline(
+                    queued,
+                    DeclineKind.LIMIT,
+                    f"Documentation page {queued!r} was not acquired because "
+                    f"the crawl HTTP request limit is "
+                    f"{selected_limits.max_crawl_requests}.",
+                    details={
+                        "limit": "max_crawl_requests",
+                        "maximum": selected_limits.max_crawl_requests,
+                        "depth": queued_depth,
+                    },
+                )
+            break
         except _RouteFailure as failure:
             state.decline(
                 requested,
@@ -681,7 +774,10 @@ def crawl_documentation_site(
         "source": root,
         "kind": "documentation-site",
         "origin": list(root_origin),
+        "pages": page_attempts,
         "requests": requests,
+        "discovery_requests": discovery_requests,
+        "source_requests": source_requests,
         "bytes": crawl_bytes,
     }
     return _finish(root, "documentation-site", state, container=container)
@@ -1283,6 +1379,8 @@ def _route_url(
     max_bytes: int,
     registry: object | None = None,
     same_origin_with: str | None = None,
+    probe_llms_txt: bool = True,
+    request_observer: Any | None = None,
 ) -> Extraction:
     from . import router
 
@@ -1293,7 +1391,11 @@ def _route_url(
             max_bytes=max_bytes,
             registry=registry,
             same_origin_with=same_origin_with,
+            probe_llms_txt=probe_llms_txt,
+            request_observer=request_observer,
         )
+    except router.HttpRequestLimitExceeded as exc:
+        raise _CrawlRequestLimit(str(exc)) from exc
     except router.UnsupportedFormat as exc:
         raise _RouteFailure(
             DeclineKind.UNSUPPORTED,

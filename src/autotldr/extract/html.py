@@ -128,6 +128,7 @@ def extract_html(
     )
     headings: list[tuple[int, str]] = []
     emitted_blocks = 0
+    linked_blocks_retained = 0
     for index, block in enumerate(parser.blocks):
         body = normalized_blocks[index]
         if block.is_code and block.nested_markup and not block.nested_code:
@@ -151,7 +152,15 @@ def extract_html(
 
         is_heading = block.tag.startswith("h") and block.tag[1:].isdigit()
         if use_cleaner_filter and index not in mapped and not (is_heading or block.is_code):
-            continue
+            # Native addressable links are both source meaning and the bounded
+            # documentation crawler's only traversal signal.  Optional main-
+            # content cleanup may discard a short paragraph while retaining a
+            # nearby heading; silently following that hint would lose the
+            # paragraph and make its link unreachable.  Obvious navigation
+            # chrome has already been excluded structurally by _SKIP/_SKIP_ROLES.
+            if not block.links:
+                continue
+            linked_blocks_retained += 1
 
         if is_heading:
             level = int(block.tag[1:])
@@ -226,6 +235,7 @@ def extract_html(
             "emitted_blocks": emitted_blocks,
             "main_content_filter": cleaner,
             "trafilatura_mapped_blocks": len(mapped) if cleaner == "trafilatura" else None,
+            "linked_blocks_retained": linked_blocks_retained,
         }
     )
     return result

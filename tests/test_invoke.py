@@ -365,6 +365,73 @@ def test_output_file_is_canonical_utf8_and_leaves_stdout_clean(tmp_path, capsys)
     assert payload["manifest"]["selection"]["used"] == len(payload_bytes)
 
 
+@pytest.mark.parametrize(
+    ("suffix", "shape"),
+    [
+        (".md", "md"),
+        (".markdown", "md"),
+        (".html", "html"),
+        (".htm", "html"),
+        (".pdf", "pdf"),
+        (".json", "json"),
+        (".jsonl", "jsonl"),
+    ],
+)
+def test_output_file_suffix_infers_core_shape_when_out_is_omitted(
+    tmp_path, capsys, suffix, shape
+):
+    if shape == "pdf":
+        pytest.importorskip("pymupdf")
+    path = _write_document(tmp_path)
+    destination = tmp_path / f"relay{suffix}"
+
+    status, stdout, stderr = _invoke(
+        capsys,
+        [str(path), "--output", str(destination)],
+    )
+    payload = destination.read_bytes()
+
+    assert status == EXIT_OK
+    assert stdout == ""
+    assert stderr == ""
+    if shape == "md":
+        assert payload.startswith(b"# ")
+    elif shape == "html":
+        assert payload.startswith(b"<!doctype html>\n")
+    elif shape == "pdf":
+        assert payload.startswith(b"%PDF-")
+    elif shape == "json":
+        assert json.loads(payload)["schema"] == 2
+    else:
+        records = [json.loads(line) for line in payload.splitlines()]
+        assert records[0]["type"] == "header"
+        assert records[-1]["type"] == "manifest"
+
+
+def test_explicit_output_wins_over_filename_and_unknown_suffix_defaults_to_ansi(
+    tmp_path, capsys
+):
+    path = _write_document(tmp_path)
+    explicit = tmp_path / "explicit.json"
+    fallback = tmp_path / "fallback.unknown"
+
+    explicit_result = _invoke(
+        capsys,
+        [str(path), "--out", "md", "--output", str(explicit)],
+    )
+    fallback_result = _invoke(
+        capsys,
+        [str(path), "--output", str(fallback)],
+    )
+
+    assert explicit_result == (EXIT_OK, "", "")
+    assert explicit.read_text(encoding="utf-8").startswith("# ")
+    assert fallback_result == (EXIT_OK, "", "")
+    fallback_text = fallback.read_text(encoding="utf-8")
+    assert fallback_text.startswith("AutoTLDR")
+    assert not fallback_text.lstrip().startswith(("{", "[", "#"))
+
+
 def test_non_http_url_scheme_is_named_instead_of_treated_as_a_path(capsys):
     status, stdout, stderr = _invoke(capsys, ["ftp://example.test/guide"])
 
@@ -440,6 +507,58 @@ def test_usage_errors_do_not_collide_with_runtime_declines(capsys):
     assert EXIT_UNSUPPORTED != 2
     assert EXIT_NOT_FOUND != 2
     assert EXIT_BUDGET != 2
+
+
+def test_unknown_output_is_usage_error_before_source_acquisition(
+    tmp_path, capsys, monkeypatch
+):
+    missing = tmp_path / "not-acquired.md"
+    monkeypatch.setenv("AUTOTLDR_CONFIG", str(tmp_path / "missing-config.toml"))
+    monkeypatch.delenv("AUTOTLDR_MODEL", raising=False)
+
+    def fail_acquire(*_args, **_kwargs):
+        raise AssertionError("source acquisition must not run")
+
+    monkeypatch.setattr("autotldr.api.acquire", fail_acquire)
+    with pytest.raises(SystemExit) as raised:
+        main([str(missing), "--out", "not-a-renderer"])
+    captured = capsys.readouterr()
+
+    assert raised.value.code == 2
+    assert captured.out == ""
+    assert "unknown --out format 'not-a-renderer'" in captured.err
+    assert "no such file" not in captured.err.casefold()
+
+
+@pytest.mark.parametrize(
+    ("input_type", "expected"),
+    [
+        ("not-a-format", "unrecognized format"),
+        ("lua", "tier 0"),
+        ("pptx", "tier 4"),
+    ],
+)
+def test_invalid_explicit_type_is_named_exit_3_before_source_acquisition(
+    tmp_path, capsys, monkeypatch, input_type, expected
+):
+    missing = tmp_path / "not-acquired.data"
+    monkeypatch.setenv("AUTOTLDR_CONFIG", str(tmp_path / "missing-config.toml"))
+    monkeypatch.delenv("AUTOTLDR_MODEL", raising=False)
+
+    def fail_acquire(*_args, **_kwargs):
+        raise AssertionError("source acquisition must not run")
+
+    monkeypatch.setattr("autotldr.api.acquire", fail_acquire)
+    status, stdout, stderr = _invoke(
+        capsys,
+        [str(missing), "--type", input_type, "--out", "json"],
+    )
+
+    assert status == EXIT_UNSUPPORTED
+    assert stdout == ""
+    assert f"explicit input type '{input_type}'" in stderr
+    assert expected in stderr.casefold()
+    assert "no such file" not in stderr.casefold()
 
 
 def test_known_unsupported_format_names_format_and_tier(tmp_path, capsys):

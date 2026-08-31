@@ -21,6 +21,17 @@ EXIT_UNSUPPORTED = 3
 EXIT_NOT_FOUND = 4
 EXIT_BUDGET = 5
 
+_CORE_OUTPUTS = frozenset({"ansi", "md", "html", "pdf", "json", "jsonl"})
+_OUTPUT_SUFFIXES = {
+    ".md": "md",
+    ".markdown": "md",
+    ".html": "html",
+    ".htm": "html",
+    ".pdf": "pdf",
+    ".json": "json",
+    ".jsonl": "jsonl",
+}
+
 
 def _positive_int(value: str) -> int:
     try:
@@ -30,6 +41,20 @@ def _positive_int(value: str) -> int:
     if number <= 0:
         raise argparse.ArgumentTypeError("must be a positive integer")
     return number
+
+
+def _selected_output(explicit: str | None, destination: Path | None) -> str:
+    """Resolve one output shape without making filenames authoritative.
+
+    An explicit ``--out`` always wins.  Otherwise only the documented core
+    suffixes opt into inference; stdout and unfamiliar suffixes retain ANSI.
+    """
+
+    if explicit is not None:
+        return explicit
+    if destination is None:
+        return "ansi"
+    return _OUTPUT_SUFFIXES.get(destination.suffix.casefold(), "ansi")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -70,11 +95,10 @@ examples:
     )
     parser.add_argument(
         "--out",
-        default="ansi",
         metavar="FORMAT",
         help=(
             "output shape: ansi, md, html, pdf, json, jsonl, or a renderer supplied by "
-            "an explicit --extension (default: ansi)"
+            "an explicit --extension (default: inferred from -o, otherwise ansi)"
         ),
     )
     parser.add_argument(
@@ -249,6 +273,7 @@ def main(argv: list[str] | None = None) -> int:
 
     parser = build_parser()
     args = parser.parse_args(argv)
+    args.out = _selected_output(args.out, args.output)
 
     if len(args.sources) > 1 and args.input_type is not None:
         parser.error("--type is valid only when exactly one source is supplied")
@@ -279,14 +304,6 @@ def main(argv: list[str] | None = None) -> int:
     explicit_model_off = args.model == "off" or os.environ.get(
         "AUTOTLDR_MODEL"
     ) == "off"
-    if not explicit_model_off:
-        from .product import require_active_model, require_configured_model
-
-        try:
-            require_active_model(require_configured_model(product_config))
-        except ValueError as exc:
-            print(f"autotldr: {exc}", file=sys.stderr)
-            return EXIT_ERROR
     configured_extensions = list(product_config.extensions)
     extension_references = [*configured_extensions, *args.extension]
     if len(set(extension_references)) != len(extension_references):
@@ -303,29 +320,33 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         registry = _load_explicit_extensions(extension_references, router=router)
-        if args.acquirer is not None:
-            acquisition, acquisition_spec = _run_extension_acquirer(
-                args.sources[0],
-                args.acquirer,
-                registry,
-            )
-            from .api import assemble_collection
+        _validate_selected_output(parser, args.out, registry)
+        _validate_selected_acquirer(parser, args.acquirer, registry)
+        if decline := _explicit_input_type_decline(
+            args.input_type,
+            registry=registry,
+            router=router,
+        ):
+            print(f"autotldr: {decline}", file=sys.stderr)
+            return EXIT_UNSUPPORTED
+        if not explicit_model_off:
+            from .product import require_active_model, require_configured_model
 
-            result = assemble_collection(
-                acquisition.extractions,
-                subject=acquisition.source,
-                acquisitions=(acquisition,),
-            )
-        else:
-            from .api import acquire
+            try:
+                require_active_model(require_configured_model(product_config))
+            except ValueError as exc:
+                print(f"autotldr: {exc}", file=sys.stderr)
+                return EXIT_ERROR
+        from .api import acquire
 
-            result = acquire(
-                args.sources,
-                input_type=args.input_type,
-                crawl=args.crawl,
-                stdin=_read_stdin() if "-" in args.sources else None,
-                registry=registry,
-            )
+        result = acquire(
+            args.sources,
+            input_type=args.input_type,
+            crawl=args.crawl,
+            stdin=_read_stdin() if "-" in args.sources else None,
+            registry=registry,
+            acquirer=args.acquirer,
+        )
 
         # A recognized PDF without a text layer is a named Tier 4 decline,
         # not an empty successful Tier 1 result.  The library extraction still
@@ -346,8 +367,6 @@ def main(argv: list[str] | None = None) -> int:
                 "requested": list(extension_references),
                 "capabilities": registry.capability_manifest(),
             }
-            if args.acquirer is not None:
-                result.meta["extension_acquisition"] = acquisition_spec.as_manifest()
 
         from .api import apply_product_synthesis
 
@@ -518,7 +537,10 @@ def _formats_main(argv: list[str]) -> int:
 
     parser = argparse.ArgumentParser(
         prog="autotldr formats",
-        description="Show available, dependency-gated, and declined input formats.",
+        description=(
+            "Show available leaf formats, collection inputs, dependencies, "
+            "and scoped declines."
+        ),
     )
     parser.add_argument("--json", action="store_true", help="emit canonical JSON")
     args = parser.parse_args(argv)
@@ -543,7 +565,15 @@ def _formats_main(argv: list[str]) -> int:
             install = f"; install {item['install']}" if item["install"] else ""
             print(f"  {item['kind']:<16} {status:<18} {suffixes}{install}")
         print()
-    print("Collections: " + ", ".join(inventory["collections"]))
+    print("Tier 2 collections")
+    for item in inventory["collection_capabilities"]:
+        addresses = [
+            *item["suffixes"],
+            *[f"{scheme}://" for scheme in item["schemes"]],
+        ]
+        shown = ", ".join(addresses) if addresses else "path"
+        print(f"  {item['name']:<16} {item['status']:<18} {shown}")
+    print()
     print("Outputs")
     for item in inventory["output_capabilities"]:
         install = f"; install {item['install']}" if item["install"] else ""
@@ -582,7 +612,8 @@ def _setup_main(argv: list[str]) -> int:
         if args.model is None:
             if not models:
                 raise LocalModelUnavailable(
-                    "LM Studio has no active generation model; load one and retry"
+                    "LM Studio has no eligible local generation model active; "
+                    "load one directly on this machine and retry"
                 )
             if len(models) != 1:
                 choices = ", ".join(models)
@@ -799,13 +830,14 @@ def _integrations_main(argv: list[str]) -> int:
         "skill",
         help="show or install the bundled AutoTLDR Agent Skill",
     )
-    skill.add_argument(
+    action = skill.add_mutually_exclusive_group()
+    action.add_argument(
         "--install",
         type=Path,
         metavar="SKILLS_DIRECTORY",
         help="copy the skill to SKILLS_DIRECTORY/autotldr",
     )
-    skill.add_argument(
+    action.add_argument(
         "--print",
         dest="print_skill",
         action="store_true",
@@ -851,6 +883,72 @@ def _bundled_agent_skill() -> Path:
     raise FileNotFoundError("the installed distribution does not contain the AutoTLDR skill")
 
 
+def _validate_selected_output(
+    parser: argparse.ArgumentParser,
+    name: str,
+    registry,
+) -> None:
+    """Reject an unknown selected renderer before acquiring any source."""
+
+    if name in _CORE_OUTPUTS:
+        return
+    if registry is not None:
+        try:
+            registry.get_renderer(name)
+        except (LookupError, ValueError):
+            pass
+        else:
+            return
+    parser.error(
+        f"unknown --out format {name!r}; choose ansi, md, html, pdf, json, "
+        "jsonl, or a renderer supplied by --extension"
+    )
+
+
+def _validate_selected_acquirer(
+    parser: argparse.ArgumentParser,
+    name: str | None,
+    registry,
+) -> None:
+    """Reject an unknown selected acquisition adapter before source I/O."""
+
+    if name is None:
+        return
+    try:
+        registry.get_acquisition(name)
+    except (LookupError, ValueError):
+        parser.error(
+            f"unknown --acquirer name {name!r}; choose an acquisition adapter "
+            "supplied by --extension"
+        )
+
+
+def _explicit_input_type_decline(name: str | None, *, registry, router):
+    """Return a named format decline for an invalid explicit routing hint."""
+
+    if name is None:
+        return None
+    normalized = name.casefold().lstrip(".")
+    try:
+        handler, suffix = router._handler_for_kind(name, registry=registry)
+    except ValueError:
+        deferred = router._DEFERRED.get(f".{normalized}")
+        if deferred is not None:
+            return router.UnsupportedFormat(
+                f"explicit input type {name!r}",
+                deferred[0],
+                deferred[1],
+            )
+        return router.UnknownFormat(f"explicit input type {name!r}")
+    if suffix in router._UNAVAILABLE_SOURCE_SUFFIXES:
+        return router.UnsupportedFormat(
+            f"explicit input type {name!r}",
+            f"{router._UNAVAILABLE_SOURCE_NAMES[suffix]} source",
+            handler.tier,
+        )
+    return None
+
+
 def _load_explicit_extensions(references: list[str], *, router):
     """Build one invocation-scoped registry; never inspect installed packages."""
 
@@ -871,89 +969,6 @@ def _load_explicit_extensions(references: list[str], *, router):
     validate_acquisitions(registry)
     validate_renderers(registry)
     return registry
-
-
-def _run_extension_acquirer(source: str, name: str, registry):
-    """Invoke one explicitly selected collection adapter behind a closed seam."""
-
-    from .extensions import (
-        ExtensionConformanceError,
-        validate_acquisition_output,
-    )
-
-    try:
-        spec = registry.get_acquisition(name)
-    except LookupError:
-        raise ValueError(f"unknown extension acquisition adapter: {name}") from None
-    adapter = registry.resolve_acquisition(spec)
-    try:
-        raw = adapter(source)
-    except Exception:
-        raise ExtensionConformanceError(
-            f"extension acquisition adapter {spec.name!r} failed"
-        ) from None
-    acquisition = validate_acquisition_output(raw)
-    _validate_extension_acquisition(acquisition, spec=spec)
-    return acquisition, spec
-
-
-def _validate_extension_acquisition(acquisition, *, spec) -> None:
-    """Require exact routed leaves before an extension collection may fuse."""
-
-    import json
-    import re
-
-    from .extensions import ExtensionConformanceError
-    from .render import _validate_result
-
-    if not acquisition.extractions and not acquisition.declines:
-        raise ExtensionConformanceError(
-            f"extension acquisition adapter {spec.name!r} returned an empty success"
-        )
-    try:
-        json.dumps(
-            acquisition.manifest,
-            ensure_ascii=False,
-            sort_keys=True,
-            allow_nan=False,
-        ).encode("utf-8", errors="strict")
-    except (TypeError, ValueError, UnicodeError):
-        raise ExtensionConformanceError(
-            f"extension acquisition adapter {spec.name!r} returned a non-canonical manifest"
-        ) from None
-
-    for extraction in acquisition.extractions:
-        try:
-            _validate_result(extraction)
-        except (TypeError, ValueError):
-            raise ExtensionConformanceError(
-                f"extension acquisition adapter {spec.name!r} returned an invalid routed leaf"
-            ) from None
-        inputs = extraction.meta.get("inputs")
-        if (
-            not isinstance(inputs, list)
-            or len(inputs) != 1
-            or not isinstance(inputs[0], dict)
-        ):
-            raise ExtensionConformanceError(
-                f"extension acquisition adapter {spec.name!r} returned a leaf "
-                "without one exact input manifest"
-            )
-        record = inputs[0]
-        digest = record.get("sha256")
-        byte_count = record.get("bytes")
-        if (
-            record.get("source") != extraction.source
-            or not isinstance(byte_count, int)
-            or isinstance(byte_count, bool)
-            or byte_count < 0
-            or not isinstance(digest, str)
-            or re.fullmatch(r"[0-9a-f]{64}", digest) is None
-        ):
-            raise ExtensionConformanceError(
-                f"extension acquisition adapter {spec.name!r} returned an "
-                "inexact leaf input manifest"
-            )
 
 
 def _write(rendered: str | bytes, output: Path | None) -> None:

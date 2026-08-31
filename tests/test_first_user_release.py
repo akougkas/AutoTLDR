@@ -12,7 +12,7 @@ import zipfile
 from pathlib import Path
 
 
-def _fake_distributions(root: Path, *, version: str = "0.1.0a1") -> Path:
+def _fake_distributions(root: Path, *, version: str = "0.1.1") -> Path:
     root.mkdir()
     wheel = root / f"autotldr-{version}-py3-none-any.whl"
     with zipfile.ZipFile(wheel, "w") as archive:
@@ -97,10 +97,10 @@ def test_private_alpha_bundle_is_versioned_checksummed_and_reproducible(tmp_path
     first = outputs[0]
     manifest = json.loads((first / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["schema"] == "autotldr-private-alpha-bundle-v1"
-    assert manifest["version"] == "0.1.0a1"
+    assert manifest["version"] == "0.1.1"
     assert manifest["support"] == support
     guide = (first / "README.md").read_text(encoding="utf-8")
-    assert "AutoTLDR 0.1.0a1 private-alpha guide" in guide
+    assert "AutoTLDR 0.1.1 private-alpha guide" in guide
     assert support in guide
     assert "{{" not in guide
 
@@ -116,7 +116,7 @@ def test_private_alpha_bundle_is_versioned_checksummed_and_reproducible(tmp_path
     with zipfile.ZipFile(str(first) + ".zip") as archive:
         names = archive.namelist()
     assert names
-    assert all(name.startswith("autotldr-0.1.0a1-private-alpha/") for name in names)
+    assert all(name.startswith("autotldr-0.1.1-private-alpha/") for name in names)
 
     refused = subprocess.run(
         [

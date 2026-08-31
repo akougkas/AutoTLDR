@@ -47,7 +47,7 @@ an explicit `--model off` evidence mode, not a prose-shaped silent fallback.
 | Concern | Implemented contract |
 | --- | --- |
 | Input | One or more local paths, directory/repository/archive collections, `-` for stdin, or HTTP(S) URLs. `--crawl` performs a bounded same-origin documentation crawl. `--type` supplies an explicit format only for one stdin or deliberately mislabeled local source |
-| Output | `ansi` by default, plus `md`, self-contained `html`, linked `pdf`, `json`, and `jsonl`; text or binary-safe output to stdout or `-o` / `--output` |
+| Output | `ansi` for stdout and unknown file suffixes, plus `md`, self-contained `html`, linked `pdf`, `json`, and `jsonl`; recognized `-o` suffixes infer a shape only when `--out` is omitted, and explicit `--out` wins; text or binary-safe output to stdout or `-o` / `--output` |
 | Citations | Human output cites exact origins inline by default. `--no-cite` uses stable IDs plus a source map instead. Structured output always retains origins |
 | Budget | `--budget N` is a hard ceiling over the complete rendered UTF-8 byte stream under the named `utf8-byte-v1` estimator. Framing, escaping, citations, ANSI bytes, the manifest, omission records, and the final newline all count |
 | Omissions | Units and relations are atomic. Every omitted unit and relation is identified concretely in the selection report; an impossible required envelope produces no partial stdout |

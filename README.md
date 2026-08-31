@@ -46,6 +46,10 @@ If several generation models are active, setup lists them and asks you to rerun 
 autotldr setup --model exact-active-model-id
 ```
 
+Setup considers only directly loaded local instances whose request ID exactly matches the
+LM Studio catalog key. Routed LM Link/Dynamo instances are ineligible and are never offered
+or invoked by the product path.
+
 Then point AutoTLDR at something real:
 
 ```bash
@@ -118,12 +122,16 @@ JSONL:
 
 ```bash
 autotldr report.pdf                         # terminal brief
-autotldr report.pdf --out md -o report.md
-autotldr ./research --out html -o brief.html
-autotldr ./research --out pdf -o brief.pdf
+autotldr report.pdf -o report.md             # .md infers Markdown
+autotldr ./research -o brief.html            # .html infers self-contained HTML
+autotldr ./research -o brief.pdf             # .pdf infers linked PDF
 autotldr ./research --out json --budget 131072
 printf '# Notes\nhello\n' | autotldr - --type md --out jsonl
 ```
+
+When `--out` is omitted, `-o` infers Markdown from `.md`/`.markdown`, HTML from
+`.html`/`.htm`, and PDF, JSON, or JSONL from their matching suffix. Stdout and unknown
+suffixes remain ANSI. An explicit `--out` always wins over the filename.
 
 Human output leads with “What matters,” then supporting native evidence, relationships,
 gaps, references, and a compact selection audit. Machine output includes the typed units,
@@ -251,11 +259,13 @@ existing unit IDs. AutoTLDR rejects unknown IDs, substitutions, invalid response
 envelopes, and unsupported provider fields, then derives claim origins itself. These
 controls constrain generation; they do not magically prove that every accepted sentence
 is entailed. Product runs additionally remove finding content from model authority and
-drop two measured, structurally detectable authority errors: behavior claimed from
-signature-only code evidence, and concrete measurement units or number-unit quantities
-absent from every cited unit's content. A structured identifier also has to occur in its
-claim's cited content rather than in a neighboring same-source unit. Model-profile quality
-and broader entailment are evaluated separately from protocol conformance.
+drop measured, structurally detectable authority errors: behavior claimed from
+signature-only code evidence; concrete measurement units or number-unit quantities absent
+from every cited unit's content; and structured identifiers absent from their own claim's
+cited content. When cited prose explicitly distinguishes a same-named workbook cell from a
+declaration, the cell's derived-formula predicate cannot attach to the bare identifier.
+Model-profile quality and broader entailment are evaluated separately from protocol
+conformance.
 
 All heavy parsers are imported lazily. The base install has no dependencies, a Tier 0
 cold start is gated below 120 ms on an idle machine, input acquisition is bounded, URLs

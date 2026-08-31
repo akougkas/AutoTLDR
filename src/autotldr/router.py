@@ -34,6 +34,16 @@ class Extractor(Protocol):
     def extract(self, path: Path) -> Extraction: ...
 
 
+class HttpRequestObserver(Protocol):
+    """Observe one HTTP request before any bytes leave the process."""
+
+    def __call__(self, operation: str, url: str) -> bool | None: ...
+
+
+class HttpRequestLimitExceeded(RuntimeError):
+    """A caller-owned HTTP request budget refused the next request."""
+
+
 @dataclass(frozen=True, slots=True)
 class Handler:
     """A format AutoTLDR knows how to read."""
@@ -362,25 +372,25 @@ _DEFERRED: dict[str, tuple[str, int]] = {
 # Keep this small catalog synchronized with code.py's deliberately unavailable
 # native grammar inventory without importing that optional parser on the router
 # cold-start path.  These suffixes still route to code.py so callers receive a
-# precise named decline; they are not advertised as implemented support.
-_UNAVAILABLE_SOURCE_SUFFIXES = frozenset(
-    {
-        ".clj",
-        ".cljs",
-        ".dart",
-        ".fish",
-        ".fs",
-        ".fsx",
-        ".groovy",
-        ".lua",
-        ".mm",
-        ".svelte",
-        ".swift",
-        ".vb",
-        ".vue",
-        ".zsh",
-    }
-)
+# precise named decline; they are not advertised as implemented support.  The
+# display values are also the one cold-path authority for explicit type hints.
+_UNAVAILABLE_SOURCE_NAMES = {
+    ".swift": "Swift",
+    ".zsh": "Zsh",
+    ".fish": "Fish",
+    ".dart": "Dart",
+    ".clj": "Clojure",
+    ".cljs": "ClojureScript",
+    ".fs": "F#",
+    ".fsx": "F#",
+    ".vb": "Visual Basic",
+    ".groovy": "Groovy",
+    ".vue": "Vue",
+    ".svelte": "Svelte",
+    ".lua": "Lua",
+    ".mm": "Objective-C++",
+}
+_UNAVAILABLE_SOURCE_SUFFIXES = frozenset(_UNAVAILABLE_SOURCE_NAMES)
 
 # HTTP routing is deliberately table-driven.  A recognized media identity is
 # stronger than a URL suffix, while generic transport types allow a suffix to
@@ -2625,11 +2635,14 @@ def extract_url(
     max_bytes: int = 16 * 1024 * 1024,
     registry: object | None = None,
     same_origin_with: str | None = None,
+    probe_llms_txt: bool = True,
+    request_observer: HttpRequestObserver | None = None,
 ) -> Extraction:
     """Acquire one HTTP(S) source using response bytes as format authority."""
 
     import hashlib
     import time
+    from http.client import HTTPException
 
     if registry is not None:
         validate_extension_registry(registry)
@@ -2643,18 +2656,44 @@ def extract_url(
             )
     acquisition_started = time.perf_counter()
 
-    llms = _probe_llms_txt(
-        url,
-        timeout=min(timeout, 2.0),
-        max_bytes=min(max_bytes, 1024 * 1024),
-        same_origin_with=same_origin_with,
+    request_records: list[dict[str, str]] = []
+
+    def observe(operation: str, target: str) -> bool:
+        if request_observer is not None and request_observer(operation, target) is False:
+            return False
+        request_records.append({"operation": operation, "url": target})
+        return True
+
+    llms = (
+        _probe_llms_txt(
+            url,
+            timeout=min(timeout, 2.0),
+            max_bytes=min(max_bytes, 1024 * 1024),
+            same_origin_with=same_origin_with,
+            request_observer=observe,
+        )
+        if probe_llms_txt
+        else None
     )
-    acquired = llms or _fetch_http(
-        url,
-        timeout=timeout,
-        max_bytes=max_bytes,
-        same_origin_with=same_origin_with,
-    )
+    if llms is not None:
+        acquired = llms
+    else:
+        try:
+            acquired = _fetch_http(
+                url,
+                timeout=timeout,
+                max_bytes=max_bytes,
+                same_origin_with=same_origin_with,
+                request_observer=observe,
+                operation="source",
+            )
+        except HttpRequestLimitExceeded:
+            raise
+        except (HTTPException, OSError, UnicodeError, ValueError) as exc:
+            detail = str(exc).strip() or type(exc).__name__
+            raise ValueError(
+                f"{url}: failed to fetch requested URL: {detail}"
+            ) from None
     acquisition_ms = _elapsed_ms(acquisition_started)
     extraction_started = time.perf_counter()
 
@@ -2672,6 +2711,17 @@ def extract_url(
             "llms_txt": {
                 "used": llms is not None,
                 "url": acquired.final_url if llms is not None else None,
+            },
+            "http_requests": {
+                "count": len(request_records),
+                "discovery": sum(
+                    item["operation"] == "llms.txt-discovery"
+                    for item in request_records
+                ),
+                "source": sum(
+                    item["operation"] == "source" for item in request_records
+                ),
+                "operations": request_records,
             },
         }
     )
@@ -2694,6 +2744,8 @@ def _fetch_http(
     timeout: float,
     max_bytes: int,
     same_origin_with: str | None = None,
+    request_observer: HttpRequestObserver | None = None,
+    operation: str = "source",
 ) -> _HttpPayload:
     # URL modules remain below the URL-only boundary so path invocation keeps
     # the cold-start import graph unchanged.
@@ -2715,6 +2767,7 @@ def _fetch_http(
                         f"redirect target {newurl!r} leaves same-origin root "
                         f"{same_origin_with!r}"
                     )
+                _observe_http_request(request_observer, operation, newurl)
             except Exception:
                 if fp is not None:
                     fp.close()
@@ -2732,6 +2785,7 @@ def _fetch_http(
         },
     )
     opener = build_opener(_HttpOnlyRedirect())
+    _observe_http_request(request_observer, operation, url)
     try:
         response = opener.open(request, timeout=timeout)  # noqa: S310 - explicit user URL
     except HTTPError as exc:
@@ -2788,6 +2842,7 @@ def _probe_llms_txt(
     timeout: float,
     max_bytes: int,
     same_origin_with: str | None = None,
+    request_observer: HttpRequestObserver | None = None,
 ) -> _HttpPayload | None:
     """Try the origin's advertised LLM view, falling back without inventing it."""
 
@@ -2803,6 +2858,8 @@ def _probe_llms_txt(
             timeout=timeout,
             max_bytes=max_bytes,
             same_origin_with=same_origin_with,
+            request_observer=request_observer,
+            operation="llms.txt-discovery",
         )
         if not _same_origin(probe_url, acquired.final_url):
             return None
@@ -2817,10 +2874,26 @@ def _probe_llms_txt(
         # suppressing a valid HTML page.
         _decode_http_text(acquired, kind="llms.txt")
         return acquired
+    except HttpRequestLimitExceeded:
+        # Discovery is advisory even when its caller-owned sub-budget refuses
+        # a redirect.  The requested source still gets its reserved request;
+        # a refusal there remains authoritative in ``extract_url``.
+        return None
     except Exception:
         # Discovery is advisory. A missing, redirected, oversized, or invalid
         # llms.txt must not prevent acquisition of the explicitly requested URL.
         return None
+
+
+def _observe_http_request(
+    observer: HttpRequestObserver | None,
+    operation: str,
+    url: str,
+) -> None:
+    if observer is not None and observer(operation, url) is False:
+        raise HttpRequestLimitExceeded(
+            f"HTTP request budget refused {operation} request for {url!r}"
+        )
 
 
 def _extract_http_payload(

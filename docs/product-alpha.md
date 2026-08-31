@@ -42,6 +42,10 @@ autotldr ./handoff --detail deep --out html -o handoff.html
 autotldr ./handoff --out json --budget 131072
 ```
 
+For file output, the recognized `.md`/`.markdown`, `.html`/`.htm`, `.pdf`, `.json`, and
+`.jsonl` suffixes select that shape when `--out` is omitted. Stdout and unknown suffixes
+remain ANSI, and an explicit `--out` always takes precedence.
+
 The default is a cited prose TLDR produced by the configured local model. A successful
 human result leads with what matters, then shows supporting native structure, gaps,
 declines, and provenance at the requested detail. Machine output retains the complete
@@ -90,6 +94,11 @@ local management API distinguishes downloaded catalog rows from active instances
 OpenAI-compatible endpoints remain future transport candidates until a provider adapter can
 prove active state and its observed response profile passes conformance.
 
+An eligible directly loaded LM Studio instance must expose the same exact identifier as its
+catalog model key. A routed instance whose loaded ID differs from that key—including an LM
+Link/Dynamo row—is excluded from setup and fails the pre-acquisition active-model check.
+AutoTLDR does not invoke a route whose locality the provider inventory cannot attest.
+
 The manifest records the exact endpoint class, served model identity, resolved detail
 profile, evidence hash, response hash, validation result, and whether fallback was used.
 Schema-valid citations constrain a model; they do not by themselves prove entailment. The
@@ -104,8 +113,9 @@ every cited unit's content. A number-unit quantity must likewise occur explicitl
 content; separate counts and units do not authorize a derived duration, range, or measure.
 Likewise, a structured identifier named in prose must occur in the claim's cited content;
 same-source proximity does not authorize it. Dropped model claims and named reasons are
-recorded in the run audit; these measured guardrails do not replace human entailment
-evaluation.
+recorded in the run audit. When cited prose explicitly distinguishes a same-named workbook
+cell from a declaration, the cell's derived-formula predicate cannot be transferred to the
+bare identifier. These measured guardrails do not replace human entailment evaluation.
 
 Remote inference is off unless a later decision defines explicit authorization, privacy,
 credentials, and data-boundary behavior.

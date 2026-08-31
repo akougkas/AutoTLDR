@@ -15,7 +15,7 @@ import pytest
 
 from autotldr.extract.html import extract_html
 from autotldr.extract.structured import InvalidStructuredData
-from autotldr.cli import EXIT_UNSUPPORTED, main
+from autotldr.cli import EXIT_ERROR, EXIT_UNSUPPORTED, main
 from autotldr.router import (
     UnsupportedFormat,
     declined_suffixes,
@@ -267,6 +267,53 @@ def _server(handler_type):
         server.shutdown()
         server.server_close()
         thread.join(timeout=2)
+
+
+class _UnavailableHandler(BaseHTTPRequestHandler):
+    def do_GET(self):  # noqa: N802
+        self.send_response(503)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
+    def log_message(self, _format, *args):
+        pass
+
+
+def test_url_fetch_error_names_requested_url_and_operation(capsys):
+    with _server(_UnavailableHandler) as origin:
+        requested = origin + "/guide"
+        status = main(
+            [requested, "--model", "off", "--no-config", "--out", "json"]
+        )
+
+    captured = capsys.readouterr()
+    assert status == EXIT_ERROR
+    assert captured.out == ""
+    assert requested in captured.err
+    assert "failed to fetch requested URL" in captured.err
+    assert "HTTP Error 503" in captured.err
+    assert "Traceback" not in captured.err
+
+
+class _MalformedHttpHandler(BaseHTTPRequestHandler):
+    def do_GET(self):  # noqa: N802
+        self.connection.sendall(b"MALFORMED STATUS LINE\r\n\r\n")
+        self.close_connection = True
+
+    def log_message(self, _format, *args):
+        pass
+
+
+def test_url_protocol_error_names_requested_url_and_operation():
+    with _server(_MalformedHttpHandler) as origin:
+        requested = origin + "/guide"
+        with pytest.raises(ValueError) as raised:
+            extract_url(requested)
+
+    message = str(raised.value)
+    assert requested in message
+    assert "failed to fetch requested URL" in message
+    assert "MALFORMED STATUS LINE" in message
 
 
 class _LlmsHandler(BaseHTTPRequestHandler):
@@ -610,6 +657,9 @@ def test_png_url_and_stdin_are_named_tier_four_declines(monkeypatch, capsys):
 
 
 def test_supported_suffixes_exclude_always_declined_native_grammar_gaps(tmp_path):
+    from autotldr.extract.code import _UNAVAILABLE_LANGUAGE_NAMES
+    from autotldr.router import _UNAVAILABLE_SOURCE_NAMES
+
     unavailable = {
         ".clj",
         ".cljs",
@@ -629,6 +679,7 @@ def test_supported_suffixes_exclude_always_declined_native_grammar_gaps(tmp_path
 
     assert unavailable.isdisjoint(supported_suffixes())
     assert unavailable <= declined_suffixes()
+    assert _UNAVAILABLE_SOURCE_NAMES == _UNAVAILABLE_LANGUAGE_NAMES
     assert "lua" in input_type_names()
 
     source = tmp_path / "relay.swift"

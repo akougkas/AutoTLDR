@@ -945,6 +945,194 @@ def test_product_claim_policy_drops_uncited_structured_identifiers():
     assert dropped[0]["identifiers"] == ["run_id"]
 
 
+def _same_name_cell_policy_extraction(*, with_prior: bool = False):
+    declaration = _unit(
+        "overview.md",
+        "line:11",
+        "effective_capacity_mbps = 3000",
+    )
+    contrast = _unit(
+        "overview.md",
+        "line:13-14",
+        "The exact effective-capacity planning target above is a declaration. "
+        "The same-named workbook cell is a derived formula, not an independent "
+        "constant.",
+    )
+    native_formula = _unit(
+        "capacity.xlsx",
+        "Capacity!B8",
+        "effective_capacity_mbps is a derived formula.",
+        modality=Modality.RECORD,
+    )
+    prior = (
+        [
+            GroundedStatement(
+                "The model declares effective_capacity_mbps = 3000.",
+                (declaration.origin,),
+                (declaration.id,),
+            )
+        ]
+        if with_prior
+        else []
+    )
+    return (
+        Extraction(
+            source="same-name-policy",
+            kind="collection",
+            units=[declaration, contrast, native_formula],
+            relations=[],
+            gaps=[],
+            summary_claims=prior,
+            meta=_production_meta(),
+        ),
+        declaration,
+        contrast,
+        native_formula,
+    )
+
+
+def test_product_claim_policy_drops_unqualified_same_name_cell_transfer():
+    extraction, declaration, contrast, _native_formula = (
+        _same_name_cell_policy_extraction()
+    )
+    bad = (
+        "effective_capacity_mbps is a derived formula rather than an "
+        "independent constant."
+    )
+    good = "The exact effective-capacity planning target is a declaration."
+    content = json.dumps(
+        {
+            "claims": [
+                {
+                    "content": bad,
+                    "evidence_unit_ids": [declaration.id, contrast.id],
+                },
+                {
+                    "content": good,
+                    "evidence_unit_ids": [contrast.id],
+                },
+            ]
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+
+    result = synthesize(
+        extraction,
+        _config(product_detail="brief", include_findings=False),
+        client=_StaticClient(_api_response(content)),
+    )
+
+    assert [claim.content for claim in result.extraction.summary_claims] == [good]
+    dropped = result.model_run["validation"]["product_claim_policy"][
+        "dropped_claims"
+    ]
+    assert dropped == [
+        {
+            "claim_id": dropped[0]["claim_id"],
+            "reason": "same-name-cell-referent-unqualified",
+            "identifiers": ["effective_capacity_mbps"],
+            "contrast_evidence_unit_ids": [contrast.id],
+            "evidence_unit_ids": [contrast.id, declaration.id],
+        }
+    ]
+    assert len(dropped[0]["claim_id"]) == 32
+
+
+@pytest.mark.parametrize(
+    ("claim", "evidence_names"),
+    [
+        (
+            "The workbook cell named effective_capacity_mbps is a derived formula.",
+            ("declaration", "contrast"),
+        ),
+        (
+            "The model declares effective_capacity_mbps = 3000.",
+            ("declaration",),
+        ),
+        (
+            "effective_capacity_mbps is a derived formula.",
+            ("native_formula",),
+        ),
+        (
+            "effective_capacity_mbps is not a derived formula.",
+            ("native_formula",),
+        ),
+    ],
+)
+def test_product_claim_policy_keeps_qualified_or_noncontrast_formula_claims(
+    claim,
+    evidence_names,
+):
+    extraction, declaration, contrast, native_formula = (
+        _same_name_cell_policy_extraction()
+    )
+    evidence = {
+        "declaration": declaration,
+        "contrast": contrast,
+        "native_formula": native_formula,
+    }
+    evidence_ids = [evidence[name].id for name in evidence_names]
+    content = json.dumps(
+        {"claims": [{"content": claim, "evidence_unit_ids": evidence_ids}]},
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+
+    result = synthesize(
+        extraction,
+        _config(product_detail="standard", include_findings=False),
+        client=_StaticClient(_api_response(content)),
+    )
+
+    assert [item.content for item in result.extraction.summary_claims] == [claim]
+    assert result.model_run["validation"]["product_claim_policy"] == {
+        "schema": "autotldr-product-claim-policy-v1",
+        "dropped_claim_count": 0,
+        "dropped_claims": [],
+    }
+
+
+def test_same_name_cell_policy_is_product_only_and_falls_back_when_all_drop():
+    extraction, declaration, contrast, _native_formula = (
+        _same_name_cell_policy_extraction(with_prior=True)
+    )
+    bad = "effective_capacity_mbps is a derived formula."
+    response = _api_response(
+        json.dumps(
+            {
+                "claims": [
+                    {
+                        "content": bad,
+                        "evidence_unit_ids": [declaration.id, contrast.id],
+                    }
+                ]
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+    )
+
+    frozen = synthesize(
+        extraction,
+        _config(product_detail=None),
+        client=_StaticClient(response),
+    )
+    assert frozen.used_fallback is False
+    assert [item.content for item in frozen.extraction.summary_claims] == [bad]
+    assert "product_claim_policy" not in frozen.model_run["validation"]
+
+    product = synthesize(
+        extraction,
+        _config(product_detail="brief", include_findings=False),
+        client=_StaticClient(response),
+    )
+    assert product.used_fallback is True
+    assert product.model_run["outcome"] == "fallback-invalid-response"
+    assert product.model_run["validation"]["error_code"] == "product-claim-policy"
+    assert product.extraction.summary_claims == extraction.summary_claims
+
+
 @pytest.mark.parametrize(
     "response",
     [
@@ -2051,6 +2239,8 @@ def test_product_detail_adds_quality_guardrails_without_changing_default_prompt(
     assert "field-name implications do not count" in product_prompt
     assert "function signature proves identity" in product_prompt
     assert "explicit in every cited unit" in product_prompt
+    assert "preserve the qualifier that identifies each referent" in product_prompt
+    assert "never transfer a predicate from a same-named" in product_prompt
     assert "every claim must add distinct evidence" in product_prompt
 
 

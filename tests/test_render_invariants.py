@@ -259,7 +259,7 @@ def test_human_drop_wire_carries_complete_safe_canonical_records(shape):
     )
 
     text = render(result, output=shape, budget=8192)
-    prefix = "- drop-v1/" if shape == "ansi" else "  - drop-v1/"
+    prefix = "- drop-v1/" if shape == "ansi" else "  - `drop-v1/"
     records: dict[str, list[dict]] = {
         "unit": [],
         "relation": [],
@@ -270,6 +270,9 @@ def test_human_drop_wire_carries_complete_safe_canonical_records(shape):
         if not line.startswith(prefix):
             continue
         kind, raw_payload = line.removeprefix(prefix).split(" ", 1)
+        if shape == "md":
+            assert raw_payload.endswith("`")
+            raw_payload = raw_payload[:-1]
         value = json.loads(raw_payload)
         assert raw_payload == json.dumps(
             value,
@@ -279,7 +282,7 @@ def test_human_drop_wire_carries_complete_safe_canonical_records(shape):
             allow_nan=False,
         ).replace("`", r"\u0060").replace("\x7f", r"\u007f")
         records[kind].append(value)
-        raw_record_lines.append(line)
+        raw_record_lines.append(f"drop-v1/{kind} {raw_payload}")
 
     expected = {
         "units": [

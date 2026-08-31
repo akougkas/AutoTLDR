@@ -473,7 +473,7 @@ def test_external_acquirer_is_explicit_validated_and_manifested(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    _registry(
+    registry, _reference = _registry(
         tmp_path,
         monkeypatch,
         "autotldr_test_runtime_acquirer",
@@ -499,6 +499,69 @@ def test_external_acquirer_is_explicit_validated_and_manifested(
     assert payload["units"][0]["content"] == "virtual fact"
     assert payload["manifest"]["extension_acquisition"]["name"] == "virtual"
     assert payload["manifest"]["collection_acquisitions"][0]["requested"] == "memory:demo"
+
+    from autotldr.api import acquire, summarize_product
+
+    acquired = acquire(
+        "memory:demo", registry=registry, acquirer="virtual"
+    )
+    assert acquired.kind == "collection"
+    assert acquired.units[0].content == "virtual fact"
+    assert acquired.meta["extension_acquisition"]["name"] == "virtual"
+    assert acquired.meta["collection_acquisitions"][0]["requested"] == "memory:demo"
+
+    summarized = summarize_product(
+        "memory:demo",
+        mode="evidence",
+        use_config=False,
+        output="json",
+        registry=registry,
+        acquirer="virtual",
+    )
+    structured = json.loads(summarized.rendered)
+    assert structured["kind"] == "collection"
+    assert structured["manifest"]["extension_acquisition"]["name"] == "virtual"
+
+    with pytest.raises(ValueError, match="requires an explicit extension registry"):
+        acquire("memory:demo", acquirer="virtual")
+    with pytest.raises(ValueError, match="exactly one non-stdin source"):
+        acquire(["left", "right"], registry=registry, acquirer="virtual")
+
+
+def test_unknown_cli_acquirer_is_usage_error_before_source_acquisition(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setenv("AUTOTLDR_CONFIG", str(tmp_path / "missing-config.toml"))
+    monkeypatch.delenv("AUTOTLDR_MODEL", raising=False)
+    _registry(
+        tmp_path,
+        monkeypatch,
+        "autotldr_test_unknown_runtime_acquirer",
+    )
+
+    def fail_acquire(*_args, **_kwargs):
+        raise AssertionError("source acquisition must not run")
+
+    monkeypatch.setattr("autotldr.api.acquire", fail_acquire)
+    with pytest.raises(SystemExit) as raised:
+        cli_module.main(
+            [
+                "memory:demo",
+                "--extension",
+                "autotldr_test_unknown_runtime_acquirer",
+                "--acquirer",
+                "not-registered",
+                "--out",
+                "json",
+            ]
+        )
+    captured = capsys.readouterr()
+
+    assert raised.value.code == 2
+    assert captured.out == ""
+    assert "unknown --acquirer name 'not-registered'" in captured.err
 
 
 def _runtime_renderer_registry(

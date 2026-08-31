@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import inspect
 import json
 import subprocess
 import sys
+import typing
 
 import pytest
 
@@ -85,6 +87,30 @@ def test_single_file_acquire_is_the_native_router_path(tmp_path):
 
     lazy_public = autotldr.acquire([source])
     assert lazy_public.units == direct.units
+
+
+def test_one_source_accepts_scalar_paths_and_root_exports_keep_signatures(tmp_path):
+    source = tmp_path / "notes.md"
+    source.write_text("# Purpose\n\nOne source stays one source.\n")
+
+    expected = acquire([source])
+    assert acquire(source).units == expected.units
+    assert acquire(str(source)).units == expected.units
+    assert autotldr.summarize(
+        source, output="json", budget=12_000
+    ).extraction.units == expected.units
+
+    import autotldr.api as api
+
+    for name in ("acquire", "summarize", "summarize_product"):
+        assert inspect.signature(getattr(autotldr, name)) == inspect.signature(
+            getattr(api, name)
+        )
+    assert typing.get_type_hints(autotldr.summarize)["return"] is typing.Any
+    assert (
+        typing.get_type_hints(autotldr.summarize_product)["return"]
+        is typing.Any
+    )
 
 
 def test_multiple_sources_use_the_production_fusion_path(tmp_path):

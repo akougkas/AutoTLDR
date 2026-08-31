@@ -812,7 +812,12 @@ def _drop_unit_record(unit: Unit) -> dict[str, Any]:
     }
 
 
-def _human_drop_record(kind: str, record: dict[str, Any]) -> str:
+def _human_drop_record(
+    kind: str,
+    record: dict[str, Any],
+    *,
+    cite: bool = True,
+) -> str:
     """Return one safe, deterministic human-renderer omission record.
 
     ``ensure_ascii`` makes terminal controls, bidirectional controls, and line
@@ -821,12 +826,22 @@ def _human_drop_record(kind: str, record: dict[str, Any]) -> str:
     native reference cannot open a Markdown code span.  Keys and separators
     are canonical, and the fixed ``drop-v1`` prefix versions the framing
     independently of the record objects committed by the drop-set digest.
+
+    A no-cite human artifact keeps the same concrete omitted IDs and reasons,
+    but moves unit and statement origins behind those IDs in its source map.
+    The authoritative machine record and the digest input are unchanged.
     """
 
     import json
 
+    displayed = dict(record)
+    if not cite:
+        if kind == "unit":
+            displayed.pop("origin", None)
+        elif kind == "statement":
+            displayed.pop("origins", None)
     payload = json.dumps(
-        record,
+        displayed,
         ensure_ascii=True,
         sort_keys=True,
         separators=(",", ":"),
@@ -1012,7 +1027,7 @@ h3 { margin: 0; font-size: 1.08rem; line-height: 1.25; }
 .claims, .units, .relations, .findings, .references, .drop-records { margin: 0; padding: 0; list-style: none; }
 .claim { margin-bottom: 16px; padding: 17px 18px 15px 22px; border-left: 4px solid #b84a2b; background: #fffdf7; page-break-inside: avoid; }
 .claim-primary { color: #1c2525; font-size: 19px; font-weight: bold; text-decoration: none; }
-.claim-primary::after { content: " ↗"; color: #b84a2b; font-family: "Cascadia Mono", Menlo, Consolas, monospace; font-size: 11px; }
+a.claim-primary::after { content: " ↗"; color: #b84a2b; font-family: "Cascadia Mono", Menlo, Consolas, monospace; font-size: 11px; }
 .evidence-row, .citation-row, .drop-links { margin-top: 10px; }
 .evidence-link, .origin-link, .reference-link { margin-right: 9px; word-wrap: break-word; font-family: "Cascadia Mono", Menlo, Consolas, monospace; font-size: 10px; line-height: 1.4; }
 .evidence-link { display: inline-block; margin-bottom: 4px; padding: 3px 6px; border: 1px solid #adc1bb; background: #dfe9e4; text-decoration: none; }
@@ -1094,6 +1109,44 @@ def _drop_record_origins(kind: str, record: dict[str, Any]) -> list[Origin]:
     else:
         values = []
     return [origin for value in values if (origin := _origin_from_record(value))]
+
+
+def _source_map_origin_label(origin: Origin) -> str:
+    """Return every human-readable field needed to reconstruct one origin."""
+
+    label = _origin_label(origin)
+    if origin.char_span is None:
+        return label
+    return f"{label} [chars {origin.char_span[0]}:{origin.char_span[1]})"
+
+
+def _source_map_entries(
+    bundle: Bundle,
+    presented_units: list[Unit],
+) -> list[tuple[str, tuple[Origin, ...]]]:
+    """Return stable visible keys for retained and budget-omitted origins."""
+
+    entries: list[tuple[str, tuple[Origin, ...]]] = []
+    entries.extend(
+        (f"statement-{statement.id}", statement.origins)
+        for statement in bundle.summary_claims
+    )
+    entries.extend((unit.id, (unit.origin,)) for unit in presented_units)
+    entries.extend((f"gap-{gap.id}", (gap.origin,)) for gap in bundle.gaps)
+
+    dropped = bundle.selection["dropped"]
+    for kind, records in (
+        ("unit", dropped["reported"]),
+        ("statement", dropped["reported_statements"]),
+    ):
+        for record in records:
+            record_id = record.get("id")
+            origins = tuple(_drop_record_origins(kind, record))
+            if not isinstance(record_id, str) or not origins:
+                continue
+            key = record_id if kind == "unit" else f"statement-{record_id}"
+            entries.append((key, origins))
+    return entries
 
 
 def _model_presentation(bundle: Bundle) -> tuple[str, str, str]:
@@ -1178,7 +1231,9 @@ def _presented_relations(bundle: Bundle, units: list[Unit]) -> list[Relation]:
 def _unit_display_label(unit: Unit) -> str:
     if unit.structure:
         return " › ".join(unit.structure)
-    first = " ".join(unit.content.split())
+    # Make non-line whitespace and bidi controls visible before collapsing
+    # ordinary source line breaks for the compact relation label.
+    first = " ".join(_ansi_safe(unit.content).split())
     return first if len(first) <= 72 else first[:69] + "…"
 
 
@@ -1309,18 +1364,26 @@ def _build_html(bundle: Bundle, options: _RenderOptions) -> str:
         lines.append('<ol class="claims">')
         for statement in bundle.summary_claims:
             primary = statement.origins[0]
-            lines.extend(
-                [
-                    f'<li class="claim" id="statement-{statement.id}">',
-                    f'<a id="link-statement-{statement.id}-primary" class="claim-primary" href="{_html_safe(_origin_target(primary), attribute=True)}">{_html_safe(statement.content)}</a>',
-                    '<div class="evidence-row" aria-label="Evidence units">',
-                ]
-            )
+            lines.append(f'<li class="claim" id="statement-{statement.id}">')
+            if options.cite:
+                lines.append(
+                    f'<a id="link-statement-{statement.id}-primary" class="claim-primary" href="{_html_safe(_origin_target(primary), attribute=True)}">{_html_safe(statement.content)}</a>'
+                )
+            else:
+                lines.append(
+                    f'<span class="claim-primary">{_html_safe(statement.content)}</span>'
+                )
+            lines.append('<div class="evidence-row" aria-label="Evidence units">')
             for evidence_index, unit_id in enumerate(statement.evidence_unit_ids):
                 evidence = unit_by_id[unit_id]
-                lines.append(
-                    f'<a id="link-statement-{statement.id}-evidence-{evidence_index}" class="evidence-link" data-unit-id="{unit_id}" href="{_html_safe(_origin_target(evidence.origin), attribute=True)}">evidence {unit_id}</a>'
-                )
+                if options.cite:
+                    lines.append(
+                        f'<a id="link-statement-{statement.id}-evidence-{evidence_index}" class="evidence-link" data-unit-id="{unit_id}" href="{_html_safe(_origin_target(evidence.origin), attribute=True)}">evidence {unit_id}</a>'
+                    )
+                else:
+                    lines.append(
+                        f'<code class="evidence-link" data-unit-id="{unit_id}">evidence {unit_id}</code>'
+                    )
             lines.append("</div>")
             if options.cite:
                 lines.append('<div class="citation-row" aria-label="Claim origins">')
@@ -1332,6 +1395,11 @@ def _build_html(bundle: Bundle, options: _RenderOptions) -> str:
                     for origin_index, origin in enumerate(statement.origins)
                 )
                 lines.append("</div>")
+            else:
+                lines.append(
+                    '<div class="citation-row" aria-label="Claim key">'
+                    f'Summary key: <code>statement-{statement.id}</code></div>'
+                )
             lines.append("</li>")
         lines.append("</ol>")
     else:
@@ -1349,11 +1417,18 @@ def _build_html(bundle: Bundle, options: _RenderOptions) -> str:
             for row in presented_sources:
                 source = str(row["source"])
                 target = _origin_target(Origin(source, "source"))
-                lines.append(
-                    '<li class="reference">'
-                    f'<a class="reference-link" href="{_html_safe(target, attribute=True)}">'
-                    f'{_html_safe(source)}</a> · {_html_safe(_source_row_label(row))}</li>'
-                )
+                if options.cite:
+                    lines.append(
+                        '<li class="reference">'
+                        f'<a class="reference-link" href="{_html_safe(target, attribute=True)}">'
+                        f'{_html_safe(source)}</a> · {_html_safe(_source_row_label(row))}</li>'
+                    )
+                else:
+                    lines.append(
+                        '<li class="reference">'
+                        f'<code>{_html_safe(source)}</code> · '
+                        f'{_html_safe(_source_row_label(row))}</li>'
+                    )
             lines.append("</ul>")
             if len(presented_sources) != source_count:
                 lines.append(
@@ -1386,6 +1461,21 @@ def _build_html(bundle: Bundle, options: _RenderOptions) -> str:
             path = " › ".join(unit.structure) if unit.structure else str(unit.modality)
             target = _html_safe(_origin_target(unit.origin), attribute=True)
             body_tag = "pre" if str(unit.modality) == "code" else "p"
+            if options.cite:
+                heading = (
+                    f'<h3><a id="link-unit-{unit.id}-heading" href="{target}">'
+                    f'{_html_safe(path)}</a></h3>'
+                )
+                origin_marker = _html_origin_link(
+                    unit.origin,
+                    anchor_id=f"link-unit-{unit.id}-origin",
+                )
+            else:
+                heading = f'<h3>{_html_safe(path)}</h3>'
+                origin_marker = (
+                    '<span class="origin-key">Origin key: '
+                    f'<code>{unit.id}</code></span>'
+                )
             lines.extend(
                 [
                     f'<article class="unit role-{_html_safe(unit.role, attribute=True)}" id="unit-{unit.id}">',
@@ -1395,12 +1485,9 @@ def _build_html(bundle: Bundle, options: _RenderOptions) -> str:
                     f'<span>confidence {unit.confidence:.3f}</span>',
                     "</div>",
                     '<div class="unit-copy">',
-                    f'<h3><a id="link-unit-{unit.id}-heading" href="{target}">{_html_safe(path)}</a></h3>',
+                    heading,
                     f'<{body_tag} class="unit-body">{_html_safe(unit.content)}</{body_tag}>',
-                    _html_origin_link(
-                        unit.origin,
-                        anchor_id=f"link-unit-{unit.id}-origin",
-                    ),
+                    origin_marker,
                     "</div>",
                     "</article>",
                 ]
@@ -1432,42 +1519,73 @@ def _build_html(bundle: Bundle, options: _RenderOptions) -> str:
         finding_index = "05" if product_mode is not None else "04"
         lines.extend(['<section id="findings" aria-labelledby="findings-title">', f'<h2 id="findings-title" data-index="{finding_index}"><span class="h2-index">{finding_index}</span> Absence &amp; uncertainty</h2>', '<ul class="findings">'])
         for finding in [*orphans, *gaps]:
-            lines.append(
-                '<li class="finding">'
-                f'<span class="finding-kind">{_html_safe(finding.kind)}</span> '
-                f'{_html_safe(finding.content)} · {_html_origin_link(finding.origin, anchor_id=f"link-finding-{finding.id}")}'
-                "</li>"
-            )
+            if options.cite:
+                lines.append(
+                    '<li class="finding">'
+                    f'<span class="finding-kind">{_html_safe(finding.kind)}</span> '
+                    f'{_html_safe(finding.content)} · {_html_origin_link(finding.origin, anchor_id=f"link-finding-{finding.id}")}'
+                    "</li>"
+                )
+            else:
+                lines.append(
+                    '<li class="finding">'
+                    f'<span class="finding-kind">{_html_safe(finding.kind)}</span> '
+                    f'{_html_safe(finding.content)} · Gap key: '
+                    f'<code>gap-{finding.id}</code></li>'
+                )
         lines.extend(["</ul>", "</section>"])
 
-    reference_origins: list[Origin] = []
-    for statement in bundle.summary_claims:
-        reference_origins.extend(statement.origins)
-    reference_origins.extend(unit.origin for unit in presented_units)
-    reference_origins.extend(gap.origin for gap in bundle.gaps)
-    for kind, records in (
-        ("unit", dropped["reported"]),
-        ("statement", dropped["reported_statements"]),
-    ):
-        for record in records:
-            reference_origins.extend(_drop_record_origins(kind, record))
-    references = list(dict.fromkeys(reference_origins))
     reference_index = "06" if product_mode is not None else "05"
-    lines.extend(['<section id="references" aria-labelledby="references-title">', f'<h2 id="references-title" data-index="{reference_index}"><span class="h2-index">{reference_index}</span> References</h2>'])
-    if references:
-        lines.append('<ol class="references">')
-        for index, origin in enumerate(references, start=1):
-            span = (
-                f" · chars {origin.char_span[0]}–{origin.char_span[1]}"
-                if origin.char_span is not None
-                else ""
-            )
-            lines.append(
-                f'<li class="reference" id="reference-{index}"><a id="link-reference-{index}" class="reference-link" href="{_html_safe(_origin_target(origin), attribute=True)}">{_html_safe(_origin_label(origin))}</a>{_html_safe(span)}</li>'
-            )
-        lines.append("</ol>")
+    lines.append('<section id="references" aria-labelledby="references-title">')
+    if options.cite:
+        reference_origins: list[Origin] = []
+        for statement in bundle.summary_claims:
+            reference_origins.extend(statement.origins)
+        reference_origins.extend(unit.origin for unit in presented_units)
+        reference_origins.extend(gap.origin for gap in bundle.gaps)
+        for kind, records in (
+            ("unit", dropped["reported"]),
+            ("statement", dropped["reported_statements"]),
+        ):
+            for record in records:
+                reference_origins.extend(_drop_record_origins(kind, record))
+        references = list(dict.fromkeys(reference_origins))
+        lines.append(
+            f'<h2 id="references-title" data-index="{reference_index}"><span class="h2-index">{reference_index}</span> References</h2>'
+        )
+        if references:
+            lines.append('<ol class="references">')
+            for index, origin in enumerate(references, start=1):
+                span = (
+                    f" · chars {origin.char_span[0]}–{origin.char_span[1]}"
+                    if origin.char_span is not None
+                    else ""
+                )
+                lines.append(
+                    f'<li class="reference" id="reference-{index}"><a id="link-reference-{index}" class="reference-link" href="{_html_safe(_origin_target(origin), attribute=True)}">{_html_safe(_origin_label(origin))}</a>{_html_safe(span)}</li>'
+                )
+            lines.append("</ol>")
+        else:
+            lines.append('<p class="empty">No retained source references.</p>')
     else:
-        lines.append('<p class="empty">No retained source references.</p>')
+        lines.append(
+            f'<h2 id="references-title" data-index="{reference_index}"><span class="h2-index">{reference_index}</span> Source map</h2>'
+        )
+        source_map = _source_map_entries(bundle, presented_units)
+        if source_map:
+            lines.append('<ol class="references source-map">')
+            for index, (key, origins) in enumerate(source_map, start=1):
+                labels = ", ".join(
+                    f'<code>{_html_safe(_source_map_origin_label(origin))}</code>'
+                    for origin in origins
+                )
+                lines.append(
+                    f'<li class="reference" id="source-map-{index}">'
+                    f'<code>{_html_safe(key)}</code> → {labels}</li>'
+                )
+            lines.append("</ol>")
+        else:
+            lines.append('<p class="empty">No retained source references.</p>')
     lines.append("</section>")
 
     lines.extend(
@@ -1500,7 +1618,7 @@ def _build_html(bundle: Bundle, options: _RenderOptions) -> str:
         lines.append('<div class="drop-records" aria-label="Complete omission inventory">')
         for kind, records in drop_groups:
             for record_index, record in enumerate(records):
-                canonical = _human_drop_record(kind, record)
+                canonical = _human_drop_record(kind, record, cite=options.cite)
                 # PyMuPDF Story treats a paragraph as an indivisible pagination
                 # unit in some layouts.  A long canonical record could therefore
                 # be clipped at a page boundary.  Short block fragments preserve
@@ -1516,7 +1634,7 @@ def _build_html(bundle: Bundle, options: _RenderOptions) -> str:
                     )
                 lines.append("</div>")
                 origins = _drop_record_origins(kind, record)
-                if origins:
+                if origins and options.cite:
                     lines.append('<p class="drop-links">')
                     lines.extend(
                         _html_origin_link(
@@ -1570,24 +1688,32 @@ def _build_markdown(bundle: Bundle, options: _RenderOptions) -> str:
         )
     if bundle.summary_claims:
         for claim_index, statement in enumerate(bundle.summary_claims, start=1):
+            claim = _markdown_text(statement.content, inline=True)
             if options.cite:
                 citations = " ".join(
                     _markdown_citation(origin)
                     for origin in statement.origins
                 )
                 prefix = f"{claim_index}. " if productized else ""
-                lines.extend([f"{prefix}{statement.content} — {citations}", ""])
+                lines.extend([f"{prefix}{claim} — {citations}", ""])
             else:
+                statement_key = _markdown_code_span(f"statement-{statement.id}")
                 lines.extend(
                     [
-                        f"{claim_index}. {statement.content} — Summary key: "
-                        f"`statement-{statement.id}`",
+                        f"{claim_index}. {claim} — Summary key: {statement_key}",
                         "",
                     ]
                 )
     else:
         label = "Evidence overview" if productized else ""
-        lines.extend([f"{f'**{label}:** ' if label else '*'}{_bundle_summary(bundle)}{'' if label else '*'}", ""])
+        summary = _markdown_text(_bundle_summary(bundle), inline=True)
+        lines.extend(
+            [
+                f"{f'**{label}:** ' if label else '*'}{summary}"
+                f"{'' if label else '*'}",
+                "",
+            ]
+        )
     if productized:
         lines.extend(["## Sources", ""])
         if presented_sources:
@@ -1599,7 +1725,8 @@ def _build_markdown(bundle: Bundle, options: _RenderOptions) -> str:
             if len(presented_sources) != source_count:
                 lines.append(
                     f"- _Showing {len(presented_sources)} of {source_count} sources at "
-                    f"`{product_detail or 'standard'}` detail; JSON and JSONL retain all._"
+                    f"{_markdown_code_span(product_detail or 'standard')} detail; "
+                    "JSON and JSONL retain all._"
                 )
         else:
             lines.append("_No acquired source records._")
@@ -1610,7 +1737,8 @@ def _build_markdown(bundle: Bundle, options: _RenderOptions) -> str:
             [
                 f"_Presenting {len(presented_units)} of "
                 f"{bundle.selection['selected_units']} budget-selected units at "
-                f"`{product_detail or 'standard'}` detail. JSON and JSONL retain "
+                f"{_markdown_code_span(product_detail or 'standard')} detail. "
+                "JSON and JSONL retain "
                 "the complete selected representation._",
                 "",
             ]
@@ -1620,23 +1748,34 @@ def _build_markdown(bundle: Bundle, options: _RenderOptions) -> str:
     for unit in presented_units:
         key = unit.id
         path = " › ".join(unit.structure) if unit.structure else str(unit.modality)
-        lines.extend([f"### {path} · `{key}`", ""])
+        lines.extend(
+            [
+                f"### {_markdown_text(path, inline=True)} · "
+                f"{_markdown_code_span(key)}",
+                "",
+            ]
+        )
         if str(unit.modality) == "code":
-            language = str(unit.meta.get("language") or "")
-            lines.extend([f"```{language}", unit.content, "```"])
+            lines.append(
+                _markdown_code_fence(
+                    unit.content,
+                    str(unit.meta.get("language") or ""),
+                )
+            )
         else:
-            lines.append(unit.content)
+            lines.append(_markdown_text(unit.content))
         if options.cite:
             lines.append(f"\n{_markdown_citation(unit.origin)}")
         else:
-            lines.append(f"\nOrigin key: `{key}`")
+            lines.append(f"\nOrigin key: {_markdown_code_span(key)}")
         lines.append("")
 
     unit_by_id = {unit.id: unit for unit in bundle.units}
     if presented_relations:
         lines.extend(["## Relations", ""])
         for relation in presented_relations:
-            evidence = " ".join(relation.evidence.split())
+            evidence = " ".join(_ansi_safe(relation.evidence).split())
+            evidence = _markdown_text(evidence, inline=True)
             suffix = f" — {evidence}" if evidence else ""
             source_label = _markdown_code_span(
                 _unit_display_label(unit_by_id[relation.src])
@@ -1645,8 +1784,9 @@ def _build_markdown(bundle: Bundle, options: _RenderOptions) -> str:
                 _unit_display_label(unit_by_id[relation.dst])
             )
             lines.append(
-                f"- {source_label} (`{relation.src}`) **{relation.kind}** "
-                f"{target_label} (`{relation.dst}`)"
+                f"- {source_label} ({_markdown_code_span(relation.src)}) "
+                f"**{_markdown_text(str(relation.kind), inline=True)}** "
+                f"{target_label} ({_markdown_code_span(relation.dst)})"
                 f" (confidence {relation.confidence:.3f}){suffix}"
             )
         lines.append("")
@@ -1656,39 +1796,43 @@ def _build_markdown(bundle: Bundle, options: _RenderOptions) -> str:
     if orphans:
         lines.extend(["## Orphans", ""])
         for orphan in orphans:
+            content = _markdown_text(orphan.content, inline=True)
             if options.cite:
                 lines.append(
-                    f"- {orphan.content} — "
+                    f"- {content} — "
                     f"{_markdown_citation(orphan.origin)}"
                 )
             else:
-                lines.append(f"- `gap-{orphan.id}` {orphan.content}")
+                lines.append(
+                    f"- {_markdown_code_span(f'gap-{orphan.id}')} {content}"
+                )
         lines.append("")
 
     if gaps:
         lines.extend(["## Gaps", ""])
         for gap in gaps:
+            content = _markdown_text(gap.content, inline=True)
             if options.cite:
-                lines.append(f"- {gap.content} — {_markdown_citation(gap.origin)}")
+                lines.append(
+                    f"- {content} — {_markdown_citation(gap.origin)}"
+                )
             else:
-                lines.append(f"- `gap-{gap.id}` {gap.content}")
+                lines.append(
+                    f"- {_markdown_code_span(f'gap-{gap.id}')} {content}"
+                )
         lines.append("")
 
     if not options.cite:
         lines.extend(["## Source map", ""])
-        for statement in bundle.summary_claims:
+        for key, origins in _source_map_entries(bundle, presented_units):
             origins = ", ".join(
-                f"`{_origin_label(origin)}`"
-                for origin in statement.origins
+                _markdown_code_span(_source_map_origin_label(origin))
+                for origin in origins
             )
-            lines.append(f"- `statement-{statement.id}` → {origins}")
-        for unit in presented_units:
-            lines.append(f"- `{unit.id}` → `{_origin_label(unit.origin)}`")
-        for gap in bundle.gaps:
-            lines.append(f"- `gap-{gap.id}` → `{_origin_label(gap.origin)}`")
+            lines.append(f"- {_markdown_code_span(key)} → {origins}")
         lines.append("")
 
-    lines.extend(_markdown_selection(bundle.selection))
+    lines.extend(_markdown_selection(bundle.selection, cite=options.cite))
     return "\n".join(lines).rstrip() + "\n"
 
 
@@ -1812,19 +1956,11 @@ def _build_ansi(bundle: Bundle, options: _RenderOptions) -> str:
 
     if not options.cite:
         lines.append(paint("1", "Source map"))
-        for statement in bundle.summary_claims:
+        for key, origins in _source_map_entries(bundle, presented_units):
             origins = "; ".join(
-                _origin_label(origin) for origin in statement.origins
+                _source_map_origin_label(origin) for origin in origins
             )
-            lines.append(
-                _ansi_safe(f"statement-{statement.id}  {origins}")
-            )
-        for unit in presented_units:
-            lines.append(_ansi_safe(f"{unit.id}  {_origin_label(unit.origin)}"))
-        for gap in bundle.gaps:
-            lines.append(
-                _ansi_safe(f"gap-{gap.id}  {_origin_label(gap.origin)}")
-            )
+            lines.append(_ansi_safe(f"{key}  {origins}"))
         lines.append("")
 
     selection = bundle.selection
@@ -1849,15 +1985,25 @@ def _build_ansi(bundle: Bundle, options: _RenderOptions) -> str:
     ):
         lines.append(f"drop-set sha256 {dropped['digest']}")
         for item in dropped["reported"]:
-            lines.append(f"- {_human_drop_record('unit', item)}")
+            lines.append(
+                f"- {_human_drop_record('unit', item, cite=options.cite)}"
+            )
         for relation in dropped["reported_relations"]:
-            lines.append(f"- {_human_drop_record('relation', relation)}")
+            lines.append(
+                f"- {_human_drop_record('relation', relation, cite=options.cite)}"
+            )
         for statement in dropped["reported_statements"]:
-            lines.append(f"- {_human_drop_record('statement', statement)}")
+            lines.append(
+                f"- {_human_drop_record('statement', statement, cite=options.cite)}"
+            )
     return "\n".join(lines).rstrip() + "\n"
 
 
-def _markdown_selection(selection: dict[str, Any]) -> list[str]:
+def _markdown_selection(
+    selection: dict[str, Any],
+    *,
+    cite: bool,
+) -> list[str]:
     requested = selection["requested"]
     ceiling = str(requested) if requested is not None else "unlimited"
     dropped = selection["dropped"]
@@ -1879,11 +2025,14 @@ def _markdown_selection(selection: dict[str, Any]) -> list[str]:
     ):
         lines.append(f"- Drop-set SHA-256: `{dropped['digest']}`")
         for item in dropped["reported"]:
-            lines.append(f"  - {_human_drop_record('unit', item)}")
+            record = _human_drop_record("unit", item, cite=cite)
+            lines.append(f"  - {_markdown_code_span(record)}")
         for relation in dropped["reported_relations"]:
-            lines.append(f"  - {_human_drop_record('relation', relation)}")
+            record = _human_drop_record("relation", relation, cite=cite)
+            lines.append(f"  - {_markdown_code_span(record)}")
         for statement in dropped["reported_statements"]:
-            lines.append(f"  - {_human_drop_record('statement', statement)}")
+            record = _human_drop_record("statement", statement, cite=cite)
+            lines.append(f"  - {_markdown_code_span(record)}")
     return lines
 
 
@@ -1940,8 +2089,17 @@ def _origin_label(origin: Origin) -> str:
 
 
 def _markdown_citation(origin: Origin) -> str:
-    label = _origin_label(origin).replace("[", "\\[").replace("]", "\\]")
-    return f"[{label}]({_origin_target(origin)})"
+    from urllib.parse import quote
+
+    label = _markdown_text(_origin_label(origin), inline=True)
+    # HTTP sources retain their query string in ``_origin_target``.  Encode
+    # every CommonMark destination delimiter here so an origin cannot close
+    # the renderer-owned link or introduce a title/second construct.
+    target = quote(
+        _origin_target(origin),
+        safe="/:?#@!$&'*+,;=%._~-",
+    )
+    return f"[{label}]({target})"
 
 
 def _origin_target(origin: Origin) -> str:
@@ -1980,7 +2138,109 @@ def _markdown_code_span(value: str) -> str:
         else:
             current = 0
     fence = "`" * (longest + 1)
-    return f"{fence}{safe}{fence}"
+    # CommonMark strips one padding space when both are present.  Add that
+    # padding when a value touches a delimiter (or owns edge whitespace), so
+    # the parsed code text remains the original visible value.
+    padded = (
+        safe.startswith(("`", " "))
+        or safe.endswith(("`", " "))
+    )
+    content = f" {safe} " if padded else safe
+    return f"{fence}{content}{fence}"
+
+
+_MARKDOWN_INLINE_ESCAPES = frozenset(r"\\`*_[]<>&|~^{}")
+
+
+def _markdown_text(value: str, *, inline: bool = False) -> str:
+    """Escape untrusted prose without escaping renderer-owned Markdown.
+
+    Controls and bidirectional overrides are first made visible.  CommonMark
+    inline constructs and raw HTML are then neutralized, while leading/trailing
+    whitespace is framed with renderer-owned character references so a source
+    line cannot become an indented code block or a hard-break instruction.
+    Block markers that are meaningful only at line start are escaped there.
+    Ordinary sentence punctuation remains readable in the Markdown source.
+    """
+
+    import re
+
+    safe = _ansi_safe(value)
+    if inline:
+        safe = safe.replace("\n", " ")
+
+    def escape_line(line: str) -> str:
+        if not line or not line.strip(" \t"):
+            return ""
+
+        leading_end = len(line) - len(line.lstrip(" \t"))
+        trailing_start = len(line.rstrip(" \t"))
+        leading = line[:leading_end]
+        core = line[leading_end:trailing_start]
+        trailing = line[trailing_start:]
+
+        escaped_parts: list[str] = []
+        for index, character in enumerate(core):
+            # CommonMark deliberately disallows intraword underscore emphasis.
+            # Retain ordinary identifiers such as ``throughput_mbps`` verbatim
+            # while escaping every underscore that can act as a delimiter.
+            intraword_underscore = (
+                character == "_"
+                and index > 0
+                and index + 1 < len(core)
+                and core[index - 1].isalnum()
+                and core[index + 1].isalnum()
+            )
+            if character in _MARKDOWN_INLINE_ESCAPES and not intraword_underscore:
+                escaped_parts.append(f"\\{character}")
+            else:
+                escaped_parts.append(character)
+        escaped = "".join(escaped_parts)
+        ordered_marker = re.match(r"^(\d{1,9})([.)])(?:[ \t]|$)", core)
+        if ordered_marker is not None:
+            marker_end = len(ordered_marker.group(1))
+            escaped = escaped[:marker_end] + "\\" + escaped[marker_end:]
+        elif (
+            core.startswith(("#", "+", "-"))
+            or re.match(r"^(?:=+|-+)[ \t]*$", core) is not None
+        ):
+            escaped = "\\" + escaped
+
+        def framed_whitespace(text: str) -> str:
+            return "".join("&#32;" if character == " " else "&#9;" for character in text)
+
+        return f"{framed_whitespace(leading)}{escaped}{framed_whitespace(trailing)}"
+
+    return "\n".join(escape_line(line) for line in safe.split("\n"))
+
+
+def _markdown_language_token(value: str) -> str:
+    """Return one non-structural CommonMark code-fence info token."""
+
+    safe = _ansi_safe(value).strip()
+    token = "".join(
+        character if character.isascii() and (character.isalnum() or character in "+-._") else "-"
+        for character in safe
+    )
+    return token.strip("-.")
+
+
+def _markdown_code_fence(content: str, language: str) -> str:
+    """Return a fence that source bytes cannot close or decorate."""
+
+    safe = _ansi_safe(content)
+    longest = 0
+    current = 0
+    for character in safe:
+        if character == "`":
+            current += 1
+            longest = max(longest, current)
+        else:
+            current = 0
+    fence = "`" * max(3, longest + 1)
+    opening = f"{fence}{_markdown_language_token(language)}"
+    separator = "" if safe.endswith("\n") else "\n"
+    return f"{opening}\n{safe}{separator}{fence}"
 
 
 def _clean(meta: dict[str, Any]) -> dict[str, Any]:

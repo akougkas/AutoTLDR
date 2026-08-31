@@ -2227,6 +2227,7 @@ Every factual phrase must be explicitly present in the content of a cited unit. 
 Do not combine a dimension length or item count with a separate units attribute to invent a measured duration, range, or quantity; the number-unit quantity must itself be explicit in cited content.
 Every snake_case identifier named in a claim must occur in cited unit content; do not summarize an uncited schema column merely because a neighboring column from the same source is cited.
 A symbol name or function signature proves identity, parameters, and declared annotations only; it does not prove implementation behavior, purpose, causality, or domain meaning. When grouping several units under one verb or qualifier, that shared description must be explicit in every cited unit.
+When evidence contrasts two scopes, entities, or versions, preserve the qualifier that identifies each referent. In particular, never transfer a predicate from a same-named cell, file, component, declaration, or historical version to the bare identifier or to its contrasting referent.
 Cite every unit needed to support each claim; split or omit a claim whose complete support is not present."""
 
 
@@ -3502,6 +3503,92 @@ def _structured_identifiers(value: str) -> set[str]:
     }
 
 
+_UNQUALIFIED_DERIVED_FORMULA = re.compile(
+    r"\b(?P<identifier>[A-Za-z][A-Za-z0-9]*(?:_[A-Za-z0-9]+)+)\b"
+    r"`{0,8}\s+(?:is|was|remains|represents)\s+(?:itself\s+)?"
+    r"(?:(?:a|an|the)\s+)?derived\s+formula\b",
+    flags=re.IGNORECASE,
+)
+_UNQUALIFIED_NOT_INDEPENDENT_CONSTANT = re.compile(
+    r"\b(?P<identifier>[A-Za-z][A-Za-z0-9]*(?:_[A-Za-z0-9]+)+)\b"
+    r"`{0,8}\s+(?:is|was|remains)\s+not\s+"
+    r"(?:(?:a|an|the)\s+)?independent\s+constant\b",
+    flags=re.IGNORECASE,
+)
+_SAME_NAME_CELL_DERIVED_FORMULA = re.compile(
+    r"\bsame(?:[\s\-\u2010-\u2015]+)named\b[^.!?]{0,160}"
+    r"\bcell\b[^.!?]{0,160}\bderived\s+formula\b",
+    flags=re.IGNORECASE,
+)
+_SAME_NAME_CELL_NOT_INDEPENDENT = re.compile(
+    r"\bsame(?:[\s\-\u2010-\u2015]+)named\b[^.!?]{0,160}"
+    r"\bcell\b[^.!?]{0,160}\bnot\s+"
+    r"(?:(?:a|an|the)\s+)?independent\s+constant\b",
+    flags=re.IGNORECASE,
+)
+_CELL_SCOPE_WORDS = frozenset({"cell", "spreadsheet", "workbook"})
+
+
+def _claim_clause(value: str, start: int, end: int) -> str:
+    """Return the bounded sentence/clause containing one claim assertion."""
+
+    boundaries = ".!?;\n"
+    left = max(value.rfind(marker, 0, start) for marker in boundaries) + 1
+    candidates = [
+        position
+        for marker in boundaries
+        if (position := value.find(marker, end)) >= 0
+    ]
+    right = min(candidates) if candidates else len(value)
+    return value[left:right]
+
+
+def _same_name_cell_referent_risk(
+    statement: GroundedStatement,
+    cited: Sequence[EvidenceUnit],
+) -> tuple[list[str], list[str]] | None:
+    """Detect only the measured bare-identifier/same-named-cell transfer.
+
+    This is deliberately not a general coreference checker.  It applies only
+    when cited prose explicitly warns that a distinct same-named spreadsheet
+    cell carries the derived/not-independent predicate and the model assigns
+    that predicate directly to a bare structured identifier.
+    """
+
+    assertions: list[tuple[str, re.Pattern[str]]] = []
+    for claim_pattern, evidence_pattern in (
+        (_UNQUALIFIED_DERIVED_FORMULA, _SAME_NAME_CELL_DERIVED_FORMULA),
+        (
+            _UNQUALIFIED_NOT_INDEPENDENT_CONSTANT,
+            _SAME_NAME_CELL_NOT_INDEPENDENT,
+        ),
+    ):
+        for match in claim_pattern.finditer(statement.content):
+            clause = _claim_clause(statement.content, match.start(), match.end())
+            if _word_tokens(clause).isdisjoint(_CELL_SCOPE_WORDS):
+                assertions.append(
+                    (match.group("identifier").casefold(), evidence_pattern)
+                )
+
+    if not assertions:
+        return None
+    risky_identifiers: set[str] = set()
+    contrast_ids: list[str] = []
+    for identifier, evidence_pattern in assertions:
+        matched_ids = [
+            unit.id for unit in cited if evidence_pattern.search(unit.content)
+        ]
+        if not matched_ids:
+            continue
+        risky_identifiers.add(identifier)
+        for unit_id in matched_ids:
+            if unit_id not in contrast_ids:
+                contrast_ids.append(unit_id)
+    if not risky_identifiers:
+        return None
+    return sorted(risky_identifiers), contrast_ids
+
+
 def _signature_only_evidence(unit: EvidenceUnit) -> bool:
     if unit.modality != str(Modality.CODE):
         return False
@@ -3574,6 +3661,19 @@ def _apply_product_claim_policy(
                     "claim_id": statement.id,
                     "reason": "identifier-unsupported",
                     "identifiers": unsupported_identifiers,
+                    "evidence_unit_ids": list(statement.evidence_unit_ids),
+                }
+            )
+            continue
+        referent_risk = _same_name_cell_referent_risk(statement, cited)
+        if referent_risk is not None:
+            identifiers, contrast_ids = referent_risk
+            dropped.append(
+                {
+                    "claim_id": statement.id,
+                    "reason": "same-name-cell-referent-unqualified",
+                    "identifiers": identifiers,
+                    "contrast_evidence_unit_ids": contrast_ids,
                     "evidence_unit_ids": list(statement.evidence_unit_ids),
                 }
             )

@@ -12,6 +12,145 @@ that names the entry it replaces.
 
 ## 2026-08-31 · Productization
 
+### D-050 · Model eligibility filtering cannot hide request-identity ambiguity
+
+**Decided.** Product discovery validates loaded-instance ID uniqueness across every LM
+Studio LLM row before filtering for direct-local catalog-key equality. If an eligible
+direct row and any routed/ineligible row expose the same request ID, discovery fails closed;
+the product does not send a completion to an identity that the provider inventory maps to
+more than one route. This extends D-045's exact key rule.
+
+**Why.** Adversarial review of the `0.1.0a1` fix found that filtering mismatched rows first
+could hide a duplicate: a direct row and a routed row could both expose `same-id`, after
+which the surviving direct row looked uniquely eligible. The wire request names only that
+ID, so AutoTLDR could not prove which provider route would receive it.
+
+**Rejected.** Trusting catalog order; preferring the exact-key row despite the collision;
+filtering routed rows before validating the complete inventory; sending a probe to learn
+which route wins; and matching route names such as “Dynamo” instead of provider identity.
+
+**Revisit when.** LM Studio supplies immutable per-instance route handles or a stronger
+locality/device attestation that makes duplicate display/request IDs unambiguous.
+
+### D-049 · Human renderers inertly encode source text and no-cite relocates every origin
+
+**Decided.** Source-controlled values in every human renderer are data, never renderer
+syntax. Markdown makes controls and bidirectional overrides visible, escapes CommonMark
+and raw-HTML framing, uses dynamically longer code spans/fences, sanitizes fence language
+tokens, and percent-encodes link destinations. Machine shapes retain the exact underlying
+representation. With `--no-cite`, origins for retained and budget-omitted units/claims move
+behind stable IDs in one source map; the omission inventory keeps its complete IDs and
+reasons without repeating origins inline.
+
+**Why.** The `0.1.0a1` audit showed that a Markdown unit could emit terminal escapes, a
+right-to-left override, raw `<script>` markup, or a triple-backtick line that swallowed the
+later selection audit. It also showed that no-cite artifacts still exposed dropped origins
+inside canonical omission records while omitting those IDs from the source map. Both made
+the visible contract depend on adversarial source bytes.
+
+**Rejected.** Trusting Markdown viewers to disable raw HTML; deleting hostile characters
+silently; truncating code at a fence; weakening the complete omission inventory; treating
+no-cite as removal of provenance; and changing JSON/JSONL source content to match a human
+escaping concern.
+
+**Revisit when.** A new human renderer defines a stronger inert-text encoding, or a
+specific Markdown dialect is selected with an equivalently tested safety contract.
+
+### D-048 · Explicit same-named cell predicates cannot attach to a bare identifier
+
+**Decided.** Product synthesis drops a claim when it directly classifies a snake-case
+identifier as a derived formula or as not an independent constant, while cited prose
+explicitly assigns that predicate to a distinct “same-named” spreadsheet cell and the
+claim omits `cell`, `workbook`, or `spreadsheet` scope. The run audit names the disposition
+`same-name-cell-referent-unqualified` and records the identifier, contrast evidence IDs,
+and all claim evidence IDs. The rule is product-only and does not change frozen Stage 5
+runs.
+
+**Why.** The `0.1.0a1` exercise observed a brief claim transfer “derived formula, not an
+independent constant” from a same-named workbook cell to the bare
+`effective_capacity_mbps` planning declaration. Every returned evidence ID was valid, so
+closed-set citation validation could not distinguish the referents. A prompt guardrail and
+one successful identical rerun reduced recurrence but did not fail closed on the already
+measured response form.
+
+**Rejected.** Calling the prompt-only rerun a complete fix; silently rewriting the model
+claim; treating a same-name warning as authority for the bare identifier; applying a broad
+lexical coreference heuristic to files, components, or versions; and changing the frozen
+Stage 5 evaluation policy after scoring.
+
+**Revisit when.** The evidence protocol carries explicit referent identities, a measured
+coreference validator passes a fresh corpus, or user evidence justifies another narrow
+preregistered referent disposition.
+
+### D-047 · Recognized output filenames infer only absent choices
+
+**Decided.** When `--out` is absent, `.md`/`.markdown`, `.html`/`.htm`, `.pdf`,
+`.json`, and `.jsonl` output suffixes select their matching renderer. Stdout and an
+unrecognized suffix retain ANSI. An explicit `--out` is always authoritative, even when
+the destination suffix suggests another shape. Selection happens before source acquisition
+and before output bytes are written.
+
+**Why.** The `0.1.0a1` surface exercise found that `-o brief.pdf` and `-o brief.json`
+silently wrote ANSI text. That behavior looked successful while producing a file whose
+name and bytes disagreed, which is especially hazardous for agents and shell automation.
+Recognized filename inference removes the trap without guessing for arbitrary names or
+changing the composable stdout default.
+
+**Rejected.** Requiring both flags for every file; inferring from every suffix; letting a
+suffix override an explicit `--out`; inspecting rendered bytes after the run; and changing
+stdout to Markdown merely because it is redirected.
+
+**Revisit when.** A new core renderer gains a stable filename identity, or a client need
+justifies an explicit no-inference switch without weakening explicit `--out` precedence.
+
+### D-046 · Documentation crawl has separate page and physical-request ceilings
+
+**Decided.** `max_crawl_pages` limits logical page attempts, while
+`max_crawl_requests` independently limits every physical HTTP GET, including one optional
+`/llms.txt` discovery request per origin, source fetches, and redirects. The default request
+allowance covers one discovery request and one redirect for each default page. If only one
+request remains, optional discovery is skipped so the explicitly requested root can still
+be acquired. The manifest reports page, total-request, discovery-request, and source-request
+counts separately. At exhaustion, the current source and every already queued source are
+declined by the exact request-limit name rather than silently disappearing.
+
+**Why.** The `0.1.0a1` exercise observed six GETs during a crawl whose manifest claimed
+three requests: each page repeated the `/llms.txt` probe, redirects were not under a
+caller-owned bound, and the page ceiling was doing two incompatible jobs. Page breadth is a
+product promise; physical requests are the network safety boundary. Keeping them separate
+makes both enforceable and observable.
+
+**Rejected.** Counting discovery against the page allowance; probing `/llms.txt` for every
+page; leaving discovery and redirects unmetered; silently truncating the queued frontier;
+and removing useful same-origin discovery solely to make one counter easier to explain.
+
+**Revisit when.** Acquisition supports multiple origins, a provider exposes a non-GET
+discovery protocol, or streaming crawl requires a different bounded frontier contract.
+
+### D-045 · A product model instance must equal its LM Studio catalog key
+
+**Decided.** Product discovery considers a loaded LM Studio generation instance eligible
+only when `loaded_instances[].id` exactly equals its enclosing model row's `key`. An
+instance with a different request ID is excluded from setup and from the active-model set
+used before source acquisition. A manually configured excluded ID therefore fails before
+any source is read or any completion is sent.
+
+**Why.** The `0.1.0a1` surface exercise found that setup offered
+`qwen3.8-27b-dynamo`. LM Studio reported it under catalog key `qwen3.8-27b`, while the
+directly loaded Ornith instance used the same value for key and instance ID. Flattening all
+loaded IDs erased the only provider-reported distinction between direct local loading and
+routed/custom identity. The alpha cannot attest the locality of a mismatched route and its
+binding rule forbids invoking an LM Link/Dynamo row, so it must fail closed.
+
+**Rejected.** Filtering the word `dynamo`; maintaining a machine-specific denylist;
+offering every loaded ID and trusting the user to recognize remote routing; probing the
+routed model to discover where it runs; and blocking setup entirely merely because an
+ineligible peer is also active.
+
+**Revisit when.** LM Studio exposes a stronger per-instance locality/device attestation or
+a new provider adapter proves an equivalent direct-local identity through a measured
+contract.
+
 ### D-044 · First users receive a bound bundle, and their gate is executable
 
 **Decided.** An invited participant receives a private-alpha bundle containing the exact

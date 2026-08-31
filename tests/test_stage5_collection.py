@@ -12,6 +12,7 @@ import threading
 import warnings
 import zipfile
 from contextlib import contextmanager
+from dataclasses import fields
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -44,6 +45,40 @@ def _assert_exact_manifest(acquisition) -> None:
         range(len(manifest["members"]))
     )
     json.dumps(manifest, ensure_ascii=False)
+
+
+def test_collection_limits_validate_http_request_ceiling() -> None:
+    with pytest.raises(ValueError, match="max_crawl_requests"):
+        CollectionLimits(max_crawl_requests=0)
+
+
+def test_collection_limits_append_request_limit_after_a1_positional_layout() -> None:
+    original_fields = (
+        "max_members",
+        "max_member_bytes",
+        "max_total_bytes",
+        "max_directory_depth",
+        "max_archive_members",
+        "max_archive_depth",
+        "max_archive_path_depth",
+        "max_archive_container_bytes",
+        "max_compression_ratio",
+        "max_crawl_pages",
+        "max_crawl_depth",
+        "max_crawl_page_bytes",
+        "max_crawl_total_bytes",
+        "crawl_timeout_seconds",
+    )
+    assert tuple(item.name for item in fields(CollectionLimits)) == (
+        *original_fields,
+        "max_crawl_requests",
+    )
+
+    values = (1, 2, 3, 4, 5, 6, 7, 8, 9.0, 10, 11, 12, 13, 14.0)
+    limits = CollectionLimits(*values)
+
+    assert tuple(getattr(limits, name) for name in original_fields) == values
+    assert limits.max_crawl_requests == 129
 
 
 def _write_project(root: Path) -> None:
@@ -294,9 +329,12 @@ def test_tar_rejects_traversal_links_and_duplicates_without_losing_safe_file(
 
 class _RoutesHandler(BaseHTTPRequestHandler):
     routes: dict[str, tuple[int, dict[str, str], bytes]] = {}
+    hits: list[str] | None = None
 
     def do_GET(self) -> None:  # noqa: N802 - stdlib callback spelling
         path = urlsplit(self.path).path
+        if self.hits is not None:
+            self.hits.append(path)
         status, headers, payload = self.routes.get(
             path,
             (404, {"Content-Type": "text/plain"}, b"missing"),
@@ -320,6 +358,25 @@ def _server(routes: dict[str, tuple[int, dict[str, str], bytes]]):
     thread.start()
     try:
         yield f"http://127.0.0.1:{server.server_port}"
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+@contextmanager
+def _observed_server(routes: dict[str, tuple[int, dict[str, str], bytes]]):
+    hits: list[str] = []
+    handler = type(
+        "ObservedHandler",
+        (_RoutesHandler,),
+        {"routes": routes, "hits": hits},
+    )
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield f"http://127.0.0.1:{server.server_port}", hits
     finally:
         server.shutdown()
         server.server_close()
@@ -416,6 +473,192 @@ def test_doc_site_page_limit_keeps_root_and_names_unvisited_pages() -> None:
     assert [item.source for item in result.extractions] == [f"{base}/index.html"]
     limited = {item.source for item in result.declines if item.kind is DeclineKind.LIMIT}
     assert limited == {f"{base}/a.html", f"{base}/b.html"}
+    assert result.manifest["container"]["pages"] == 1
+    assert result.manifest["container"]["requests"] == 2
+    assert result.manifest["container"]["discovery_requests"] == 1
+    assert result.manifest["container"]["source_requests"] == 1
+
+
+def test_doc_site_llms_probe_is_once_and_inside_hard_request_limit() -> None:
+    routes = {
+        "/index.html": _html(
+            "<main><h1>Guide</h1><p>Alpha serves reports. Read the "
+            '<a href="detail.html">capacity detail</a>.</p></main>'
+        ),
+        "/detail.html": _html("<main><p>Capacity is two.</p></main>"),
+    }
+    limits = CollectionLimits(max_crawl_pages=2, max_crawl_requests=3)
+    with _observed_server(routes) as (base, hits):
+        result = crawl_documentation_site(
+            f"{base}/index.html",
+            limits=limits,
+        )
+
+    assert hits == ["/llms.txt", "/index.html", "/detail.html"]
+    assert len(hits) <= limits.max_crawl_requests
+    assert [item.source for item in result.extractions] == [
+        f"{base}/detail.html",
+        f"{base}/index.html",
+    ]
+    container = result.manifest["container"]
+    assert container["pages"] == limits.max_crawl_pages == 2
+    assert container["requests"] == len(hits) == 3
+    assert container["discovery_requests"] == 1
+    assert container["source_requests"] == 2
+    assert result.manifest["limits"]["max_crawl_requests"] == 3
+    _assert_exact_manifest(result)
+
+
+def test_doc_site_discovery_redirect_cannot_consume_reserved_root_request() -> None:
+    routes = {
+        "/llms.txt": (
+            302,
+            {"Location": "/not-an-llms-view", "Content-Type": "text/plain"},
+            b"",
+        ),
+        "/not-an-llms-view": _html(
+            "<main><p>This is not an advertised plain-text view.</p></main>"
+        ),
+        "/index.html": _html(
+            "<main><h1>Guide</h1><p>The requested root is retained.</p></main>"
+        ),
+    }
+    limits = CollectionLimits(max_crawl_pages=1, max_crawl_requests=2)
+
+    with _observed_server(routes) as (base, hits):
+        result = crawl_documentation_site(
+            f"{base}/index.html",
+            limits=limits,
+        )
+
+    assert hits == ["/llms.txt", "/index.html"]
+    assert [item.source for item in result.extractions] == [f"{base}/index.html"]
+    assert result.declines == ()
+    assert result.manifest["container"] == {
+        "source": f"{base}/index.html",
+        "kind": "documentation-site",
+        "origin": ["http", "127.0.0.1", int(base.rsplit(":", 1)[1])],
+        "pages": 1,
+        "requests": 2,
+        "discovery_requests": 1,
+        "source_requests": 1,
+        "bytes": len(routes["/index.html"][2]),
+    }
+    _assert_exact_manifest(result)
+
+
+def test_doc_site_http_request_limit_is_independent_from_page_limit() -> None:
+    routes = {
+        "/index.html": _html(
+            '<main><p><a href="detail.html">capacity detail</a></p></main>'
+        ),
+        "/detail.html": _html("<main><p>Capacity is two.</p></main>"),
+    }
+    limits = CollectionLimits(max_crawl_pages=3, max_crawl_requests=2)
+    with _observed_server(routes) as (base, hits):
+        result = crawl_documentation_site(
+            f"{base}/index.html",
+            limits=limits,
+        )
+
+    assert hits == ["/llms.txt", "/index.html"]
+    assert result.manifest["container"] == {
+        "source": f"{base}/index.html",
+        "kind": "documentation-site",
+        "origin": ["http", "127.0.0.1", int(base.rsplit(":", 1)[1])],
+        "pages": 1,
+        "requests": 2,
+        "discovery_requests": 1,
+        "source_requests": 1,
+        "bytes": len(routes["/index.html"][2]),
+    }
+    limited = next(item for item in result.declines if item.source.endswith("/detail.html"))
+    assert limited.kind is DeclineKind.LIMIT
+    assert limited.details["limit"] == "max_crawl_requests"
+    assert limited.details["maximum"] == 2
+    _assert_exact_manifest(result)
+
+
+def test_doc_site_malformed_link_is_declined_without_losing_good_pages() -> None:
+    class PartiallyMalformedHandler(_RoutesHandler):
+        routes = {
+            "/index.html": _html(
+                "<main><h1>Guide</h1><p>Read the "
+                "<a href='/bad.html'>broken page</a> and the "
+                "<a href='/good.html'>working page</a>.</p></main>"
+            ),
+            "/good.html": _html(
+                "<main><h1>Working</h1><p>The working page remains.</p></main>"
+            ),
+        }
+
+        def do_GET(self) -> None:  # noqa: N802 - stdlib callback spelling
+            if urlsplit(self.path).path == "/bad.html":
+                self.connection.sendall(b"MALFORMED STATUS LINE\r\n\r\n")
+                self.close_connection = True
+                return
+            super().do_GET()
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), PartiallyMalformedHandler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{server.server_port}"
+    try:
+        result = crawl_documentation_site(f"{base}/index.html")
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+    assert [item.source for item in result.extractions] == [
+        f"{base}/good.html",
+        f"{base}/index.html",
+    ]
+    malformed = next(item for item in result.declines if item.source.endswith("/bad.html"))
+    assert malformed.kind is DeclineKind.EXTRACTION
+    assert f"{base}/bad.html" in malformed.content
+    assert "failed to fetch requested URL" in malformed.content
+    assert malformed.details == {"depth": 1, "requested_url": f"{base}/bad.html"}
+    assert result.manifest["container"]["pages"] == 3
+    _assert_exact_manifest(result)
+
+
+def test_doc_site_redirect_request_limit_names_all_queued_pages() -> None:
+    routes = {
+        "/index.html": _html(
+            "<main><p>Read <a href='/a.html'>A</a> and "
+            "<a href='/b.html'>B</a>.</p></main>"
+        ),
+        "/a.html": (
+            302,
+            {"Location": "/a-final.html", "Content-Type": "text/plain"},
+            b"",
+        ),
+        "/a-final.html": _html("<main><p>A final.</p></main>"),
+        "/b.html": _html("<main><p>B page.</p></main>"),
+    }
+    limits = CollectionLimits(max_crawl_pages=3, max_crawl_requests=3)
+    with _observed_server(routes) as (base, hits):
+        result = crawl_documentation_site(
+            f"{base}/index.html",
+            limits=limits,
+        )
+
+    assert hits == ["/llms.txt", "/index.html", "/a.html"]
+    assert result.manifest["container"]["pages"] == 2
+    assert result.manifest["container"]["requests"] == 3
+    limited = {
+        item.source: item
+        for item in result.declines
+        if item.kind is DeclineKind.LIMIT
+    }
+    assert set(limited) == {f"{base}/a.html", f"{base}/b.html"}
+    assert all(
+        item.details["limit"] == "max_crawl_requests"
+        and item.details["maximum"] == 3
+        for item in limited.values()
+    )
+    _assert_exact_manifest(result)
 
 
 def test_collection_root_rejects_symlink_and_non_archive_file(tmp_path: Path) -> None:

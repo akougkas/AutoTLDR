@@ -117,6 +117,8 @@ def test_modern_discovery_and_tool_schema_are_closed_and_task_capable():
 
     listed = _request(server, "tools/list", {"_meta": _meta()})["result"]
     assert listed["resultType"] == "complete"
+    assert listed["ttlMs"] == 3_600_000
+    assert listed["cacheScope"] == "public"
     assert [tool["name"] for tool in listed["tools"]] == [
         "autotldr_summarize"
     ]
@@ -137,6 +139,9 @@ def test_modern_discovery_and_tool_schema_are_closed_and_task_capable():
         "standard",
         "deep",
     ]
+    fallback = schema["properties"]["allowEvidenceFallback"]
+    assert "default" not in fallback
+    assert "Omit this field" in fallback["description"]
     assert listed["tools"][0]["annotations"]["openWorldHint"] is False
 
 
@@ -154,6 +159,7 @@ def test_sync_tool_reuses_api_and_honors_the_rendered_budget(tmp_path):
     structured = result["structuredContent"]
     assert structured["byteLength"] <= structured["budget"] == 12_000
     assert structured["mode"] == "evidence"
+    assert structured["detail"] == "standard"
     rendered = json.loads(result["content"][0]["text"])
     assert structured["artifact"] == rendered
     assert rendered["units"]
@@ -166,6 +172,7 @@ def test_sync_tool_reuses_api_and_honors_the_rendered_budget(tmp_path):
         {"sources": ["notes.md"], "surprise": True},
         {"sources": ["notes.md"], "output": "html"},
         {"sources": ["notes.md"], "budget": True},
+        {"sources": ["notes.md"], "allowEvidenceFallback": None},
         {"sources": ["https://example.com/private"]},
         {"sources": ["//server/share/private.md"]},
         {"sources": ["\\\\server\\share\\private.md"]},
@@ -241,6 +248,75 @@ def test_mcp_default_prose_fails_actionably_without_a_configured_model(
     assert response["structuredContent"]["error"]["code"] == "LOCAL_MODEL_UNAVAILABLE"
 
 
+def test_mcp_reports_effective_product_mode_and_detail(tmp_path, monkeypatch):
+    import autotldr.api as api
+
+    source = tmp_path / "notes.md"
+    source.write_text("# Notes\n\nGrounded source.\n")
+
+    def fake_summarize(*_args, **_kwargs):
+        extraction = SimpleNamespace(
+            meta={
+                "product": {
+                    "mode": "evidence-fallback",
+                    "detail": {"name": "deep"},
+                }
+            }
+        )
+        return SimpleNamespace(rendered="fallback evidence\n", extraction=extraction)
+
+    monkeypatch.setattr(api, "summarize_product", fake_summarize)
+    response = _request(
+        mcp.MCPServer(roots=(tmp_path,)),
+        "tools/call",
+        {
+            "name": mcp.TOOL_NAME,
+            "arguments": {"sources": ["notes.md"], "output": "md"},
+            "_meta": _meta(),
+        },
+    )["result"]
+
+    assert response["isError"] is False
+    assert response["structuredContent"]["mode"] == "evidence-fallback"
+    assert response["structuredContent"]["detail"] == "deep"
+
+
+@pytest.mark.parametrize(
+    ("configured", "override", "expected"),
+    [
+        (True, {}, True),
+        (False, {"allowEvidenceFallback": True}, True),
+        (True, {"allowEvidenceFallback": False}, False),
+    ],
+)
+def test_mcp_fallback_override_preserves_shared_config_authority(
+    tmp_path, monkeypatch, configured, override, expected
+):
+    source = tmp_path / "notes.md"
+    source.write_text("# Notes\n\nGrounded source.\n", encoding="utf-8")
+    config = tmp_path / "config.toml"
+    config.write_text(
+        "version = 1\n[defaults]\n"
+        f"allow_evidence_fallback = {str(configured).lower()}\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("AUTOTLDR_CONFIG", str(config))
+
+    result = _tool_call(
+        mcp.MCPServer(roots=(tmp_path,)),
+        {
+            "sources": ["notes.md"],
+            "output": "json",
+            "budget": 12_000,
+            **override,
+        },
+    )["result"]
+
+    assert result["isError"] is False
+    resolved = result["structuredContent"]["artifact"]["manifest"]["product"]
+    assert resolved["resolved_config"]["allow_evidence_fallback"] is expected
+
+
 def test_tasks_are_durable_pollable_results_for_long_collections(
     tmp_path, monkeypatch
 ):
@@ -256,7 +332,7 @@ def test_tasks_are_durable_pollable_results_for_long_collections(
         assert kwargs == {
             "detail": None,
             "mode": "evidence",
-            "allow_evidence_fallback": False,
+            "allow_evidence_fallback": None,
             "output": "json",
             "budget": 65_536,
             "cite": True,
@@ -402,6 +478,8 @@ def test_legacy_initialize_fallback_is_synchronous_and_task_free():
     assert initialized["result"]["protocolVersion"] == "2025-11-25"
     listed = _request(server, "tools/list", {})["result"]
     assert "resultType" not in listed
+    assert "ttlMs" not in listed
+    assert "cacheScope" not in listed
     assert [tool["name"] for tool in listed["tools"]] == [mcp.TOOL_NAME]
 
 

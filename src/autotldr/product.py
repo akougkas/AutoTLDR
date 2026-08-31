@@ -545,7 +545,7 @@ def _read_runtime_json(
 def _lm_studio_active_models(document: object) -> tuple[str, ...]:
     if type(document) is not dict or type(document.get("models")) is not list:
         raise LocalModelUnavailable("LM Studio runtime inventory has an unsupported envelope")
-    active: list[str] = []
+    loaded: list[tuple[str, str]] = []
     for row in document["models"]:
         if type(row) is not dict:
             raise LocalModelUnavailable("LM Studio runtime inventory contains an invalid row")
@@ -566,9 +566,17 @@ def _lm_studio_active_models(document: object) -> tuple[str, ...]:
                 raise LocalModelUnavailable(
                     "LM Studio runtime inventory contains an invalid loaded model ID"
                 )
-            active.append(identifier)
-    if len(active) != len(set(active)):
+            loaded.append((key, identifier))
+    identifiers = [identifier for _key, identifier in loaded]
+    if len(identifiers) != len(set(identifiers)):
         raise LocalModelUnavailable("LM Studio reports duplicate loaded model IDs")
+    # A directly loaded local instance uses the catalog model key as its request
+    # identity. LM Link/Dynamo and other routed instances expose a different
+    # instance ID under the catalog row. The alpha has no provider attestation
+    # for those routes, so they are ineligible rather than merely lower priority.
+    # Duplicate request identities were already rejected across every loaded LLM
+    # row above, before this eligibility filter can hide a routed collision.
+    active = [identifier for key, identifier in loaded if identifier == key]
     return tuple(sorted(active))
 
 

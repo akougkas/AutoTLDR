@@ -11,6 +11,7 @@ import pytest
 from autotldr.cli import main
 from autotldr.product import (
     DETAIL_PROFILES,
+    LocalModelUnavailable,
     ModelProfile,
     ProductConfigError,
     RuntimeDiscovery,
@@ -143,9 +144,42 @@ def test_formats_json_is_derived_from_live_router(capsys):
     assert payload["detail_levels"] == ["brief", "standard", "deep"]
     assert any(item["kind"] == "xlsx" and item["tier"] == 3 for item in payload["inputs"])
     assert any(item["suffix"] == ".pptx" and item["tier"] == 4 for item in payload["declined"])
+    assert not {".zip", ".tar", ".tgz"} & {
+        item["suffix"] for item in payload["declined"]
+    }
+    collections = {item["name"]: item for item in payload["collection_capabilities"]}
+    assert collections["zip"] == {
+        "name": "zip",
+        "status": "available",
+        "suffixes": [".zip"],
+        "schemes": [],
+    }
+    assert collections["tar"] == {
+        "name": "tar",
+        "status": "available",
+        "suffixes": [".tar", ".tar.gz", ".tgz"],
+        "schemes": [],
+    }
+    leaf_declines = {
+        item["suffix"]: item for item in payload["single_file_declines"]
+    }
+    assert leaf_declines[".zip"]["status"] == "declined"
+    assert leaf_declines[".zip"]["scope"] == "single-file-extraction"
+    assert leaf_declines[".zip"]["available_via"] == "collection-acquisition"
+    assert "available_via" not in leaf_declines[".gz"]
     assert {item["name"] for item in payload["output_capabilities"]} == set(
         payload["outputs"]
     )
+
+
+def test_formats_human_output_names_available_archive_collections(capsys):
+    assert main(["formats"]) == 0
+
+    rendered = capsys.readouterr().out
+    assert "Tier 2 collections" in rendered
+    assert "zip              available          .zip" in rendered
+    assert "tar              available          .tar, .tar.gz, .tgz" in rendered
+    assert "doc-site         available          http://, https://" in rendered
 
 
 def test_default_cli_uses_configured_local_prose_and_detail(
@@ -207,10 +241,64 @@ def test_default_cli_uses_configured_local_prose_and_detail(
     assert observed["config"].reasoning_effort == "none"
     assert observed["config"].product_detail == "deep"
     assert observed["config"].include_findings is False
+    assert observed["config"].fallback_on_failure is False
     assert payload["summary_claims"][0]["content"] == "The source documents a cooling policy."
     assert payload["kind"] == "markdown"
     assert payload["manifest"]["product"]["mode"] == "prose"
     assert payload["manifest"]["product"]["detail"]["name"] == "deep"
+
+
+def test_cli_fallback_is_opt_in_and_labelled_in_the_result(
+    tmp_path, monkeypatch, capsys
+):
+    source = tmp_path / "notes.md"
+    source.write_text("# Notes\n\nGrounded evidence.\n", encoding="utf-8")
+    config_path = tmp_path / "config.toml"
+    monkeypatch.setenv("AUTOTLDR_CONFIG", str(config_path))
+    monkeypatch.delenv("AUTOTLDR_MODEL", raising=False)
+    profile = ModelProfile("http://127.0.0.1:1234", "served-local")
+    write_user_model_config(profile, force=True)
+    observed = {}
+
+    def fake_synthesize(extraction, config):
+        observed["config"] = config
+        return SimpleNamespace(extraction=extraction, used_fallback=True)
+
+    import autotldr.product
+    import autotldr.synthesis
+
+    monkeypatch.setattr(autotldr.synthesis, "synthesize", fake_synthesize)
+    monkeypatch.setattr(
+        autotldr.product,
+        "require_active_model",
+        lambda candidate: RuntimeDiscovery(
+            "lm-studio",
+            candidate.endpoint,
+            (candidate.model,),
+            (candidate.model,),
+            True,
+        ),
+    )
+
+    assert (
+        main(
+            [
+                str(source),
+                "--allow-evidence-fallback",
+                "--out",
+                "json",
+            ]
+        )
+        == 0
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert observed["config"].fallback_on_failure is True
+    assert payload["manifest"]["product"]["mode"] == "evidence-fallback"
+    assert payload["manifest"]["product"]["resolved_config"][
+        "allow_evidence_fallback"
+    ] is True
+    assert payload["summary_claims"] == []
 
 
 def test_explicit_model_off_is_labelled_evidence_mode(tmp_path, monkeypatch, capsys):
@@ -337,6 +425,19 @@ def test_bundled_agent_skill_can_be_installed_without_a_source_checkout(
     assert "Installed AutoTLDR Agent Skill" in capsys.readouterr().out
     assert main(["integrations", "skill", "--install", str(destination)]) == 1
     assert "already exists" in capsys.readouterr().err
+
+    with pytest.raises(SystemExit) as conflicting_actions:
+        main(
+            [
+                "integrations",
+                "skill",
+                "--install",
+                str(tmp_path / "other-skills"),
+                "--print",
+            ]
+        )
+    assert conflicting_actions.value.code == 2
+    assert "not allowed with argument" in capsys.readouterr().err
 
 
 def test_watch_uses_configured_prose_for_files_and_rollup(
@@ -568,3 +669,93 @@ def test_runtime_discovery_never_confuses_catalog_with_active_models(monkeypatch
     )
     assert discovered.active_models == ("loaded-model",)
     assert discover_served_models("http://127.0.0.1:1234") == ("loaded-model",)
+
+
+def test_runtime_discovery_excludes_routed_instance_whose_id_differs_from_key(
+    monkeypatch,
+):
+    import autotldr.product as product
+
+    catalog = {
+        "object": "list",
+        "data": [
+            {"id": "local-model"},
+            {"id": "qwen-on-dynamo"},
+        ],
+    }
+    runtime = {
+        "models": [
+            {
+                "key": "local-model",
+                "type": "llm",
+                "loaded_instances": [{"id": "local-model"}],
+            },
+            {
+                "key": "qwen-catalog-key",
+                "type": "llm",
+                "loaded_instances": [{"id": "qwen-on-dynamo"}],
+            },
+        ]
+    }
+
+    monkeypatch.setattr(
+        product,
+        "_read_runtime_json",
+        lambda url, **_kwargs: runtime if "/api/" in url else catalog,
+    )
+
+    discovered = discover_local_runtime("http://127.0.0.1:1234")
+
+    assert discovered.active_models == ("local-model",)
+    assert discover_served_models("http://127.0.0.1:1234") == ("local-model",)
+
+
+def test_runtime_discovery_rejects_direct_and_routed_loaded_id_collision(
+    monkeypatch,
+):
+    import autotldr.product as product
+
+    catalog = {
+        "object": "list",
+        "data": [{"id": "local-model"}],
+    }
+    runtime = {
+        "models": [
+            {
+                "key": "local-model",
+                "type": "llm",
+                "loaded_instances": [{"id": "local-model"}],
+            },
+            {
+                "key": "remote-route",
+                "type": "llm",
+                "loaded_instances": [{"id": "local-model"}],
+            },
+        ]
+    }
+    monkeypatch.setattr(
+        product,
+        "_read_runtime_json",
+        lambda url, **_kwargs: runtime if "/api/" in url else catalog,
+    )
+
+    with pytest.raises(LocalModelUnavailable, match="duplicate loaded model IDs"):
+        discover_local_runtime("http://127.0.0.1:1234")
+
+
+def test_setup_refuses_explicit_routed_instance(tmp_path, monkeypatch, capsys):
+    import autotldr.product
+
+    config_path = tmp_path / "config.toml"
+    monkeypatch.setenv("AUTOTLDR_CONFIG", str(config_path))
+    monkeypatch.setattr(
+        autotldr.product,
+        "discover_served_models",
+        lambda _endpoint: ("local-model",),
+    )
+
+    assert main(["setup", "--model", "qwen-on-dynamo"]) == 1
+    error = capsys.readouterr().err
+    assert "not active" in error
+    assert "local-model" in error
+    assert not config_path.exists()

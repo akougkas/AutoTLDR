@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import builtins
+import hashlib
 import json
 import re
 import subprocess
@@ -100,6 +101,175 @@ def _share_result(*, oversized: bool = False, fallback: bool = False) -> Extract
     )
 
 
+def _forced_drop_result() -> Extraction:
+    source = "huge.md"
+    retained = Unit(
+        source=source,
+        modality=Modality.PROSE,
+        content="A compact addressable fact.",
+        origin=Origin(source, "line:1", (0, 27)),
+        salience=1.0,
+    )
+    content = "\n".join(
+        f"{index:05d} {hashlib.sha256(str(index).encode()).hexdigest()}"
+        for index in range(1_200)
+    )
+    omitted = Unit(
+        source=source,
+        modality=Modality.CODE,
+        content=content,
+        origin=Origin(source, "line:2", (28, 28 + len(content))),
+        salience=0.0,
+    )
+    statement = GroundedStatement(
+        content="Both addressable records participate in the result.",
+        origins=(retained.origin, omitted.origin),
+        evidence_unit_ids=(retained.id, omitted.id),
+    )
+    return Extraction(
+        source=source,
+        kind="markdown",
+        units=[retained, omitted],
+        summary_claims=[statement],
+    )
+
+
+def _markdown_attack_result() -> Extraction:
+    source = "field`]](https://attacker.test)<script>\x1b\u202e.md"
+    prose = Unit(
+        source=source,
+        modality=Modality.PROSE,
+        content=(
+            "Visible <script>alert(1)</script> & bounded.\x1b\u202e\n"
+            "# forged heading\n"
+            "- forged list\n"
+            "1. forged ordered\n"
+            "> forged quote\n"
+            "[forged](https://attacker.test)"
+        ),
+        origin=Origin(source, "line:`1]\n# forged origin", (0, 131)),
+        structure=("# forged structure", "<script> section"),
+        salience=1.0,
+    )
+    code = Unit(
+        source=source,
+        modality=Modality.CODE,
+        content=(
+            "print('<safe>')\n"
+            "```\n"
+            "# code stays code\n"
+            "````\n"
+            "<script>code</script>\x07\u2066"
+        ),
+        origin=Origin(source, "cell:`2", (132, 211)),
+        structure=("> forged code structure",),
+        salience=0.9,
+        meta={"language": "python` {.evil}\x1b\u202e"},
+    )
+    statement = GroundedStatement(
+        content=(
+            "Claim <script>claim</script>\n# forged claim "
+            "[link](https://attacker.test)\x1b\u202e"
+        ),
+        origins=(prose.origin, code.origin),
+        evidence_unit_ids=(prose.id, code.id),
+    )
+    return Extraction(
+        source="subject <script>\x1b\u202e`",
+        kind="collection",
+        units=[prose, code],
+        relations=[
+            Relation(
+                prose.id,
+                code.id,
+                RelationKind.DERIVES_FROM,
+                "<img src=x>\n# forged relation\x1b\u202e",
+            )
+        ],
+        gaps=[
+            Gap(
+                "Gap </script>\n> forged gap [x](https://attacker.test)\u2066",
+                prose.origin,
+            )
+        ],
+        summary_claims=[statement],
+    )
+
+
+@pytest.mark.parametrize("cite", [True, False])
+def test_markdown_treats_every_source_field_as_untrusted(cite: bool) -> None:
+    result = _markdown_attack_result()
+    text = render(result, output="md", cite=cite)
+
+    assert "\x1b" not in text
+    assert "\u202e" not in text
+    assert "\u2066" not in text
+    assert "\\\\x1b" in text
+    assert "\\\\u202e" in text
+    assert "\\<script\\>" in text
+    assert "\\[forged\\](https://attacker.test)" in text
+    assert re.search(
+        r"(?m)^(?:#{1,6}|>|[-+*] |\d{1,9}[.)] )forged",
+        text,
+    ) is None
+    assert "\\# forged heading" in text
+    assert "\\- forged list" in text
+    assert "1\\. forged ordered" in text
+    assert "\\> forged quote" in text
+
+    opening = re.search(r"(?m)^(`{5,})([^\s`]*)$", text)
+    assert opening is not None
+    fence, language = opening.groups()
+    assert re.fullmatch(r"[A-Za-z0-9+_.-]+", language)
+    assert text.count(f"\n{fence}\n") == 1
+    assert "```\n# code stays code\n````" in text
+    assert "<script>code</script>\\x07\\u2066" in text
+
+    for renderer_heading in ("# AutoTLDR:", "## Units", "## Relations", "## Gaps"):
+        assert renderer_heading in text
+    if cite:
+        assert re.search(r"(?<!\\)\]\(https://attacker\.test", text) is None
+    else:
+        assert "## Source map" in text
+        assert result.units[0].id in text
+        assert "statement-" + result.summary_claims[0].id in text
+
+
+@pytest.mark.parametrize("shape", ["ansi", "md", "html"])
+def test_budgeted_no_cite_drop_origins_move_to_source_map(shape: str) -> None:
+    result = _forced_drop_result()
+    omitted = result.units[1]
+    statement = result.summary_claims[0]
+
+    with pytest.raises(BudgetTooSmall) as raised:
+        render(result, output=shape, cite=False, budget=1)
+    text = render(
+        result,
+        output=shape,
+        cite=False,
+        budget=raised.value.required,
+    )
+
+    assert len(text.encode("utf-8")) == raised.value.required
+    assert "drop-v1/unit" in text
+    assert "drop-v1/statement" in text
+    assert omitted.id in text
+    assert f"statement-{statement.id}" in text
+    origin = render_module._source_map_origin_label(omitted.origin)
+    if shape == "html":
+        source_map = text[text.index('<section id="references"') : text.index('</section>', text.index('<section id="references"'))]
+        selection = text[text.index('<section id="selection"') :]
+        assert origin in unescape(source_map)
+    elif shape == "md":
+        source_map, selection = text.split("## Selection", 1)
+        assert origin in source_map
+    else:
+        source_map, selection = text.split("Selection\n", 1)
+        assert origin in source_map
+    assert '"origin":' not in selection
+    assert '"origins":' not in selection
+
+
 def test_html_is_self_contained_control_safe_semantic_and_fully_linked() -> None:
     result = _share_result()
     text = render(result, output="html")
@@ -146,6 +316,65 @@ def test_html_is_self_contained_control_safe_semantic_and_fully_linked() -> None
             assert f'data-unit-id="{unit_id}"' in text
     assert "Model synthesis" in text
     assert "zbook-local/&lt;model&gt; · accepted" in text
+
+
+def test_html_no_cite_uses_stable_keys_and_a_plain_source_map() -> None:
+    result = _share_result()
+    text = render(result, output="html", cite=False)
+    bundle = render_module._prepare_bundle(
+        result,
+        set(range(len(result.units))),
+        requested=None,
+        used=0,
+        available=0,
+    )
+    probe = _HTMLProbe()
+    probe.feed(text)
+
+    origin_targets = {
+        render_module._origin_target(unit.origin) for unit in result.units
+    }
+    origin_targets.update(
+        render_module._origin_target(origin)
+        for statement in result.summary_claims
+        for origin in statement.origins
+    )
+    origin_targets.update(
+        render_module._origin_target(gap.origin) for gap in result.gaps
+    )
+
+    assert origin_targets.isdisjoint(probe.hrefs)
+    assert all(href.startswith("#") for href in probe.hrefs)
+    assert 'class="origin-link"' not in text
+    assert 'class="reference-link"' not in text
+    assert "a.claim-primary::after" in text
+    assert "\n.claim-primary::after" not in text
+    assert "Source map" in "".join(probe.data)
+    for statement in result.summary_claims:
+        assert f"Summary key: <code>statement-{statement.id}</code>" in text
+        assert f"<code>statement-{statement.id}</code> →" in text
+    for unit in result.units:
+        assert f"Origin key: <code>{unit.id}</code>" in text
+        assert f"<code>{unit.id}</code> →" in text
+    for gap in bundle.gaps:
+        assert f"Gap key: <code>gap-{gap.id}</code>" in text
+        assert f"<code>gap-{gap.id}</code> →" in text
+
+
+def test_html_no_cite_budget_remains_an_exact_complete_output_ceiling() -> None:
+    result = _share_result(oversized=True)
+    with pytest.raises(BudgetTooSmall) as raised:
+        render(result, output="html", cite=False, budget=1)
+
+    text = render(
+        result,
+        output="html",
+        cite=False,
+        budget=raised.value.required,
+    )
+
+    assert len(text.encode("utf-8")) == raised.value.required
+    assert f'data-requested="{raised.value.required}"' in text
 
 
 def test_html_reports_grounded_model_fallback_compactly() -> None:
@@ -272,6 +501,40 @@ def test_pdf_is_a4_paginated_linked_and_byte_deterministic() -> None:
             "trapped": "",
             "encryption": None,
         }
+
+
+def test_pdf_no_cite_inherits_the_plain_source_map_without_origin_uris() -> None:
+    pymupdf = pytest.importorskip("pymupdf")
+    result = _share_result()
+    bundle = render_module._prepare_bundle(
+        result,
+        set(range(len(result.units))),
+        requested=None,
+        used=0,
+        available=0,
+    )
+
+    unlimited = render_pdf(result, cite=False)
+    bounded = render_pdf(result, cite=False, budget=len(unlimited))
+
+    assert len(bounded) <= len(unlimited)
+    with pymupdf.open(stream=bounded, filetype="pdf") as document:
+        text = "\n".join(page.get_text() for page in document)
+        links = [link for page in document for link in page.get_links()]
+    compact = "".join(text.split())
+    assert "Sourcemap" in compact
+    assert not any(link.get("uri") for link in links)
+    for statement in result.summary_claims:
+        assert f"statement-{statement.id}" in compact
+    for unit in result.units:
+        assert unit.id in compact
+    for gap in bundle.gaps:
+        assert f"gap-{gap.id}" in compact
+
+    with pytest.raises(BudgetTooSmall) as raised:
+        render_pdf(result, cite=False, budget=1)
+    minimum = render_pdf(result, cite=False, budget=raised.value.required)
+    assert len(minimum) == raised.value.required
 
 
 def test_pdf_budget_is_complete_exact_and_never_truncates() -> None:

@@ -6,6 +6,7 @@ import zipfile
 
 import pytest
 
+from autotldr.extract import html as html_module
 from autotldr.router import UnsupportedFormat, extract
 from autotldr.unit import Modality, Role
 
@@ -32,6 +33,32 @@ def test_local_html_removes_chrome_and_keeps_element_provenance(tmp_path):
     refs = [unit for unit in result.units if unit.modality is Modality.REFERENCE]
     assert refs and refs[0].meta["target"] == "details.html"
     assert all(unit.role is Role.UNKNOWN for unit in result.units)
+
+
+def test_short_linked_html_survives_optional_main_content_filter(monkeypatch):
+    source = (
+        "<main><h1>Guide</h1><p>Alpha serves reports. Read the "
+        '<a href="detail.html">capacity detail</a>.</p></main>'
+    )
+    monkeypatch.setattr(
+        html_module,
+        "_trafilatura_text",
+        lambda _text: ("Guide", "trafilatura"),
+    )
+
+    result = html_module.extract_html(source, source="guide.html")
+
+    assert any(unit.content == "Alpha serves reports. Read the capacity detail." for unit in result.units)
+    reference = next(
+        unit for unit in result.units if unit.modality is Modality.REFERENCE
+    )
+    assert reference.meta["target"] == "detail.html"
+    assert reference.origin.source == "guide.html"
+    assert result.meta["addressable_blocks"] == 2
+    assert result.meta["emitted_blocks"] == 2
+    assert result.meta["trafilatura_mapped_blocks"] == 1
+    assert result.meta["linked_blocks_retained"] == 1
+    assert not result.gaps
 
 
 def test_latex_recovers_sections_equations_labels_and_citations(tmp_path):
@@ -76,6 +103,39 @@ See Equation~\ref{eq:relay}.
     assert not any(target.startswith("org/") for target in targets)
     assert all(unit.origin.ref.startswith("line:") for unit in result.units)
     assert any("not expanded" in gap for gap in result.gaps)
+    assert all(unit.role is Role.UNKNOWN for unit in result.units)
+
+
+def test_latex_recovers_compact_section_prose_and_equation_boundaries(tmp_path):
+    source = tmp_path / "compact.tex"
+    source.write_text(
+        r"\section{Alpha {model}} Alpha serves reports."
+        r"\begin{equation}x=42\label{eq:answer}\end{equation}"
+        r" Continue safely.",
+        encoding="utf-8",
+    )
+
+    result = extract(source)
+
+    semantic = [
+        unit for unit in result.units if unit.modality is not Modality.REFERENCE
+    ]
+    assert [unit.content for unit in semantic] == [
+        "Alpha {model}",
+        "Alpha serves reports.",
+        r"\begin{equation}x=42\label{eq:answer}\end{equation}",
+        "Continue safely.",
+    ]
+    assert [unit.modality for unit in semantic] == [
+        Modality.PROSE,
+        Modality.PROSE,
+        Modality.EQUATION,
+        Modality.PROSE,
+    ]
+    assert semantic[0].meta["heading"] is True
+    assert semantic[2].meta["labels"] == ["eq:answer"]
+    assert all(unit.structure == ("Alpha {model}",) for unit in semantic)
+    assert all(unit.origin.ref == "line:1" for unit in semantic)
     assert all(unit.role is Role.UNKNOWN for unit in result.units)
 
 

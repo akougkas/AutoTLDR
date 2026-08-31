@@ -42,6 +42,7 @@ _MAX_SOURCE_CHARS = 4096
 _MAX_BUDGET = 10_000_000
 _DEFAULT_OUTPUT = "md"
 _DEFAULT_BUDGET = 65_536
+_METADATA_TTL_MS = 3_600_000
 _STORE: _TaskStore | None = None
 _STORE_LOCK = threading.Lock()
 
@@ -86,8 +87,10 @@ _TOOL_INPUT_SCHEMA: dict[str, Any] = {
         },
         "allowEvidenceFallback": {
             "type": "boolean",
-            "default": False,
-            "description": "Return a labelled evidence map if prose synthesis fails.",
+            "description": (
+                "Override configured fallback policy. Omit this field to use the "
+                "shared AutoTLDR configuration; true or false is authoritative."
+            ),
         },
     },
     "required": ["sources"],
@@ -337,7 +340,7 @@ class MCPServer:
                     "Summarize paths within configured roots only. No remote source "
                     "or model endpoint is allowed."
                 ),
-                "ttlMs": 3_600_000,
+                "ttlMs": _METADATA_TTL_MS,
                 "cacheScope": "public",
                 "_meta": _SERVER_META,
             }
@@ -351,6 +354,8 @@ class MCPServer:
             return {
                 "resultType": "complete",
                 "tools": [_TOOL],
+                "ttlMs": _METADATA_TTL_MS,
+                "cacheScope": "public",
                 "_meta": _SERVER_META,
             }
         if method == "tools/call":
@@ -530,9 +535,9 @@ def _validate_arguments(
     mode = arguments.get("mode", "prose")
     if mode not in {"prose", "evidence"}:
         raise _InvalidParams("mode must be prose or evidence")
-    fallback = arguments.get("allowEvidenceFallback", False)
-    if not isinstance(fallback, bool):
-        raise _InvalidParams("allowEvidenceFallback must be a boolean")
+    fallback = arguments.get("allowEvidenceFallback")
+    if "allowEvidenceFallback" in arguments and not isinstance(fallback, bool):
+        raise _InvalidParams("allowEvidenceFallback must be a boolean when supplied")
     return {
         "sources": sources,
         "output": output,
@@ -609,13 +614,14 @@ def _execute_tool(arguments: dict[str, Any]) -> dict[str, Any]:
             color=False,
         )
         rendered = result.rendered
+        mode, detail = _effective_product_fields(result, arguments)
         structured: dict[str, Any] = {
             "format": arguments["output"],
             "byteLength": len(rendered.encode("utf-8")),
             "budget": arguments["budget"],
             "estimator": "utf8-byte-v1",
-            "mode": arguments["mode"],
-            "detail": arguments["detail"],
+            "mode": mode,
+            "detail": detail,
         }
         if arguments["output"] == "json":
             structured["artifact"] = json.loads(rendered)
@@ -635,6 +641,29 @@ def _execute_tool(arguments: dict[str, Any]) -> dict[str, Any]:
             "isError": True,
             "_meta": _SERVER_META,
         }
+
+
+def _effective_product_fields(
+    result: Any, arguments: dict[str, Any]
+) -> tuple[str, str | None]:
+    """Report resolved product policy rather than merely echoing request input."""
+
+    mode = arguments["mode"]
+    detail = arguments["detail"]
+    extraction = getattr(result, "extraction", None)
+    meta = getattr(extraction, "meta", None)
+    product = meta.get("product") if isinstance(meta, dict) else None
+    if not isinstance(product, dict):
+        return mode, detail
+    resolved_mode = product.get("mode")
+    resolved_detail = product.get("detail")
+    if isinstance(resolved_mode, str):
+        mode = resolved_mode
+    if isinstance(resolved_detail, dict) and isinstance(
+        resolved_detail.get("name"), str
+    ):
+        detail = resolved_detail["name"]
+    return mode, detail
 
 
 def _named_tool_error(exc: Exception) -> tuple[str, str]:

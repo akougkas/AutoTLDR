@@ -13,7 +13,9 @@ from pathlib import Path
 
 from ..unit import Extraction, Modality, Origin, Role, Unit
 
-_SECTION = re.compile(r"^\s*\\(part|chapter|section|subsection|subsubsection)\*?\{(.+?)\}\s*$")
+_SECTION_START = re.compile(
+    r"^\\(part|chapter|section|subsection|subsubsection)\*?\{"
+)
 _BEGIN = re.compile(r"^\s*\\begin\{([^}]+)\}(?:\[([^]]+)\])?")
 _END = re.compile(r"^\s*\\end\{([^}]+)\}")
 _LABEL = re.compile(r"\\label\{([^}]+)\}")
@@ -24,6 +26,18 @@ _MACRO = re.compile(r"\\(?:newcommand|renewcommand|def)\b")
 _LEVEL = {"part": 0, "chapter": 1, "section": 2, "subsection": 3, "subsubsection": 4}
 _EQUATIONS = {"equation", "equation*", "align", "align*", "gather", "gather*", "multline", "multline*"}
 _THEOREMS = {"theorem", "lemma", "proposition", "corollary", "definition", "proof"}
+_COMPACT_ENVIRONMENTS = "|".join(
+    re.escape(name)
+    for name in sorted(
+        _EQUATIONS | _THEOREMS,
+        key=lambda value: (-len(value), value),
+    )
+)
+_COMPACT_BEGIN = re.compile(
+    r"\\begin\{("
+    + _COMPACT_ENVIRONMENTS
+    + r")\}(?:\[([^]]+)\])?"
+)
 
 
 def extract(path: Path) -> Extraction:
@@ -65,9 +79,9 @@ def extract(path: Path) -> Extraction:
         raw = lines[index]
         clean = _strip_comment(raw).strip()
 
-        if match := _SECTION.match(clean):
+        if section := _section_prefix(clean):
             flush(line_no - 1)
-            command, title = match.groups()
+            command, title, clean = section
             level = _LEVEL[command]
             while headings and headings[-1][0] >= level:
                 headings.pop()
@@ -89,6 +103,60 @@ def extract(path: Path) -> Extraction:
                 },
                 salience=max(0.5, 1.0 - level * 0.08),
             )
+            if not clean:
+                index += 1
+                continue
+
+        compact = _compact_environment_segments(clean)
+        if compact is not None:
+            flush(line_no - 1)
+            structure = tuple(value for _, value in headings)
+            for segment_kind, body, environment, title in compact:
+                if segment_kind == "prose":
+                    _emit(
+                        result,
+                        source,
+                        body,
+                        line_no,
+                        line_no,
+                        offsets,
+                        Modality.PROSE,
+                        structure,
+                        {"latex": True},
+                    )
+                    continue
+                assert environment is not None
+                labels = _LABEL.findall(body)
+                _emit(
+                    result,
+                    source,
+                    body,
+                    line_no,
+                    line_no,
+                    offsets,
+                    (
+                        Modality.EQUATION
+                        if environment in _EQUATIONS
+                        else Modality.PROSE
+                    ),
+                    structure,
+                    {
+                        "environment": environment,
+                        "title": title,
+                        "labels": labels or None,
+                        "theorem": environment in _THEOREMS,
+                    },
+                    salience=0.75,
+                )
+                _references(
+                    result,
+                    source,
+                    body,
+                    line_no,
+                    line_no,
+                    offsets,
+                    structure,
+                )
             index += 1
             continue
 
@@ -165,6 +233,80 @@ def extract(path: Path) -> Extraction:
         }
     )
     return result
+
+
+def _section_prefix(value: str) -> tuple[str, str, str] | None:
+    """Return one balanced leading section command and its same-line tail."""
+
+    match = _SECTION_START.match(value)
+    if match is None:
+        return None
+    opening = match.end() - 1
+    depth = 0
+    for index in range(opening, len(value)):
+        char = value[index]
+        if char not in "{}" or _is_escaped(value, index):
+            continue
+        if char == "{":
+            depth += 1
+            continue
+        depth -= 1
+        if depth == 0:
+            title = value[opening + 1 : index].strip()
+            if not title:
+                return None
+            return match.group(1), title, value[index + 1 :].strip()
+    return None
+
+
+def _is_escaped(value: str, index: int) -> bool:
+    backslashes = 0
+    index -= 1
+    while index >= 0 and value[index] == "\\":
+        backslashes += 1
+        index -= 1
+    return backslashes % 2 == 1
+
+
+def _compact_environment_segments(
+    value: str,
+) -> list[tuple[str, str, str | None, str | None]] | None:
+    """Split complete same-line theorem/equation environments from prose.
+
+    A missing closing command returns ``None`` so the existing multi-line
+    environment path remains authoritative.  The scanner is deliberately
+    limited to environments this extractor already understands.
+    """
+
+    cursor = 0
+    segments: list[tuple[str, str, str | None, str | None]] = []
+    found = False
+    while match := _COMPACT_BEGIN.search(value, cursor):
+        environment = match.group(1)
+        closing = f"\\end{{{environment}}}"
+        end_start = value.find(closing, match.end())
+        if end_start < 0:
+            return None
+        prefix = value[cursor : match.start()].strip()
+        if prefix:
+            segments.append(("prose", prefix, None, None))
+        end = end_start + len(closing)
+        segments.append(
+            (
+                "environment",
+                value[match.start() : end].strip(),
+                environment,
+                match.group(2),
+            )
+        )
+        found = True
+        cursor = end
+    if not found:
+        return None
+    suffix = value[cursor:].strip()
+    if suffix:
+        segments.append(("prose", suffix, None, None))
+    return segments
 
 
 def _emit(

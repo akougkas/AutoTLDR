@@ -22,24 +22,28 @@ class AutoTLDRResult:
 
 
 def acquire(
-    sources: Sequence[str | Path],
+    sources: Sequence[str | Path] | str | Path,
     *,
     input_type: str | None = None,
     crawl: bool = False,
     stdin: str | bytes | None = None,
     registry: Any | None = None,
+    acquirer: str | None = None,
 ) -> Any:
     """Acquire and, when needed, fuse one or more sources.
 
-    ``sources`` accepts local files, directories/repositories, supported
+    ``sources`` accepts one source or a sequence of local files,
+    directories/repositories, supported
     archives, HTTP(S) URLs, and ``"-"`` for an explicitly supplied ``stdin``
     payload.  Tier 2 acquisition outcomes remain attached to the returned
-    collection.  No synthesis or rendering occurs here.
+    collection.  ``acquirer`` explicitly selects a registered collection
+    acquisition adapter for one non-stdin source.  No synthesis or rendering
+    occurs here.
     """
 
     from . import router
 
-    normalized = tuple(str(source) for source in sources)
+    normalized = _normalize_sources(sources)
     if not normalized:
         raise ValueError("at least one source is required")
     if len(set(normalized)) != len(normalized):
@@ -58,6 +62,27 @@ def acquire(
         raise ValueError("crawl requires exactly one HTTP(S) source")
     if crawl and input_type is not None:
         raise ValueError("input_type cannot be combined with crawl")
+    if acquirer is not None:
+        if registry is None:
+            raise ValueError("acquirer requires an explicit extension registry")
+        if len(normalized) != 1 or normalized[0] == "-":
+            raise ValueError("acquirer requires exactly one non-stdin source")
+        if crawl or input_type is not None:
+            raise ValueError("acquirer cannot be combined with crawl or input_type")
+        acquisition, spec = _run_extension_acquirer(
+            normalized[0], acquirer, registry
+        )
+        result = assemble_collection(
+            acquisition.extractions,
+            subject=acquisition.source,
+            acquisitions=(acquisition,),
+        )
+        result.meta["extensions"] = {
+            "schema": "autotldr-explicit-extension-run-v1",
+            "capabilities": registry.capability_manifest(),
+        }
+        result.meta["extension_acquisition"] = spec.as_manifest()
+        return result
 
     results: list[Any] = []
     acquisitions: list[Any] = []
@@ -183,7 +208,7 @@ def assemble_collection(
 
 
 def summarize(
-    sources: Sequence[str | Path],
+    sources: Sequence[str | Path] | str | Path,
     *,
     input_type: str | None = None,
     crawl: bool = False,
@@ -195,6 +220,7 @@ def summarize(
     cite: bool = True,
     color: bool = False,
     registry: Any | None = None,
+    acquirer: str | None = None,
 ) -> AutoTLDRResult:
     """Run the complete composable pipeline and return text plus typed state.
 
@@ -210,6 +236,7 @@ def summarize(
         crawl=crawl,
         stdin=stdin,
         registry=registry,
+        acquirer=acquirer,
     )
     synthesis_result = None
     if synthesis_config is not None:
@@ -365,7 +392,7 @@ def apply_product_synthesis(
 
 
 def summarize_product(
-    sources: Sequence[str | Path],
+    sources: Sequence[str | Path] | str | Path,
     *,
     detail: str | None = None,
     mode: str = "prose",
@@ -380,6 +407,7 @@ def summarize_product(
     cite: bool = True,
     color: bool = False,
     registry: Any | None = None,
+    acquirer: str | None = None,
     client: Any | None = None,
 ) -> AutoTLDRResult:
     """Run acquisition, the product synthesis policy, and one output projection."""
@@ -403,6 +431,7 @@ def summarize_product(
         crawl=crawl,
         stdin=stdin,
         registry=registry,
+        acquirer=acquirer,
     )
     extraction, synthesis_result = apply_product_synthesis(
         extraction,
@@ -448,6 +477,112 @@ def _load_product_extensions(references: Sequence[str]) -> Any:
     validate_acquisitions(registry)
     validate_renderers(registry)
     return registry
+
+
+def _normalize_sources(
+    sources: Sequence[str | Path] | str | Path,
+) -> tuple[str, ...]:
+    """Treat one path as one source without iterating over its characters."""
+
+    if isinstance(sources, (str, Path)):
+        return (str(sources),)
+    return tuple(str(source) for source in sources)
+
+
+def _run_extension_acquirer(
+    source: str, name: str, registry: Any
+) -> tuple[Any, Any]:
+    """Invoke one explicitly selected collection adapter behind a closed seam."""
+
+    from . import router
+    from .collection import validate_extension_registry as validate_acquisitions
+    from .extensions import (
+        ExtensionConformanceError,
+        ExtensionRegistry,
+        validate_acquisition_output,
+    )
+    from .render import validate_extension_registry as validate_renderers
+
+    if not isinstance(registry, ExtensionRegistry):
+        raise TypeError("registry must be an ExtensionRegistry")
+    router.validate_extension_registry(registry)
+    validate_acquisitions(registry)
+    validate_renderers(registry)
+    try:
+        spec = registry.get_acquisition(name)
+    except LookupError:
+        raise ValueError(
+            f"unknown extension acquisition adapter: {name}"
+        ) from None
+    adapter = registry.resolve_acquisition(spec)
+    try:
+        raw = adapter(source)
+    except Exception:
+        raise ExtensionConformanceError(
+            f"extension acquisition adapter {spec.name!r} failed"
+        ) from None
+    acquisition = validate_acquisition_output(raw)
+    _validate_extension_acquisition(acquisition, spec=spec)
+    return acquisition, spec
+
+
+def _validate_extension_acquisition(acquisition: Any, *, spec: Any) -> None:
+    """Require exact routed leaves before an extension collection may fuse."""
+
+    import json
+    import re
+
+    from .extensions import ExtensionConformanceError
+    from .render import _validate_result
+
+    if not acquisition.extractions and not acquisition.declines:
+        raise ExtensionConformanceError(
+            f"extension acquisition adapter {spec.name!r} returned an empty success"
+        )
+    try:
+        json.dumps(
+            acquisition.manifest,
+            ensure_ascii=False,
+            sort_keys=True,
+            allow_nan=False,
+        ).encode("utf-8", errors="strict")
+    except (TypeError, ValueError, UnicodeError):
+        raise ExtensionConformanceError(
+            f"extension acquisition adapter {spec.name!r} returned a non-canonical manifest"
+        ) from None
+
+    for extraction in acquisition.extractions:
+        try:
+            _validate_result(extraction)
+        except (TypeError, ValueError):
+            raise ExtensionConformanceError(
+                f"extension acquisition adapter {spec.name!r} returned an invalid routed leaf"
+            ) from None
+        inputs = extraction.meta.get("inputs")
+        if (
+            not isinstance(inputs, list)
+            or len(inputs) != 1
+            or not isinstance(inputs[0], dict)
+        ):
+            raise ExtensionConformanceError(
+                f"extension acquisition adapter {spec.name!r} returned a leaf "
+                "without one exact input manifest"
+            )
+        record = inputs[0]
+        digest = record.get("sha256")
+        byte_count = record.get("bytes")
+        if (
+            record.get("source") != extraction.source
+            or not isinstance(byte_count, int)
+            or isinstance(byte_count, bool)
+            or byte_count < 0
+            or not isinstance(digest, str)
+            or re.fullmatch(r"[0-9a-f]{64}", digest) is None
+        ):
+            raise ExtensionConformanceError(
+                f"extension acquisition adapter {spec.name!r} returned an "
+                "inexact leaf input manifest"
+            )
 
 
 def _acquire_collection(source: str | Path, *, registry: Any | None) -> Any:
