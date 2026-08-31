@@ -992,6 +992,7 @@ a { color: #315f55; text-decoration: underline; }
 a:hover, a:focus { color: #b84a2b; }
 .skip-link { position: absolute; left: -9999px; }
 .skip-link:focus { left: 16px; top: 16px; background: #fffdf7; padding: 8px; }
+.visually-hidden { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .masthead, main, .document-footer { max-width: 1050px; margin: 0 auto; padding-left: 20px; padding-right: 20px; }
 .masthead { padding-top: 50px; padding-bottom: 28px; border-bottom: 4px solid #1c2525; }
 .kicker { color: #b84a2b; font-family: "Cascadia Mono", Menlo, Consolas, monospace; font-size: 11px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; }
@@ -1120,15 +1121,161 @@ def _model_presentation(bundle: Bundle) -> tuple[str, str, str]:
     return "Model run", f"{model_label} · {outcome_label}", "warning"
 
 
+def _product_presentation(bundle: Bundle) -> tuple[str | None, str | None]:
+    """Return product mode/detail when the first-user pipeline recorded them."""
+
+    product = bundle.manifest.get("product")
+    if not isinstance(product, dict):
+        return None, None
+    mode = product.get("mode")
+    detail = product.get("detail")
+    detail_name = detail.get("name") if isinstance(detail, dict) else detail
+    return (
+        mode if isinstance(mode, str) else None,
+        detail_name if isinstance(detail_name, str) else None,
+    )
+
+
+def _presented_units(bundle: Bundle) -> list[Unit]:
+    """Choose the human ledger for a detail level without changing the IR.
+
+    JSON/JSONL continue to carry the complete budget projection.  Human detail is a
+    presentation decision: claims retain direct origins even when the supporting unit is
+    not repeated in the visible ledger.
+    """
+
+    mode, detail = _product_presentation(bundle)
+    if mode is None or detail == "deep":
+        return list(bundle.units)
+    cited = {
+        unit_id
+        for statement in bundle.summary_claims
+        for unit_id in statement.evidence_unit_ids
+    }
+    if detail == "brief" and cited:
+        return [unit for unit in bundle.units if unit.id in cited]
+    maximum = 6 if detail == "brief" else 24
+    ranked = sorted(
+        enumerate(bundle.units),
+        key=lambda item: (-item[1].salience, item[0]),
+    )
+    selected = set(cited)
+    selected.update(unit.id for _index, unit in ranked[:maximum])
+    return [unit for unit in bundle.units if unit.id in selected]
+
+
+def _presented_relations(bundle: Bundle, units: list[Unit]) -> list[Relation]:
+    if len(units) == len(bundle.units):
+        return list(bundle.relations)
+    visible = {unit.id for unit in units}
+    return [
+        relation
+        for relation in bundle.relations
+        if relation.src in visible and relation.dst in visible
+    ]
+
+
+def _unit_display_label(unit: Unit) -> str:
+    if unit.structure:
+        return " › ".join(unit.structure)
+    first = " ".join(unit.content.split())
+    return first if len(first) <= 72 else first[:69] + "…"
+
+
+def _source_inventory(bundle: Bundle) -> list[dict[str, object]]:
+    """Return successful and declined source rows from the canonical manifest."""
+
+    rows: list[dict[str, object]] = []
+    seen: set[tuple[str, str]] = set()
+    inputs = bundle.manifest.get("inputs")
+    if isinstance(inputs, list):
+        for item in inputs:
+            if not isinstance(item, dict) or not isinstance(item.get("source"), str):
+                continue
+            row = {
+                "source": item["source"],
+                "status": "extracted",
+                "kind": item.get("kind", "unknown"),
+                "tier": item.get("tier"),
+                "bytes": item.get("bytes"),
+            }
+            key = (str(row["source"]), str(row["status"]))
+            if key not in seen:
+                rows.append(row)
+                seen.add(key)
+    acquisitions = bundle.manifest.get("collection_acquisitions")
+    if isinstance(acquisitions, list):
+        for acquisition in acquisitions:
+            members = acquisition.get("members") if isinstance(acquisition, dict) else None
+            if not isinstance(members, list):
+                continue
+            for member in members:
+                if not isinstance(member, dict):
+                    continue
+                source = member.get("source")
+                status = member.get("status")
+                if not isinstance(source, str) or not isinstance(status, str):
+                    continue
+                if status == "extracted":
+                    continue
+                row = {
+                    "source": source,
+                    "status": status,
+                    "kind": member.get("detected_kind", member.get("kind", "unknown")),
+                    "tier": member.get("tier"),
+                    "bytes": member.get("bytes"),
+                }
+                key = (source, status)
+                if key not in seen:
+                    rows.append(row)
+                    seen.add(key)
+    return rows
+
+
+def _presented_sources(bundle: Bundle) -> tuple[list[dict[str, object]], int]:
+    rows = _source_inventory(bundle)
+    _mode, detail = _product_presentation(bundle)
+    maximum = 8 if detail == "brief" else 24 if detail == "standard" else len(rows)
+    # Declines and ignores are the most important rows not to hide in a compact view.
+    ranked = sorted(
+        enumerate(rows),
+        key=lambda item: (item[1].get("status") == "extracted", item[0]),
+    )
+    chosen = {index for index, _row in ranked[:maximum]}
+    return [row for index, row in enumerate(rows) if index in chosen], len(rows)
+
+
+def _source_row_label(row: dict[str, object]) -> str:
+    status = str(row.get("status", "unknown"))
+    kind = str(row.get("kind", "unknown"))
+    tier = row.get("tier")
+    byte_count = row.get("bytes")
+    details = [status, kind]
+    if isinstance(tier, int) and not isinstance(tier, bool):
+        details.append(f"Tier {tier}")
+    if isinstance(byte_count, int) and not isinstance(byte_count, bool):
+        details.append(f"{byte_count} bytes")
+    return " · ".join(details)
+
+
 def _build_html(bundle: Bundle, options: _RenderOptions) -> str:
     """Build one self-contained, navigable UTF-8 HTML5 artifact."""
 
     unit_by_id = {unit.id: unit for unit in bundle.units}
+    presented_units = _presented_units(bundle)
+    presented_relations = _presented_relations(bundle, presented_units)
+    product_mode, product_detail = _product_presentation(bundle)
+    presented_sources, source_count = _presented_sources(bundle)
     model_label, model_detail, model_state = _model_presentation(bundle)
     selection = bundle.selection
     dropped = selection["dropped"]
     requested = selection["requested"]
     ceiling = str(requested) if requested is not None else "unlimited"
+    evidence_status = (
+        f'{len(presented_units)} of {selection["selected_units"]} units'
+        if product_mode is not None
+        else f'{selection["selected_units"]} units'
+    )
 
     lines = [
         "<!doctype html>",
@@ -1150,7 +1297,7 @@ def _build_html(bundle: Bundle, options: _RenderOptions) -> str:
         '<p class="dek">A bounded semantic brief with addressable evidence and an explicit omission audit.</p>',
         '<div class="status-rail" aria-label="Artifact status">',
         f'<div class="status-card status-{model_state}"><span class="status-label">Synthesis</span><strong>{_html_safe(model_label)}</strong><span>{_html_safe(model_detail)}</span></div>',
-        f'<div class="status-card"><span class="status-label">Selected</span><strong>{selection["selected_units"]} units · {selection["selected_statements"]} claims</strong><span>{dropped["unit_count"]} units omitted for budget</span></div>',
+        f'<div class="status-card"><span class="status-label">{"Presented" if product_mode is not None else "Selected"}</span><strong>{evidence_status} · {selection["selected_statements"]} claims</strong><span>{dropped["unit_count"]} units omitted for budget</span></div>',
         f'<div class="status-card"><span class="status-label">Portable budget</span><strong>{selection["used"]} / {_html_safe(ceiling)} bytes</strong><span>{_html_safe(selection["counter"])} · {_html_safe(selection["scope"])}</span></div>',
         "</div>",
         "</header>",
@@ -1189,12 +1336,53 @@ def _build_html(bundle: Bundle, options: _RenderOptions) -> str:
         lines.append("</ol>")
     else:
         lines.append(f'<p class="model-note">{_html_safe(_bundle_summary(bundle))}</p>')
-    lines.extend(["</section>", '<section id="units" aria-labelledby="units-title">', '<h2 id="units-title" data-index="02"><span class="h2-index">02</span> Evidence ledger</h2>'])
-    if not bundle.units:
+    lines.append("</section>")
+    if product_mode is not None:
+        lines.extend(
+            [
+                '<section id="sources" aria-labelledby="sources-title">',
+                '<h2 id="sources-title" data-index="02"><span class="h2-index">02</span> Sources</h2>',
+            ]
+        )
+        if presented_sources:
+            lines.append('<ul class="references">')
+            for row in presented_sources:
+                source = str(row["source"])
+                target = _origin_target(Origin(source, "source"))
+                lines.append(
+                    '<li class="reference">'
+                    f'<a class="reference-link" href="{_html_safe(target, attribute=True)}">'
+                    f'{_html_safe(source)}</a> · {_html_safe(_source_row_label(row))}</li>'
+                )
+            lines.append("</ul>")
+            if len(presented_sources) != source_count:
+                lines.append(
+                    f'<p class="model-note">Showing {len(presented_sources)} of '
+                    f'{source_count} sources at {_html_safe(product_detail or "standard")} detail. '
+                    'JSON and JSONL retain the complete inventory.</p>'
+                )
+        else:
+            lines.append('<p class="empty">No acquired source records.</p>')
+        lines.append("</section>")
+    evidence_index = "03" if product_mode is not None else "02"
+    lines.extend(
+        [
+            '<section id="units" aria-labelledby="units-title">',
+            f'<h2 id="units-title" data-index="{evidence_index}"><span class="h2-index">{evidence_index}</span> Evidence ledger</h2>',
+        ]
+    )
+    if product_mode is not None:
+        lines.append(
+            '<p class="model-note">'
+            f'Presenting {len(presented_units)} of {selection["selected_units"]} '
+            f'budget-selected units at {_html_safe(product_detail or "standard")} detail. '
+            'Machine outputs retain the complete selected representation.</p>'
+        )
+    if not presented_units:
         lines.append('<p class="empty">No semantic units fit this output.</p>')
     else:
         lines.append('<div class="units">')
-        for unit in bundle.units:
+        for unit in presented_units:
             path = " › ".join(unit.structure) if unit.structure else str(unit.modality)
             target = _html_safe(_origin_target(unit.origin), attribute=True)
             body_tag = "pre" if str(unit.modality) == "code" else "p"
@@ -1220,16 +1408,20 @@ def _build_html(bundle: Bundle, options: _RenderOptions) -> str:
         lines.append("</div>")
     lines.append("</section>")
 
-    if bundle.relations:
-        lines.extend(['<section id="relations" aria-labelledby="relations-title">', '<h2 id="relations-title" data-index="03"><span class="h2-index">03</span> Relations</h2>', '<ul class="relations">'])
-        for relation in bundle.relations:
+    if presented_relations:
+        relation_index = "04" if product_mode is not None else "03"
+        lines.extend(['<section id="relations" aria-labelledby="relations-title">', f'<h2 id="relations-title" data-index="{relation_index}"><span class="h2-index">{relation_index}</span> Relations</h2>', '<ul class="relations">'])
+        for relation in presented_relations:
             evidence = f' — {_html_safe(relation.evidence)}' if relation.evidence else ""
+            source_unit = unit_by_id[relation.src]
+            target_unit = unit_by_id[relation.dst]
             lines.append(
                 '<li class="relation">'
-                f'<a href="#unit-{relation.src}"><code>{relation.src}</code></a> '
+                f'<a href="#unit-{relation.src}">{_html_safe(_unit_display_label(source_unit))}</a> '
                 f'<span class="relation-kind">{_html_safe(relation.kind)}</span> '
-                f'<a href="#unit-{relation.dst}"><code>{relation.dst}</code></a> '
+                f'<a href="#unit-{relation.dst}">{_html_safe(_unit_display_label(target_unit))}</a> '
                 f'<span>· confidence {relation.confidence:.3f}{evidence}</span>'
+                f'<span class="visually-hidden"> IDs {relation.src} {relation.dst}</span>'
                 "</li>"
             )
         lines.extend(["</ul>", "</section>"])
@@ -1237,7 +1429,8 @@ def _build_html(bundle: Bundle, options: _RenderOptions) -> str:
     orphans = [gap for gap in bundle.gaps if gap.kind is GapKind.ORPHAN]
     gaps = [gap for gap in bundle.gaps if gap.kind is not GapKind.ORPHAN]
     if orphans or gaps:
-        lines.extend(['<section id="findings" aria-labelledby="findings-title">', '<h2 id="findings-title" data-index="04"><span class="h2-index">04</span> Absence &amp; uncertainty</h2>', '<ul class="findings">'])
+        finding_index = "05" if product_mode is not None else "04"
+        lines.extend(['<section id="findings" aria-labelledby="findings-title">', f'<h2 id="findings-title" data-index="{finding_index}"><span class="h2-index">{finding_index}</span> Absence &amp; uncertainty</h2>', '<ul class="findings">'])
         for finding in [*orphans, *gaps]:
             lines.append(
                 '<li class="finding">'
@@ -1250,7 +1443,7 @@ def _build_html(bundle: Bundle, options: _RenderOptions) -> str:
     reference_origins: list[Origin] = []
     for statement in bundle.summary_claims:
         reference_origins.extend(statement.origins)
-    reference_origins.extend(unit.origin for unit in bundle.units)
+    reference_origins.extend(unit.origin for unit in presented_units)
     reference_origins.extend(gap.origin for gap in bundle.gaps)
     for kind, records in (
         ("unit", dropped["reported"]),
@@ -1259,7 +1452,8 @@ def _build_html(bundle: Bundle, options: _RenderOptions) -> str:
         for record in records:
             reference_origins.extend(_drop_record_origins(kind, record))
     references = list(dict.fromkeys(reference_origins))
-    lines.extend(['<section id="references" aria-labelledby="references-title">', '<h2 id="references-title" data-index="05"><span class="h2-index">05</span> References</h2>'])
+    reference_index = "06" if product_mode is not None else "05"
+    lines.extend(['<section id="references" aria-labelledby="references-title">', f'<h2 id="references-title" data-index="{reference_index}"><span class="h2-index">{reference_index}</span> References</h2>'])
     if references:
         lines.append('<ol class="references">')
         for index, origin in enumerate(references, start=1):
@@ -1279,10 +1473,19 @@ def _build_html(bundle: Bundle, options: _RenderOptions) -> str:
     lines.extend(
         [
             f'<section id="selection" class="selection" aria-labelledby="selection-title" data-used="{selection["used"]}" data-requested="{_html_safe(ceiling, attribute=True)}" data-available="{selection["available"]}">',
-            '<h2 id="selection-title" data-index="06"><span class="h2-index">06</span> Selection audit</h2>',
+            f'<h2 id="selection-title" data-index="{"07" if product_mode is not None else "06"}"><span class="h2-index">{"07" if product_mode is not None else "06"}</span> Selection audit</h2>',
             '<dl class="selection-grid">',
             f'<div><dt>Portable bytes</dt><dd><span data-selection-used>{selection["used"]}</span> / <span data-selection-requested>{_html_safe(ceiling)}</span></dd></div>',
             f'<div><dt>Unlimited form</dt><dd>{selection["available"]}</dd></div>',
+        ]
+    )
+    if product_mode is not None:
+        lines.append(
+            f'<div><dt>Presented evidence</dt><dd>{len(presented_units)} of '
+            f'{selection["selected_units"]} selected units</dd></div>'
+        )
+    lines.extend(
+        [
             f'<div><dt>Dropped</dt><dd>{dropped["unit_count"]} units · {dropped["relation_count"]} relations · {dropped["statement_count"]} claims</dd></div>',
             f'<div><dt>Drop-set SHA-256</dt><dd>{dropped["digest"]}</dd></div>',
             "</dl>",
@@ -1339,32 +1542,82 @@ def _build_html(bundle: Bundle, options: _RenderOptions) -> str:
 
 
 def _build_markdown(bundle: Bundle, options: _RenderOptions) -> str:
+    product_mode, product_detail = _product_presentation(bundle)
+    presented_units = _presented_units(bundle)
+    presented_relations = _presented_relations(bundle, presented_units)
+    productized = product_mode is not None
+    presented_sources, source_count = _presented_sources(bundle)
+    title = "AutoTLDR evidence map" if product_mode == "evidence" else "AutoTLDR"
     lines = [
-        f"# AutoTLDR: `{_escape_code(bundle.subject)}`",
+        f"# {title}: {_markdown_code_span(bundle.subject)}",
         "",
     ]
+    if productized:
+        status = (
+            "Cited local-model prose"
+            if product_mode == "prose"
+            else "Deterministic evidence fallback"
+            if product_mode == "evidence-fallback"
+            else "Deterministic model-off evidence"
+        )
+        lines.extend(
+            [
+                f"> **{status}.** Detail: `{product_detail or 'standard'}`.",
+                "",
+                "## What matters",
+                "",
+            ]
+        )
     if bundle.summary_claims:
-        for statement in bundle.summary_claims:
+        for claim_index, statement in enumerate(bundle.summary_claims, start=1):
             if options.cite:
                 citations = " ".join(
                     _markdown_citation(origin)
                     for origin in statement.origins
                 )
-                lines.extend([f"*{statement.content}* — {citations}", ""])
+                prefix = f"{claim_index}. " if productized else ""
+                lines.extend([f"{prefix}{statement.content} — {citations}", ""])
             else:
                 lines.extend(
                     [
-                        f"*{statement.content}* — Summary key: "
+                        f"{claim_index}. {statement.content} — Summary key: "
                         f"`statement-{statement.id}`",
                         "",
                     ]
                 )
     else:
-        lines.extend([f"*{_bundle_summary(bundle)}*", ""])
-    lines.extend(["## Units", ""])
-    if not bundle.units:
+        label = "Evidence overview" if productized else ""
+        lines.extend([f"{f'**{label}:** ' if label else '*'}{_bundle_summary(bundle)}{'' if label else '*'}", ""])
+    if productized:
+        lines.extend(["## Sources", ""])
+        if presented_sources:
+            for row in presented_sources:
+                lines.append(
+                    f"- {_markdown_code_span(str(row['source']))} — "
+                    f"{_markdown_code_span(_source_row_label(row))}"
+                )
+            if len(presented_sources) != source_count:
+                lines.append(
+                    f"- _Showing {len(presented_sources)} of {source_count} sources at "
+                    f"`{product_detail or 'standard'}` detail; JSON and JSONL retain all._"
+                )
+        else:
+            lines.append("_No acquired source records._")
+        lines.append("")
+    lines.extend(["## Supporting evidence" if productized else "## Units", ""])
+    if productized:
+        lines.extend(
+            [
+                f"_Presenting {len(presented_units)} of "
+                f"{bundle.selection['selected_units']} budget-selected units at "
+                f"`{product_detail or 'standard'}` detail. JSON and JSONL retain "
+                "the complete selected representation._",
+                "",
+            ]
+        )
+    if not presented_units:
         lines.extend(["_No semantic units fit this output._", ""])
-    for unit in bundle.units:
+    for unit in presented_units:
         key = unit.id
         path = " › ".join(unit.structure) if unit.structure else str(unit.modality)
         lines.extend([f"### {path} · `{key}`", ""])
@@ -1379,13 +1632,21 @@ def _build_markdown(bundle: Bundle, options: _RenderOptions) -> str:
             lines.append(f"\nOrigin key: `{key}`")
         lines.append("")
 
-    if bundle.relations:
+    unit_by_id = {unit.id: unit for unit in bundle.units}
+    if presented_relations:
         lines.extend(["## Relations", ""])
-        for relation in bundle.relations:
+        for relation in presented_relations:
             evidence = " ".join(relation.evidence.split())
             suffix = f" — {evidence}" if evidence else ""
+            source_label = _markdown_code_span(
+                _unit_display_label(unit_by_id[relation.src])
+            )
+            target_label = _markdown_code_span(
+                _unit_display_label(unit_by_id[relation.dst])
+            )
             lines.append(
-                f"- `{relation.src}` **{relation.kind}** `{relation.dst}`"
+                f"- {source_label} (`{relation.src}`) **{relation.kind}** "
+                f"{target_label} (`{relation.dst}`)"
                 f" (confidence {relation.confidence:.3f}){suffix}"
             )
         lines.append("")
@@ -1421,7 +1682,7 @@ def _build_markdown(bundle: Bundle, options: _RenderOptions) -> str:
                 for origin in statement.origins
             )
             lines.append(f"- `statement-{statement.id}` → {origins}")
-        for unit in bundle.units:
+        for unit in presented_units:
             lines.append(f"- `{unit.id}` → `{_origin_label(unit.origin)}`")
         for gap in bundle.gaps:
             lines.append(f"- `gap-{gap.id}` → `{_origin_label(gap.origin)}`")
@@ -1436,21 +1697,65 @@ def _build_ansi(bundle: Bundle, options: _RenderOptions) -> str:
         safe = _ansi_safe(value)
         return f"\x1b[{code}m{safe}\x1b[0m" if options.color else safe
 
-    lines = [paint("1;36", "AutoTLDR") + f"  {_ansi_safe(bundle.subject)}"]
+    product_mode, product_detail = _product_presentation(bundle)
+    presented_units = _presented_units(bundle)
+    presented_relations = _presented_relations(bundle, presented_units)
+    presented_sources, source_count = _presented_sources(bundle)
+    title = "AutoTLDR evidence map" if product_mode == "evidence" else "AutoTLDR"
+    lines = [paint("1;36", title) + f"  {_ansi_safe(bundle.subject)}"]
+    if product_mode is not None:
+        status = (
+            "cited local-model prose"
+            if product_mode == "prose"
+            else "deterministic evidence fallback"
+            if product_mode == "evidence-fallback"
+            else "deterministic model-off evidence"
+        )
+        lines.append(paint("2", f"{status} · detail {product_detail or 'standard'}"))
+        lines.append("")
+        lines.append(paint("1", "What matters"))
     if bundle.summary_claims:
-        for statement in bundle.summary_claims:
+        for claim_index, statement in enumerate(bundle.summary_claims, start=1):
             marker = (
                 "; ".join(_origin_label(origin) for origin in statement.origins)
                 if options.cite
                 else f"origin key statement-{statement.id}"
             )
-            lines.append(paint("2", f"{statement.content} [{marker}]"))
+            prefix = f"{claim_index}. " if product_mode is not None else ""
+            lines.append(paint("2", f"{prefix}{statement.content} [{marker}]"))
     else:
         lines.append(paint("2", _bundle_summary(bundle)))
     lines.append("")
-    if not bundle.units:
+    if product_mode is not None:
+        lines.append(paint("1", "Sources"))
+        for row in presented_sources:
+            lines.append(
+                _ansi_safe(f"- {row['source']}  {_source_row_label(row)}")
+            )
+        if len(presented_sources) != source_count:
+            lines.append(
+                paint(
+                    "2",
+                    f"showing {len(presented_sources)} of {source_count} sources; "
+                    "JSON/JSONL retain all",
+                )
+            )
+        if not presented_sources:
+            lines.append("No acquired source records.")
+        lines.append("")
+        lines.append(paint("1", "Supporting evidence"))
+        lines.append(
+            paint(
+                "2",
+                f"presenting {len(presented_units)} of "
+                f"{bundle.selection['selected_units']} budget-selected units at "
+                f"{product_detail or 'standard'} detail; JSON/JSONL retain all",
+            )
+        )
+        lines.append("")
+    if not presented_units:
         lines.extend(["No semantic units fit this output.", ""])
-    for unit in bundle.units:
+    for unit in presented_units:
         key = unit.id
         path = " › ".join(unit.structure) if unit.structure else str(unit.modality)
         lines.append(paint("1", f"{path}  {key}"))
@@ -1464,14 +1769,18 @@ def _build_ansi(bundle: Bundle, options: _RenderOptions) -> str:
             lines.append(paint("2", f"[origin key {key}]"))
         lines.append("")
 
-    if bundle.relations:
+    unit_by_id = {unit.id: unit for unit in bundle.units}
+    if presented_relations:
         lines.append(paint("1", "Relations"))
-        for relation in bundle.relations:
+        for relation in presented_relations:
             evidence = " ".join(_ansi_safe(relation.evidence).split())
             suffix = f"  {evidence}" if evidence else ""
+            source_label = _unit_display_label(unit_by_id[relation.src])
+            target_label = _unit_display_label(unit_by_id[relation.dst])
             lines.append(
                 _ansi_safe(
-                    f"{relation.src}  {relation.kind}  {relation.dst}  "
+                    f"{source_label} ({relation.src})  {relation.kind}  "
+                    f"{target_label} ({relation.dst})  "
                     f"confidence {relation.confidence:.3f}{suffix}"
                 )
             )
@@ -1510,7 +1819,7 @@ def _build_ansi(bundle: Bundle, options: _RenderOptions) -> str:
             lines.append(
                 _ansi_safe(f"statement-{statement.id}  {origins}")
             )
-        for unit in bundle.units:
+        for unit in presented_units:
             lines.append(_ansi_safe(f"{unit.id}  {_origin_label(unit.origin)}"))
         for gap in bundle.gaps:
             lines.append(
@@ -1658,8 +1967,20 @@ def _origin_target(origin: Origin) -> str:
     return f"{safe_source}#{quote(origin.ref, safe='/:!')}"
 
 
-def _escape_code(value: str) -> str:
-    return value.replace("`", "\\`")
+def _markdown_code_span(value: str) -> str:
+    """Return one inert CommonMark code span for untrusted inline text."""
+
+    safe = _ansi_safe(value).replace("\n", " ")
+    longest = 0
+    current = 0
+    for character in safe:
+        if character == "`":
+            current += 1
+            longest = max(longest, current)
+        else:
+            current = 0
+    fence = "`" * (longest + 1)
+    return f"{fence}{safe}{fence}"
 
 
 def _clean(meta: dict[str, Any]) -> dict[str, Any]:

@@ -11,7 +11,6 @@ Normative sources checked 2026-08-30:
 
 from __future__ import annotations
 
-import ipaddress
 import json
 import os
 import stat
@@ -21,7 +20,6 @@ import threading
 import time
 from pathlib import Path
 from types import SimpleNamespace
-from urllib.parse import urlsplit
 
 import pytest
 
@@ -56,6 +54,7 @@ def _request(server, method, params, request_id=1):
 
 
 def _tool_call(server, arguments, *, tasks=False):
+    arguments = {"mode": "evidence", **arguments}
     return _request(
         server,
         "tools/call",
@@ -132,6 +131,12 @@ def test_modern_discovery_and_tool_schema_are_closed_and_task_capable():
     ]
     assert schema["properties"]["output"]["default"] == "md"
     assert schema["properties"]["budget"]["default"] == 65_536
+    assert schema["properties"]["mode"]["default"] == "prose"
+    assert schema["properties"]["detail"]["enum"] == [
+        "brief",
+        "standard",
+        "deep",
+    ]
     assert listed["tools"][0]["annotations"]["openWorldHint"] is False
 
 
@@ -148,8 +153,9 @@ def test_sync_tool_reuses_api_and_honors_the_rendered_budget(tmp_path):
     assert result["isError"] is False
     structured = result["structuredContent"]
     assert structured["byteLength"] <= structured["budget"] == 12_000
-    assert "output" not in structured
+    assert structured["mode"] == "evidence"
     rendered = json.loads(result["content"][0]["text"])
+    assert structured["artifact"] == rendered
     assert rendered["units"]
     assert all(unit["origin"]["source"] == str(source) for unit in rendered["units"])
 
@@ -187,6 +193,54 @@ def test_named_tool_error_does_not_leak_an_absolute_path(tmp_path):
     assert str(tmp_path) not in serialized
 
 
+def test_mcp_requires_roots_and_rejects_escape_and_symlink_escape(tmp_path):
+    root = tmp_path / "authorized"
+    root.mkdir()
+    inside = root / "inside.md"
+    inside.write_text("# Inside\n\nAuthorized evidence.\n")
+    outside = tmp_path / "outside.md"
+    outside.write_text("# Outside\n\nPrivate evidence.\n")
+    (root / "escape.md").symlink_to(outside)
+
+    unconfigured = _tool_call(
+        mcp.MCPServer(roots=()), {"sources": [str(inside)], "output": "json"}
+    )
+    assert unconfigured["error"]["data"]["code"] == "INVALID_PARAMS"
+    assert "no authorized source root" in unconfigured["error"]["data"]["detail"]
+
+    server = mcp.MCPServer(roots=(root,))
+    accepted = _tool_call(
+        server, {"sources": ["inside.md"], "output": "json", "budget": 12_000}
+    )["result"]
+    assert accepted["isError"] is False
+
+    for source in (str(outside), "../outside.md", "escape.md"):
+        rejected = _tool_call(server, {"sources": [source], "output": "json"})
+        assert rejected["error"]["data"]["code"] == "INVALID_PARAMS"
+        assert "outside the configured MCP roots" in rejected["error"]["data"]["detail"]
+
+
+def test_mcp_default_prose_fails_actionably_without_a_configured_model(
+    tmp_path, monkeypatch
+):
+    source = tmp_path / "notes.md"
+    source.write_text("# Notes\n\nGrounded source.\n")
+    monkeypatch.setenv("AUTOTLDR_CONFIG", str(tmp_path / "missing.toml"))
+
+    response = _request(
+        mcp.MCPServer(roots=(tmp_path,)),
+        "tools/call",
+        {
+            "name": mcp.TOOL_NAME,
+            "arguments": {"sources": ["notes.md"], "output": "json"},
+            "_meta": _meta(),
+        },
+    )["result"]
+
+    assert response["isError"] is True
+    assert response["structuredContent"]["error"]["code"] == "LOCAL_MODEL_UNAVAILABLE"
+
+
 def test_tasks_are_durable_pollable_results_for_long_collections(
     tmp_path, monkeypatch
 ):
@@ -198,8 +252,11 @@ def test_tasks_are_durable_pollable_results_for_long_collections(
     def fake_summarize(sources, **kwargs):
         entered.set()
         assert release.wait(2)
-        assert tuple(sources) == ("left.md", "right.json")
+        assert tuple(sources) == ("/left.md", "/right.json")
         assert kwargs == {
+            "detail": None,
+            "mode": "evidence",
+            "allow_evidence_fallback": False,
             "output": "json",
             "budget": 65_536,
             "cite": True,
@@ -213,7 +270,7 @@ def test_tasks_are_durable_pollable_results_for_long_collections(
         threading.Thread(target=mcp._run_task, args=(task_id,), daemon=True).start()
         return 1
 
-    monkeypatch.setattr(api, "summarize", fake_summarize)
+    monkeypatch.setattr(api, "summarize_product", fake_summarize)
     monkeypatch.setattr(mcp, "_STORE", mcp._TaskStore(store_root))
     monkeypatch.setattr(mcp, "_start_task_worker", inline_worker)
     server = mcp.MCPServer()
@@ -258,7 +315,7 @@ def test_task_cancellation_is_acknowledged_and_observed(tmp_path, monkeypatch):
         assert release.wait(2)
         return SimpleNamespace(rendered="done\n")
 
-    monkeypatch.setattr(api, "summarize", slow_summarize)
+    monkeypatch.setattr(api, "summarize_product", slow_summarize)
     monkeypatch.setattr(mcp, "_STORE", mcp._TaskStore(tmp_path / "cancel"))
 
     def inline_worker(task_id):
@@ -359,7 +416,7 @@ def test_stdio_is_one_json_rpc_message_per_line():
         separators=(",", ":"),
     )
     result = subprocess.run(
-        [sys.executable, "-m", "autotldr.mcp"],
+        [sys.executable, "-m", "autotldr.mcp", "--root", str(ROOT)],
         cwd=ROOT,
         input=f"not-json\n{discover}\n",
         text=True,
@@ -394,12 +451,13 @@ def test_detached_task_result_survives_stdio_reconnect(tmp_path):
                 "sources": [str(left), str(right)],
                 "output": "json",
                 "budget": 20_000,
+                "mode": "evidence",
             },
             "_meta": _meta(tasks=True),
         },
     }
     launched = subprocess.run(
-        [sys.executable, "-m", "autotldr.mcp"],
+        [sys.executable, "-m", "autotldr.mcp", "--root", str(tmp_path)],
         cwd=ROOT,
         env=environment,
         input=json.dumps(create) + "\n",
@@ -424,7 +482,7 @@ def test_detached_task_result_survives_stdio_reconnect(tmp_path):
             },
         }
         polled = subprocess.run(
-            [sys.executable, "-m", "autotldr.mcp"],
+            [sys.executable, "-m", "autotldr.mcp", "--root", str(tmp_path)],
             cwd=ROOT,
             env=environment,
             input=json.dumps(get_task) + "\n",
@@ -446,41 +504,8 @@ def test_detached_task_result_survives_stdio_reconnect(tmp_path):
     assert len(rendered["manifest"]["inputs"]) == 2
 
 
-def test_static_a2a_v1_card_is_local_minimal_and_capability_honest():
-    card = json.loads((ROOT / ".well-known" / "agent-card.json").read_text())
-    required = {
-        "name",
-        "description",
-        "supportedInterfaces",
-        "version",
-        "capabilities",
-        "defaultInputModes",
-        "defaultOutputModes",
-        "skills",
-    }
-    assert required <= card.keys()
-    assert card["name"] == "AutoTLDR"
-    assert len(card["supportedInterfaces"]) == 1
-    interface = card["supportedInterfaces"][0]
-    assert set(interface) == {"url", "protocolBinding", "protocolVersion"}
-    assert interface["protocolBinding"] == "JSONRPC"
-    assert interface["protocolVersion"] == "1.0"
-    endpoint = urlsplit(interface["url"])
-    assert endpoint.scheme == "http"
-    assert ipaddress.ip_address(endpoint.hostname).is_loopback
-    assert card["capabilities"] == {
-        "streaming": False,
-        "pushNotifications": False,
-        "extendedAgentCard": False,
-    }
-    assert card["defaultInputModes"] and card["defaultOutputModes"]
-    assert card["skills"] and all(
-        {"id", "name", "description", "tags"} <= skill.keys()
-        and skill["tags"]
-        for skill in card["skills"]
-    )
-    assert "supportsAuthenticatedExtendedCard" not in card
-    assert "securitySchemes" not in card
+def test_a2a_is_not_advertised_without_a_real_server():
+    assert not (ROOT / ".well-known" / "agent-card.json").exists()
 
 
 def test_skill_is_concise_instruction_only_and_has_required_ui_metadata():

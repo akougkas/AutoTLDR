@@ -1,6 +1,6 @@
 [project]
 name = "autotldr"
-version = "0.1.0.dev0"
+dynamic = ["version"]
 description = "Point it at anything. Get back what it means, in the shape you asked for."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -42,8 +42,33 @@ dev = ["pytest>=8.0"]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.version]
+path = "src/autotldr/_version.py"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/autotldr"]
+
+# Runtime code stays small, but the installed distribution must actually carry the
+# agent instructions it advertises.  They are copied under the package so a future
+# `autotldr integrations` command can install a version-matched skill without a source
+# checkout.
+[tool.hatch.build.targets.wheel.force-include]
+"integrations/skills/autotldr" = "autotldr/integrations/skills/autotldr"
+
+# Source releases contain deliberate product and developer material only.  Frozen
+# research benchmarks remain repository evidence; the explicitly rejected, untracked
+# docs/census draft must never enter a release merely because it exists in a checkout.
+[tool.hatch.build.targets.sdist]
+include = [
+  "LICENSE",
+  "README.md",
+  "docs/*.md",
+  "examples/*.py",
+  "integrations/skills/autotldr/**",
+  "pyproject.toml",
+  "src/autotldr/**",
+]
+exclude = ["benchmarks/**", "docs/census/**", "tests/**"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -4,279 +4,317 @@
 
 <h1 align="center">AutoTLDR</h1>
 
-<p align="center"><strong>Point it at anything. Get back what it means, in the shape you asked for.</strong></p>
+<p align="center"><strong>Point it at technical work. Get back what it means—with evidence.</strong></p>
 
----
+AutoTLDR turns a file, mixed folder, archive, or documentation URL into a concise
+local-model brief. It reads each supported format on its own terms: an XLSX contributes
+its formula dependency graph, a database its schema, a scientific array its dimensions
+and units, code its symbols and imports, and prose its addressable structure. Every
+accepted prose claim links back to that native evidence.
 
-`file` tells you what something is. `pandoc` converts format A into format B.
-AutoTLDR tells you what something *means*, and renders that meaning into whatever
-shape the caller needs.
+> **Status: pre-alpha.** The complete thin Stage 1–8 vertical slice exists and has a
+> successful live mixed-format proof, but the CLI, configuration, schemas, and supported
+> runtime profiles may change. This is being prepared for first users, not presented as a
+> stable release. See [What is proven](#what-is-proven) for the exact evidence boundary.
+
+## Five-minute first run
+
+The complete `[all]` installation currently requires Python 3.12 and LM Studio listening
+on the local machine. It does not download, load, unload, or silently select a model.
+Load one intended generation model in LM Studio first. Other OpenAI-compatible local
+runtimes are transport candidates, not supported alpha runtimes, until they can prove the
+exact active model and pass the same conformance probe.
+
+From a checkout:
 
 ```bash
-autotldr report.pdf                              # local path, ANSI to stdout
-autotldr https://docs.example.com/guide --out md # HTTP(S) URL, Markdown
-printf '# Notes\nhello\n' | autotldr - --type md --out jsonl
-autotldr model.xlsx --out json                   # the formula graph, not the cells
-autotldr paper.md results.csv analysis.ipynb     # explicit sources, fused
-autotldr ./research --out html -o brief.html     # bounded collection acquisition
-autotldr ./research --out pdf -o brief.pdf       # shareable, linked PDF
-autotldr watch ./inbox --once                    # per-file TLDRs plus folder roll-up
+uv venv --python 3.12
+uv pip install -e ".[all]"
 ```
 
-It is a Unix tool. It reads a path, a URL, or stdin. It writes to stdout or a
-file. It exits non-zero and says why. Coding agents get it for free, because
-agents call bash.
+Configure the one model AutoTLDR should use. If LM Studio has exactly one active generation model,
+this is enough:
 
-> **Status: pre-alpha, complete thin MVP.** The Stage 1–8 vertical slice is
-> implemented: one representation, measured role and fusion policies, Tiers 0–3,
-> bounded collection acquisition, strict grounded local synthesis, watch mode,
-> six core output shapes, and local agent surfaces. On 2026-08-31 the live
-> Borealis proof ran 14 mixed inputs through one ZBook-local Ornith-1.5-35B-A3B
-> instance and accepted three fully cited claims with no fallback, writing all
-> six shapes plus a hash manifest from that single synthesis; 63 independent
-> checks over the saved artifacts passed. Independent zero-CPU-spill residency
-> certification remains unavailable and is reported as such, not inferred.
-> Nothing here is stable. See [`docs/spec-v1.md`](docs/spec-v1.md) for what is
-> being built and in what order.
+```bash
+autotldr setup
+autotldr doctor
+```
 
-## What makes it different
+If several generation models are active, setup lists them and asks you to rerun with the exact ID:
 
-**It extracts semantics, not bytes.** "Summarize" means something different for
-every format, and treating them all as text is why generic retrieval fails on
-most of them:
+```bash
+autotldr setup --model exact-active-model-id
+```
 
-| You point it at | It gives you back |
+Then point AutoTLDR at something real:
+
+```bash
+autotldr model.xlsx
+autotldr ./experiment --detail brief
+autotldr paper.pdf results.parquet analysis.ipynb --detail deep
+autotldr ./handoff --detail standard --out html -o handoff.html
+```
+
+Ordinary invocation uses the configured local model and fails clearly if a valid cited
+answer cannot be produced. It never disguises a parser report as prose. To inspect the
+deterministic evidence without a model, ask for that mode explicitly:
+
+```bash
+autotldr model.xlsx --model off
+autotldr ./experiment --model off --out json
+```
+
+Run `autotldr formats` to see what this installation can actually read and which optional
+dependencies are missing. Run `autotldr doctor` whenever setup or a runtime changes.
+Doctor checks the exact catalog ID and sends one bounded synthetic grounding probe, so
+“ready” means more than “the port answered.” The probe contains no user source data and
+does not load or unload a model.
+
+`autotldr config show` prints the fully resolved settings and which files supplied them;
+`autotldr config paths` prints the user and project locations before either file exists.
+
+## One useful knob: detail
+
+Users choose the answer they need; AutoTLDR owns the provider settings behind it.
+
+| Detail | Best for | Initial bounded profile |
+| --- | --- | --- |
+| `brief` | Quick orientation | Up to 2 cited claims, 8 KB evidence pack, compact visible evidence |
+| `standard` | Everyday understanding | Up to 4 cited claims, 24 KB evidence pack, broader supporting structure |
+| `deep` | Technical handoff or audit | Up to 6 cited claims, 48 KB evidence pack, complete visible selected evidence |
+
+`standard` is the default. The detail level affects both what the model may see and how
+much supporting evidence human output presents. JSON and JSONL retain the complete
+budget-selected representation at every detail level. The alpha profiles disable hidden
+model reasoning for this constrained sentence-writing task and verify that LM Studio
+reports zero reasoning tokens; the generation allowance is reserved for cited prose and
+its full evidence IDs. Claim allowances are ceilings, not targets. Deeper profiles also
+receive a longer bounded deadline; users do not tune provider timeout knobs for ordinary
+invocation.
+
+`--budget N` is a separate hard ceiling over the complete rendered artifact. For text
+outputs, one portable token is exactly one UTF-8 byte under `utf8-byte-v1`; framing,
+citations, manifests, escaping, omission records, and the final newline all count. If the
+minimum valid addressable envelope cannot fit, AutoTLDR writes no partial result and exits
+with status 5.
+
+## What AutoTLDR understands
+
+| Input | Meaning extracted |
 | --- | --- |
-| A spreadsheet | The formula dependency graph. Inputs, assumptions, derived values, circular references, and the number somebody hardcoded into a formula in row 400 |
-| A dataset | Schema, units, distributions, gaps. Never the values |
-| A paper | Addressable units and structure, with unproved semantic roles left `unknown` |
-| A repo | Architecture, entry points, the hazards |
-| A folder of all four | A cited semantic TLDR of how they relate and where they disagree |
+| XLSX/XLSM | Formula graph, dependencies, inputs, assumptions proven by structure, hardcoded values, circular references |
+| Parquet, SQLite, DuckDB | Schemas, columns, types, constraints, relationships, table/file statistics—not raw records |
+| HDF5, NetCDF, NumPy/NPZ, Arrow/Feather/ORC, FITS | Groups, arrays, shapes, dimensions, units, attributes, bounded metadata—not bulk values |
+| Markdown, text, structured data, source code | Addressable structure, definitions, symbols, imports, references, and proven roles |
+| PDF, DOCX, HTML, notebooks, LaTeX, EPUB | Native text-layer structure and addresses; scanned PDFs are declined by name |
+| Directories, repositories, ZIP/TAR archives, documentation sites | Bounded acquisition, per-member extraction, cross-source relationships, explicit partial declines |
 
-**Every claim is addressable.** No output sentence exists without a pointer back
-into its source: `page:7#span:3`, `Sheet2!C14`, `src/auth.py:88`, `line:120-134`.
-A summary you can verify is a summary you can trust.
+Native format support wins over conversion. `autotldr model.xlsx` explains the formula
+system; it does not flatten the workbook to Markdown. Missing rationale and unsupported
+members are findings, not invitations to invent an answer.
 
-**Absence is a finding.** If a source documents no rationale, AutoTLDR says so
-rather than inventing one. "No file in this folder documents why the threshold is
-0.7" is useful output.
-
-**The competition is the toolchain.** Repomix, crawl4ai, Context7, Docling and
-Whisper are good at turning things into clean text, and AutoTLDR is designed to
-treat them as input adapters. The work left after they run is the product.
-
-## The implemented MVP
-
-The CLI accepts a local path, directory/repository/archive, `-` for stdin, or an
-HTTP(S) URL; `--crawl` turns one documentation URL into a bounded same-origin
-collection. Two or more explicitly named sources are fused as one collection.
-It writes ANSI (the default), Markdown, self-contained HTML, linked PDF, JSON,
-or JSONL to stdout or a file and keeps every extracted claim tied to an
-addressable origin.
-Human output includes inline citations by default. `--no-cite` moves those
-references into stable IDs and a source map, while structured output always
-retains origins.
-
-`--budget N` is a hard limit over the complete rendered UTF-8 byte stream under
-the named `utf8-byte-v1` estimator: framing, escaping, citations, ANSI bytes,
-manifest data, omission records, and the final newline all count. `--out pdf`
-applies the same selection and the same complete omission inventory but counts
-raw PDF bytes under the separately named `binary-byte-v1` estimator, and the
-output carries that counter name. Every omitted unit or relation is identified
-in the output. If even the required envelope cannot fit, AutoTLDR emits no
-partial stdout and exits with the budget status. `Unit.tokens` is a cheap
-diagnostic estimate only and never drives this limit.
-
-Selection is non-monotone, because completing a multi-unit claim removes that
-claim's drop record and can shrink the output. The human shapes therefore probe
-every ranked prefix instead of binary-searching, which costs one full render per
-unit. On a 1750-unit source tree a budgeted `--out md` took 784s where the same
-budget on `--out json` took 5.1s. Collections of a few hundred units stay inside
-a few seconds. See D-029 for why the guarantee is kept and the cost published.
-
-JSON and JSONL include a machine manifest covering the acquired input and its
-hash, timings, representation and tool versions, model and role-backend use,
-estimator and ID schemes, fusion policy, and complete selection accounting.
-Ordinary CLI invoke is deliberately useful and deterministic with every model
-off. Grounded synthesis is a separate public API seam: a model sees only a
-bounded canonical evidence pack and may return only claims citing existing unit
-IDs. AutoTLDR validates those IDs and derives every origin itself. Invalid,
-timed-out, or unavailable model output preserves the exact measured Stage 4
-claims unless the caller explicitly requires synthesis.
-
-Stage 4 measured each signal independently and ships only what cleared its
-frozen gate:
-
-| Signal or finding | Precision | Recall | Production disposition |
-| --- | ---: | ---: | --- |
-| Literal reference | 1.000 | 0.957 | Ships completely |
-| Identifier correspondence | 0.850 | 0.830 | Ships only the preregistered `native-native` subtype (P=.900, R=.857) |
-| Structural correspondence | 1.000 | 0.800 | Ships completely |
-| Strict scalar contradiction | 1.000 | 0.667 | Disabled; missed the .70 recall gate |
-| Orphan absence | 1.000 | 0.571 | Disabled; missed the .90 recall gate |
-| Unresolved reference | 0.900 | 1.000 | Ships only the preregistered `local-path` subtype (P=R=1.000) |
-
-The diagnostic analyzer retains every raw candidate, but the user-facing fusion
-path filters disabled signals and names that policy in the manifest. Its three
-collection sentences remain the safe model-off fallback; accepted model claims
-are separately identified in the manifest.
-
-Watch mode reuses the same public pipeline. It polls safely on local or network
-filesystems, suppresses unchanged content by SHA-256, contains per-file errors,
-stores status in SQLite/WAL, writes atomic per-file Markdown artifacts, and
-maintains `.autotldr/FOLDER.tldr.md`:
+The six core output shapes are ANSI, Markdown, self-contained HTML, linked PDF, JSON, and
+JSONL:
 
 ```bash
-autotldr watch ./inbox --once
-autotldr watch ./inbox --status
-autotldr watch ./inbox --recursive --debounce 10
+autotldr report.pdf                         # terminal brief
+autotldr report.pdf --out md -o report.md
+autotldr ./research --out html -o brief.html
+autotldr ./research --out pdf -o brief.pdf
+autotldr ./research --out json --budget 131072
+printf '# Notes\nhello\n' | autotldr - --type md --out jsonl
 ```
 
-For code and agent integrations, the composable API returns both the typed
-extraction and its rendered output:
+Human output leads with “What matters,” then supporting native evidence, relationships,
+gaps, references, and a compact selection audit. Machine output includes the typed units,
+relations, gaps, grounded claims, complete origins, acquisition hashes, resolved product
+configuration, model outcome, and exact selection accounting.
+
+Watch mode keeps per-file briefs and a folder roll-up current using the same configured
+local prose and detail policy:
+
+```bash
+autotldr watch ./inbox --once --detail standard
+autotldr watch ./inbox --recursive --debounce 10 --detail brief
+autotldr watch ./inbox --status
+```
+
+It suppresses unchanged content by SHA-256, contains per-file failures, stores status in
+SQLite/WAL, and publishes artifacts atomically below `.autotldr/`. Use `--model off`
+explicitly when a watched folder should produce evidence maps instead of prose TLDRs.
+
+## Four alpha use cases
+
+1. **Understand a technical handoff.** Brief a folder containing documentation, code,
+   notebooks, spreadsheets, and datasets without flattening them to one text blob.
+2. **Explain a workbook.** Identify formulas, inputs, outputs, dependencies, structural
+   assumptions, and dangerous hardcoded values with cell-level evidence.
+3. **Brief a research-data package.** Explain schema, dimensions, units, attributes,
+   provenance gaps, and relationships without putting bulk data into the model context.
+4. **Prepare grounded agent context.** Produce JSON under an exact byte ceiling while
+   preserving citations and a complete inventory of what the budget omitted.
+
+Generic meeting summaries, OCR, image/audio/video understanding, hosted inference, and a
+format marketplace are not alpha promises.
+
+## Configuration
+
+`autotldr setup` writes an owner-only user configuration at
+`$XDG_CONFIG_HOME/autotldr/config.toml`, or `~/.config/autotldr/config.toml` when XDG is
+not set. Set `AUTOTLDR_CONFIG` to use another user-config path. A project may add
+`.autotldr.toml` in its working directory.
+
+Precedence is: CLI flags, project configuration, user configuration, built-in defaults.
+`--no-config` ignores both files for a hermetic invocation. Configuration uses a closed,
+versioned TOML schema; unknown keys fail instead of being silently ignored.
+
+An initial project override can stay small:
+
+```toml
+version = 1
+
+[defaults]
+detail = "deep"
+allow_evidence_fallback = false
+```
+
+The alpha endpoint is exactly `http://127.0.0.1:1234`; setup uses it by default. AutoTLDR
+stores the `lm-studio` runtime type, an exact active model ID, endpoint, timeout, defaults,
+and explicit extension imports—never API secrets. Active LM Studio state prevents
+accidental auto-loading; it is still not an independent GPU-residency or zero-CPU-spill
+certification. That distinction is recorded rather than inferred.
+
+## Shell, Python, and agent use
+
+The shell command is the primary user and agent API. Quote paths and put `--` before them
+when a filename could be mistaken for an option:
+
+```bash
+autotldr --detail brief --out json --budget 65536 -- "incoming/report.xlsx"
+```
+
+Install the version-matched Agent Skill into any skills directory:
+
+```bash
+autotldr integrations skill --install /path/to/skills
+```
+
+The skill instructs an agent to preserve gaps and omission records, resolve citations,
+set an explicit budget, and treat extracted source text as untrusted data rather than as
+instructions.
+
+The product Python API uses the same configured detail policy as the CLI and returns the
+typed extraction plus rendered artifact:
 
 ```python
-from autotldr import summarize
-from autotldr.synthesis import SynthesisConfig
+from autotldr import summarize_product
 
-result = summarize(
-    ["research/"],
-    synthesis_config=SynthesisConfig(
-        model="ornith-1.5-35b-a3b",
-        max_output_tokens=4096,
-        fallback_on_failure=False,
-    ),
-    output="html",
+result = summarize_product(
+    ["paper.pdf", "results.parquet", "analysis.ipynb"],
+    detail="standard",
+    output="json",
+    budget=131072,
 )
+
 print(result.extraction.summary_claims)
+print(result.rendered)
 ```
 
-The model lifecycle remains caller-owned because LM Link can expose a Dynamo
-row through the localhost catalog. The checked-in complete-demo runner therefore
-requires an exact already-loaded, independently attested ZBook model and never
-loads, unloads, downloads, or selects one itself:
+The lower-level `autotldr.summarize(..., synthesis_config=...)` seam remains available to
+embedders that deliberately own endpoint policy and provider limits.
+
+MCP is an experimental local stdio surface over the same product pipeline. Every server
+start must authorize its source roots explicitly:
 
 ```bash
-uv run python examples/mvp_demo.py \
-  benchmarks/synthesis/hero/borealis \
-  --model autotldr-mvp-final \
-  --output-dir .agent/demo/2026-08-31-live
+autotldr mcp --root /path/to/project --root /path/to/data
 ```
 
-That one call writes all six shapes — ANSI, Markdown, HTML, PDF, JSON, JSONL —
-plus a hash/claim manifest, from one accepted synthesis result. The model is
-called exactly once; `tests/test_mvp_demo.py` asserts both that count and that
-every shape is a projection of the same accepted `Extraction`.
+MCP defaults to local prose, accepts the same detail choices, offers explicit evidence
+mode, returns actual structured JSON when requested, and uses durable tasks for collection
+work. A2A is deliberately not shipped: AutoTLDR will not publish an endpoint card until a
+real server, authorization design, and client need exist together.
 
-`--model` names an instance that must already be resident and verified. Getting
-it there is the guarded lifecycle's job, and `examples/mvp_demo_lifecycle.py` is
-the certification path. On a host with no process-level residency attestor it
-refuses to run at all:
+## Trust contract
 
-```text
-AutoTLDR MVP lifecycle error: no ZBook actual-residency attestor is configured;
-configuration-only GPU claims are not accepted
-```
+Three invariants are product behavior, not implementation detail:
 
-That refusal is the designed behaviour and is not weakened. The 2026-08-31 proof
-therefore used the same guarded primitives — exact unprefixed catalog
-resolution, a required `GPU Offload: 100%` estimate, `--gpu max`, exclusive
-local residency, unload by exact owned identifier, and incumbent restoration —
-and labelled its result a functional ZBook-local inference proof rather than a
-certified one.
+1. **Every claim is addressable.** A unit or prose claim without a source origin is
+   rejected.
+2. **Absence is reported.** Missing rationale, inaccessible members, and unsupported
+   formats remain visible findings.
+3. **The budget is exact.** The ceiling includes the whole artifact, and every omitted
+   unit, relation, or claim is identified.
 
-| Exit | Meaning |
-| ---: | --- |
-| `0` | Success |
-| `1` | Runtime or extraction error |
-| `2` | Invalid CLI usage |
-| `3` | Unsupported format or tier, declined by name |
-| `4` | Input not found |
-| `5` | The requested budget cannot be satisfied |
+The model receives a bounded canonical evidence pack and may return only claim text plus
+existing unit IDs. AutoTLDR rejects unknown IDs, substitutions, invalid response
+envelopes, and unsupported provider fields, then derives claim origins itself. These
+controls constrain generation; they do not magically prove that every accepted sentence
+is entailed. Product runs additionally remove finding content from model authority and
+drop two measured, structurally detectable authority errors: behavior claimed from
+signature-only code evidence, and concrete measurement units or number-unit quantities
+absent from every cited unit's content. A structured identifier also has to occur in its
+claim's cited content rather than in a neighboring same-source unit. Model-profile quality
+and broader entailment are evaluated separately from protocol conformance.
 
-## Install
+All heavy parsers are imported lazily. The base install has no dependencies, a Tier 0
+cold start is gated below 120 ms on an idle machine, input acquisition is bounded, URLs
+are HTTP(S)-only, and unsupported formats decline by name and owning tier.
 
-Not published yet. From a checkout:
+## What is proven
+
+The Stage 1–8 thin slice is implemented: one representation, measured role and fusion
+policies, Tiers 0–3, bounded collection acquisition, strict grounded local synthesis,
+watch mode, six output shapes, and local agent surfaces.
+
+On 2026-08-31, the live Borealis proof routed 14 mixed inputs through one ZBook-local
+Ornith-1.5-35B-A3B instance. It accepted three fully cited claims with no fallback and
+wrote all six output shapes plus a hash manifest from that single synthesis. Sixty-three
+independent checks over the saved artifacts passed. The localhost runtime could not
+independently attest actual per-layer GPU residency or zero CPU spill, so the result is
+correctly labelled a functional local-inference proof—not a residency certification.
+
+The frozen Stage 4 evaluation ships only fusion signals that cleared their preregistered
+precision and recall gates. Exact scores, rejected candidates, the guarded lifecycle,
+PDF reproducibility limits, and benchmark procedures live in
+[docs/decisions.md](docs/decisions.md) and [docs/spec-v1.md](docs/spec-v1.md); they are
+evidence for the product, not required onboarding.
+
+## Development
 
 ```bash
-uv venv && uv pip install -e ".[all]"
-```
-
-The base install has zero dependencies. Each format's parser lives in an extra
-and is lazy-imported at the point of use, so `autotldr notes.md` never pays for a
-PDF parser it will not call. Cold start for a Tier 0 file is held under 120ms by
-a test that fails the build if it regresses; it measures the best of repeated
-runs, so a heavily loaded machine can exceed it.
-
-The `code` extra, and therefore `[all]`, requires **Python 3.12**:
-`tree-sitter-languages==1.10.2` publishes no wheel for 3.13 or later. Every
-other extra — `data`, `office`, `pdf`, `structured`, `web` — installs and runs
-on 3.13, so `pip install 'autotldr[data,office,pdf,structured,web]'` is the
-newer-Python path until that pin can move.
-
-## Documentation
-
-Read them in this order.
-
-| Document | What it covers |
-| --- | --- |
-| [`docs/vision.md`](docs/vision.md) | The stable part. Product thesis, positioning, audience, the three invariants, and the non-goals |
-| [`docs/matrix.md`](docs/matrix.md) · [html](docs/matrix.html) | The full product matrix: 53 input formats across 7 tiers, 10 output shapes, distribution surfaces, and what "summarize" actually means for each format |
-| [`docs/spec-v1.md`](docs/spec-v1.md) · [html](docs/spec-v1.html) | v1 build spec: stack decisions and rationale, the representation, folder fusion, the watch daemon, and build order |
-| [`docs/decisions.md`](docs/decisions.md) | Append-only decision log. What was chosen, why, what was rejected, and what would justify revisiting |
-
-The two `.html` pages are hand-maintained companions to their Markdown, readable
-by opening the file. The matrix page filters its 53 formats by tier and by
-whether they run fully offline. Markdown stays canonical; if the two disagree,
-the Markdown wins.
-
-Earlier planning documents, the original README, and vendored reference material
-are preserved untracked under `archive/`. They are superseded and kept only as a
-record of what was tried.
-
-## Status
-
-All eight MVP stages have a working vertical slice. The locked text-derived
-format boundary is explicit:
-
-| Tier | Current implementation |
-| --- | --- |
-| **0** | Complete for the locked v1 text, source-code, and structured-data inventory |
-| **1** | Complete for text-layer PDF, DOCX, HTML/one URL, notebooks, LaTeX, and EPUB |
-| **2** | Bounded directory/repository, ZIP/TAR archive, and same-origin documentation-site acquisition with partial named declines |
-| **3** | XLSX/XLSM formula graphs; Parquet, SQLite, DuckDB, HDF5, NetCDF; metadata-only NumPy/NPZ, Arrow/Feather/ORC, and FITS science adapters |
-
-The software and functional Stage 5 gate is complete: the real Borealis fixture
-routes Markdown, JSON, Python, HTML, notebook, CSV, XLSX, Parquet, SQLite,
-DuckDB, HDF5, NetCDF, and a ZIP member into 135 units, 105 relations, 15 explicit
-gaps, and one strict local synthesis. The localhost LM Studio and local process
-APIs still cannot independently attest actual per-layer GPU residency or prove
-zero CPU spill. The certification wrapper therefore fails closed rather than
-accept a configuration-only GPU claim, and the successful run is labelled a
-functional ZBook-local inference proof. AutoTLDR does not fabricate a hardware
-guarantee the runtime cannot expose.
-
-Two reproducibility limits are worth knowing before you rely on byte identity.
-Rendering one acquired `Extraction` to ANSI, Markdown, HTML, JSON, or JSONL is
-byte-identical, in one process and across processes. `--out pdf` is
-byte-identical within one process only, because `pymupdf.Story` lays identical
-HTML out differently in different processes; page count, text, links, and the
-complete omission inventory are stable regardless. And JSON and JSONL carry a
-`manifest.timings` block of wall-clock milliseconds, so two runs over the same
-bytes differ there by design.
-
-Stage 8 provides `autotldr mcp` / `autotldr-mcp`, a concise skill under
-`integrations/skills/autotldr`, and a static loopback A2A card. The MCP server is
-stdio-only, local-path-only, model-off, lazy, and uses the Tasks extension for
-collection work. It wraps the same public API rather than implementing a second
-summarizer.
-
-See
-[`docs/spec-v1.md`](docs/spec-v1.md#part-7-build-order) for the full order.
-
-```bash
+uv venv --python 3.12
+uv pip install -e ".[all]"
 uv run pytest
+uv run python -m autotldr.cli --version
 ```
+
+Use `uv venv --python 3.12` for the complete `[all]` developer install. The dependency-free
+base and all extras except `code` also run on Python 3.13; the code parser is held to 3.12
+by the available `tree-sitter-languages` wheel.
+
+Warnings fail the build. Tier 0 cold start, lazy imports, deterministic projections,
+native parser safety, exact budgets, grounded synthesis, and package contents are all
+tested. CI runs the full suite and audits wheel/sdist contents; no published package is
+claimed yet.
+
+Read repository design material in this order:
+
+| Document | Purpose |
+| --- | --- |
+| [docs/vision.md](docs/vision.md) | Product thesis, audience, invariants, and non-goals |
+| [docs/product-alpha.md](docs/product-alpha.md) | First-user contract and alpha acceptance criteria |
+| [docs/private-alpha-guide.md](docs/private-alpha-guide.md) | Template rendered into the versioned participant bundle |
+| [docs/first-user-validation.md](docs/first-user-validation.md) | Preregistered private-alpha sessions, measures, and release gate |
+| [docs/spec-v1.md](docs/spec-v1.md) | Representation, technical decisions, and build order |
+| [docs/decisions.md](docs/decisions.md) | Append-only decisions, evidence, and rejected alternatives |
+| [docs/matrix.md](docs/matrix.md) | Long-horizon format and output inventory |
+| [docs/security.md](docs/security.md) | Filesystem, network, model, extension, and agent data boundaries |
+| [docs/changelog.md](docs/changelog.md) | Product-level changes during pre-alpha |
+
+The independent non-hero corpus builder, four-job procedure, and human claim-quality
+rubric live in [acceptance/](acceptance/README.md). They are release evidence, not shipped
+runtime data and not a replacement for sessions with users' own artifacts.
 
 ## License
 

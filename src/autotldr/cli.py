@@ -36,6 +36,23 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="autotldr",
         description="Point it at anything. Get back what it means.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""commands:
+  setup          configure one active LM Studio model
+  doctor         verify config, model conformance, and dependencies
+  config         show resolved settings and their source paths
+  formats        show runtime-derived input and output support
+  watch          keep per-file and folder TLDRs current
+  integrations   inspect or install agent integrations
+  mcp            serve the root-scoped local MCP tool
+
+examples:
+  autotldr setup
+  autotldr doctor
+  autotldr report.xlsx --detail brief
+  autotldr ./handoff --detail deep --out html -o handoff.html
+  autotldr report.xlsx --model off --out json
+""",
     )
     parser.add_argument(
         "sources",
@@ -45,6 +62,11 @@ def build_parser() -> argparse.ArgumentParser:
             "one or more paths/HTTP(S) URLs, or - for stdin; multiple explicit "
             "sources are fused as one collection"
         ),
+    )
+    parser.add_argument(
+        "--detail",
+        choices=("brief", "standard", "deep"),
+        help="answer detail: brief, standard (default), or deep",
     )
     parser.add_argument(
         "--out",
@@ -104,23 +126,21 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--model",
-        metavar="LOADED_MODEL_ID",
+        metavar="MODE",
         help=(
-            "reserved for the guarded ZBook-local lifecycle runner; direct "
-            "invoke synthesis is currently disabled"
+            "model mode; use 'off' for an explicit deterministic evidence map "
+            "(ordinary use reads the configured local model)"
         ),
     )
     parser.add_argument(
-        "--evidence-budget",
-        type=_positive_int,
-        default=12_000,
-        metavar="N",
-        help="hard canonical UTF-8 byte ceiling for model evidence (default: 12000)",
+        "--allow-evidence-fallback",
+        action="store_true",
+        help="return a clearly labelled evidence map if local synthesis fails",
     )
     parser.add_argument(
-        "--require-synthesis",
+        "--no-config",
         action="store_true",
-        help="fail instead of using the grounded deterministic fallback if synthesis fails",
+        help="ignore user and project configuration for this invocation",
     )
     parser.add_argument(
         "-o",
@@ -128,9 +148,6 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         metavar="FILE",
         help="write canonical text or PDF bytes to FILE instead of stdout",
-    )
-    parser.add_argument(
-        "--version", action="store_true", help="print the version and exit"
     )
     return parser
 
@@ -179,6 +196,26 @@ def build_watch_parser() -> argparse.ArgumentParser:
         metavar="N",
         help="hard complete-output ceiling for each generated artifact",
     )
+    parser.add_argument(
+        "--detail",
+        choices=("brief", "standard", "deep"),
+        help="answer detail for per-file and folder TLDRs",
+    )
+    parser.add_argument(
+        "--model",
+        choices=("off",),
+        help="use 'off' for explicit deterministic evidence artifacts",
+    )
+    parser.add_argument(
+        "--allow-evidence-fallback",
+        action="store_true",
+        help="write labelled evidence artifacts when local synthesis fails",
+    )
+    parser.add_argument(
+        "--no-config",
+        action="store_true",
+        help="ignore user and project configuration",
+    )
     return parser
 
 
@@ -191,10 +228,20 @@ def main(argv: list[str] | None = None) -> int:
         from .mcp import main as mcp_main
 
         return mcp_main(argv[1:])
+    if argv and argv[0] == "doctor":
+        return _doctor_main(argv[1:])
+    if argv and argv[0] == "setup":
+        return _setup_main(argv[1:])
+    if argv and argv[0] == "config":
+        return _config_main(argv[1:])
+    if argv and argv[0] in {"formats", "capabilities"}:
+        return _formats_main(argv[1:])
+    if argv and argv[0] == "integrations":
+        return _integrations_main(argv[1:])
 
     # Answered before argparse so the version path does not require a source and
     # remains the cheapest possible invocation.
-    if "--version" in argv:
+    if argv == ["--version"]:
         from . import __version__
 
         print(__version__)
@@ -215,18 +262,37 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("--crawl requires exactly one HTTP(S) source")
     if args.crawl and args.input_type is not None:
         parser.error("--type cannot be combined with --crawl")
-    if args.require_synthesis and args.model is None:
-        parser.error("--require-synthesis requires --model")
-    if args.model is not None:
+    if args.model is not None and args.model != "off":
         parser.error(
-            "--model is disabled because invoke mode cannot prove ZBook-local "
-            "routing or deviceIdentifier:null; use the guarded Stage 5 runner "
-            "at benchmarks/synthesis/run_local_candidates.py"
+            "direct --model IDs cannot prove ZBook-local routing; configure product "
+            "prose with `autotldr setup`, use --model off for evidence, or use "
+            "run_local_candidates.py for guarded evaluation"
         )
-    if len(set(args.extension)) != len(args.extension):
+    from .product import load_product_config
+
+    try:
+        product_config = load_product_config(use_config=not args.no_config)
+    except ValueError as exc:
+        parser.error(str(exc))
+    import os
+
+    explicit_model_off = args.model == "off" or os.environ.get(
+        "AUTOTLDR_MODEL"
+    ) == "off"
+    if not explicit_model_off:
+        from .product import require_active_model, require_configured_model
+
+        try:
+            require_active_model(require_configured_model(product_config))
+        except ValueError as exc:
+            print(f"autotldr: {exc}", file=sys.stderr)
+            return EXIT_ERROR
+    configured_extensions = list(product_config.extensions)
+    extension_references = [*configured_extensions, *args.extension]
+    if len(set(extension_references)) != len(extension_references):
         parser.error("duplicate --extension references are not allowed")
     if args.acquirer is not None:
-        if not args.extension:
+        if not extension_references:
             parser.error("--acquirer requires at least one --extension")
         if len(args.sources) != 1 or args.sources[0] == "-":
             parser.error("--acquirer requires exactly one non-stdin source")
@@ -236,7 +302,7 @@ def main(argv: list[str] | None = None) -> int:
     from . import router
 
     try:
-        registry = _load_explicit_extensions(args.extension, router=router)
+        registry = _load_explicit_extensions(extension_references, router=router)
         if args.acquirer is not None:
             acquisition, acquisition_spec = _run_extension_acquirer(
                 args.sources[0],
@@ -277,11 +343,23 @@ def main(argv: list[str] | None = None) -> int:
         if registry is not None:
             result.meta["extensions"] = {
                 "schema": "autotldr-explicit-extension-run-v1",
-                "requested": list(args.extension),
+                "requested": list(extension_references),
                 "capabilities": registry.capability_manifest(),
             }
             if args.acquirer is not None:
                 result.meta["extension_acquisition"] = acquisition_spec.as_manifest()
+
+        from .api import apply_product_synthesis
+
+        result, _synthesis = apply_product_synthesis(
+            result,
+            detail=args.detail,
+            mode="evidence" if explicit_model_off else "prose",
+            allow_evidence_fallback=(
+                True if args.allow_evidence_fallback else None
+            ),
+            product_config=product_config,
+        )
 
         from .render import BudgetTooSmall
 
@@ -380,12 +458,24 @@ def _watch_main(argv: list[str]) -> int:
                 args.source,
                 recursive=args.recursive,
                 budget=args.budget,
+                detail=args.detail,
+                mode="evidence" if args.model == "off" else None,
+                allow_evidence_fallback=(
+                    True if args.allow_evidence_fallback else None
+                ),
+                use_config=not args.no_config,
             )
             if args.once
             else watch(
                 args.source,
                 recursive=args.recursive,
                 budget=args.budget,
+                detail=args.detail,
+                mode="evidence" if args.model == "off" else None,
+                allow_evidence_fallback=(
+                    True if args.allow_evidence_fallback else None
+                ),
+                use_config=not args.no_config,
                 debounce=args.debounce,
                 poll_interval=args.poll_interval,
             )
@@ -421,6 +511,344 @@ def _watch_main(argv: list[str]) -> int:
     except (OSError, UnicodeError, ValueError) as exc:
         print(f"autotldr: {exc}", file=sys.stderr)
         return EXIT_ERROR
+
+
+def _formats_main(argv: list[str]) -> int:
+    """Print the inventory the live installation can actually route."""
+
+    parser = argparse.ArgumentParser(
+        prog="autotldr formats",
+        description="Show available, dependency-gated, and declined input formats.",
+    )
+    parser.add_argument("--json", action="store_true", help="emit canonical JSON")
+    args = parser.parse_args(argv)
+    from .capabilities import runtime_capabilities
+
+    inventory = runtime_capabilities()
+    if args.json:
+        import json
+
+        print(json.dumps(inventory, ensure_ascii=False, sort_keys=True, separators=(",", ":")))
+        return EXIT_OK
+    print("AutoTLDR runtime formats")
+    print()
+    for tier in range(4):
+        rows = [item for item in inventory["inputs"] if item["tier"] == tier]
+        if not rows:
+            continue
+        print(f"Tier {tier}")
+        for item in rows:
+            suffixes = ", ".join(item["suffixes"])
+            status = item["status"]
+            install = f"; install {item['install']}" if item["install"] else ""
+            print(f"  {item['kind']:<16} {status:<18} {suffixes}{install}")
+        print()
+    print("Collections: " + ", ".join(inventory["collections"]))
+    print("Outputs")
+    for item in inventory["output_capabilities"]:
+        install = f"; install {item['install']}" if item["install"] else ""
+        print(f"  {item['name']:<16} {item['status']}{install}")
+    print("Detail: " + ", ".join(inventory["detail_levels"]))
+    return EXIT_OK
+
+
+def _setup_main(argv: list[str]) -> int:
+    """Discover and persist one explicit model on the certified alpha runtime."""
+
+    from .product import DEFAULT_LOCAL_ENDPOINT
+
+    parser = argparse.ArgumentParser(
+        prog="autotldr setup",
+        description="Configure one already-active LM Studio model for cited prose TLDRs.",
+    )
+    parser.add_argument("--model", metavar="ID", help="exact active model ID")
+    parser.add_argument(
+        "--detail",
+        choices=("brief", "standard", "deep"),
+        default="standard",
+    )
+    parser.add_argument("--force", action="store_true", help="replace existing user config")
+    args = parser.parse_args(argv)
+    from .product import (
+        LocalModelUnavailable,
+        ModelProfile,
+        ProductConfigError,
+        discover_served_models,
+        write_user_model_config,
+    )
+
+    try:
+        models = discover_served_models(DEFAULT_LOCAL_ENDPOINT)
+        if args.model is None:
+            if not models:
+                raise LocalModelUnavailable(
+                    "LM Studio has no active generation model; load one and retry"
+                )
+            if len(models) != 1:
+                choices = ", ".join(models)
+                raise LocalModelUnavailable(
+                    f"multiple generation models are active ({choices}); rerun with --model ID"
+                )
+            selected = models[0]
+        else:
+            selected = args.model
+            if selected not in models:
+                raise LocalModelUnavailable(
+                    f"model {selected!r} is not active; active: {', '.join(models) or 'none'}"
+                )
+        path = write_user_model_config(
+            ModelProfile(DEFAULT_LOCAL_ENDPOINT, selected),
+            detail=args.detail,
+            force=args.force,
+        )
+    except (ProductConfigError, LocalModelUnavailable, OSError) as exc:
+        print(f"autotldr setup: {exc}", file=sys.stderr)
+        return EXIT_ERROR
+    print(f"Configured local model {selected!r} in {path}")
+    print("Run `autotldr doctor` to verify the complete installation.")
+    return EXIT_OK
+
+
+def _doctor_main(argv: list[str]) -> int:
+    """Diagnose product readiness without acquiring user sources."""
+
+    parser = argparse.ArgumentParser(
+        prog="autotldr doctor",
+        description="Check configuration, local model service, and format dependencies.",
+    )
+    parser.add_argument("--json", action="store_true", help="emit canonical JSON")
+    parser.add_argument("--no-config", action="store_true", help="ignore persisted config")
+    args = parser.parse_args(argv)
+
+    from .capabilities import runtime_capabilities
+    from .product import (
+        LocalModelUnavailable,
+        ProductConfigError,
+        discover_local_runtime,
+        load_product_config,
+        probe_model_profile,
+        user_config_path,
+    )
+
+    checks: list[dict[str, object]] = []
+    ready = True
+    try:
+        config = load_product_config(use_config=not args.no_config)
+    except ProductConfigError as exc:
+        config = None
+        ready = False
+        checks.append({"name": "config", "status": "error", "detail": str(exc)})
+    else:
+        checks.append(
+            {
+                "name": "config",
+                "status": "ok" if config.sources else "missing",
+                "detail": (
+                    ", ".join(config.sources)
+                    if config.sources
+                    else f"run `autotldr setup`; expected {user_config_path()}"
+                ),
+            }
+        )
+        if config.model is None:
+            ready = False
+            checks.append(
+                {"name": "local-model", "status": "missing", "detail": "run `autotldr setup`"}
+            )
+        else:
+            try:
+                runtime = discover_local_runtime(config.model.endpoint)
+            except LocalModelUnavailable as exc:
+                ready = False
+                checks.append({"name": "local-model", "status": "error", "detail": str(exc)})
+            else:
+                exact = (
+                    runtime.active_state_verified
+                    and runtime.provider == config.model.runtime
+                    and config.model.model in runtime.active_models
+                )
+                ready &= exact
+                checks.append(
+                    {
+                        "name": "local-model",
+                        "status": "ok" if exact else "error",
+                        "detail": (
+                            f"{config.model.model} active in {runtime.provider} at "
+                            f"{config.model.endpoint}"
+                            if exact
+                            else f"configured {config.model.model!r}; active: "
+                            f"{', '.join(runtime.active_models) or 'unverified/none'}"
+                        ),
+                    }
+                )
+                if exact:
+                    try:
+                        probe = probe_model_profile(config.model)
+                    except Exception as exc:
+                        ready = False
+                        checks.append(
+                            {
+                                "name": "grounded-prose",
+                                "status": "error",
+                                "detail": (
+                                    f"{type(exc).__name__}: local completion did not "
+                                    "pass the grounded response contract"
+                                ),
+                            }
+                        )
+                    else:
+                        checks.append(
+                            {
+                                "name": "grounded-prose",
+                                "status": "ok",
+                                "detail": (
+                                    f"accepted bounded diagnostic response from "
+                                    f"{probe['model']}"
+                                ),
+                            }
+                        )
+
+    inventory = runtime_capabilities()
+    available = sum(item["status"] == "available" for item in inventory["inputs"])
+    missing = [item for item in inventory["inputs"] if item["status"] == "missing-dependency"]
+    checks.append(
+        {
+            "name": "formats",
+            "status": "ok" if not missing else "partial",
+            "detail": f"{available} format families available; {len(missing)} dependency-gated",
+        }
+    )
+    report = {
+        "schema": "autotldr-doctor-v1",
+        "ready": ready,
+        "checks": checks,
+        "capabilities": inventory,
+    }
+    if args.json:
+        import json
+
+        print(json.dumps(report, ensure_ascii=False, sort_keys=True, separators=(",", ":")))
+    else:
+        print("AutoTLDR doctor")
+        for check in checks:
+            print(f"  {str(check['status']).upper():<7} {check['name']}: {check['detail']}")
+        print()
+        print("Ready for cited local prose." if ready else "Not ready; follow the actions above.")
+    return EXIT_OK if ready else EXIT_ERROR
+
+
+def _config_main(argv: list[str]) -> int:
+    """Make layered configuration visible without requiring TOML knowledge."""
+
+    parser = argparse.ArgumentParser(
+        prog="autotldr config",
+        description="Inspect AutoTLDR configuration and precedence.",
+    )
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    show = subparsers.add_parser("show", help="show the resolved configuration")
+    show.add_argument("--json", action="store_true", help="emit canonical JSON")
+    subparsers.add_parser("paths", help="show user and project configuration paths")
+    args = parser.parse_args(argv)
+    from .product import (
+        ProductConfigError,
+        load_product_config,
+        project_config_path,
+        user_config_path,
+    )
+
+    if args.command == "paths":
+        print(f"user: {user_config_path()}")
+        print(f"project: {project_config_path()}")
+        return EXIT_OK
+    try:
+        config = load_product_config()
+    except ProductConfigError as exc:
+        print(f"autotldr config: {exc}", file=sys.stderr)
+        return EXIT_ERROR
+    manifest = config.as_manifest()
+    if args.json:
+        import json
+
+        print(json.dumps(manifest, ensure_ascii=False, sort_keys=True, separators=(",", ":")))
+        return EXIT_OK
+    print("AutoTLDR resolved configuration")
+    print(f"  detail: {config.detail}")
+    print(f"  evidence fallback: {'on' if config.allow_evidence_fallback else 'off'}")
+    print(
+        "  model: "
+        + (
+            f"{config.model.model} at {config.model.endpoint}"
+            if config.model is not None
+            else "not configured"
+        )
+    )
+    print(f"  extensions: {', '.join(config.extensions) if config.extensions else 'none'}")
+    print(f"  loaded from: {', '.join(config.sources) if config.sources else 'built-in defaults'}")
+    return EXIT_OK
+
+
+def _integrations_main(argv: list[str]) -> int:
+    """Expose version-matched agent assets carried by the distribution."""
+
+    parser = argparse.ArgumentParser(
+        prog="autotldr integrations",
+        description="Inspect or install AutoTLDR's version-matched agent integration.",
+    )
+    subparsers = parser.add_subparsers(dest="integration", required=True)
+    skill = subparsers.add_parser(
+        "skill",
+        help="show or install the bundled AutoTLDR Agent Skill",
+    )
+    skill.add_argument(
+        "--install",
+        type=Path,
+        metavar="SKILLS_DIRECTORY",
+        help="copy the skill to SKILLS_DIRECTORY/autotldr",
+    )
+    skill.add_argument(
+        "--print",
+        dest="print_skill",
+        action="store_true",
+        help="print the bundled SKILL.md",
+    )
+    args = parser.parse_args(argv)
+
+    try:
+        source = _bundled_agent_skill()
+        if args.install is not None:
+            import shutil
+
+            parent = args.install.expanduser().resolve()
+            target = parent / "autotldr"
+            if target.exists():
+                raise FileExistsError(
+                    f"{target} already exists; remove or rename it before reinstalling"
+                )
+            parent.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(source, target)
+            print(f"Installed AutoTLDR Agent Skill in {target}")
+        elif args.print_skill:
+            sys.stdout.write((source / "SKILL.md").read_text(encoding="utf-8"))
+        else:
+            print(source)
+        return EXIT_OK
+    except (FileNotFoundError, OSError) as exc:
+        print(f"autotldr integrations: {exc}", file=sys.stderr)
+        return EXIT_ERROR
+
+
+def _bundled_agent_skill() -> Path:
+    """Resolve package data, with a source-checkout fallback for editable installs."""
+
+    from importlib.resources import files
+
+    packaged = files("autotldr").joinpath("integrations/skills/autotldr")
+    if packaged.is_dir():
+        return Path(str(packaged))
+    checkout = Path(__file__).resolve().parents[2] / "integrations/skills/autotldr"
+    if checkout.is_dir():
+        return checkout
+    raise FileNotFoundError("the installed distribution does not contain the AutoTLDR skill")
 
 
 def _load_explicit_extensions(references: list[str], *, router):

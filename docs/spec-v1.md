@@ -7,10 +7,12 @@ fused context bundle.
 **Implementation status:** the complete thin Stage 1–8 MVP is implemented. One public
 pipeline acquires files, folders, archives, stdin, and URLs; normalizes every supported
 input into the same addressable representation; applies the measured role/fusion policy;
-optionally accepts strictly ID-grounded local-model claims; and renders six output shapes.
-Watch, MCP, the Agent Skill, and A2A metadata wrap that pipeline. The software gate is
-complete; independent physical proof of zero CPU spill remains unavailable from the
-current LM Studio/process telemetry and is reported separately rather than invented.
+accepts strictly ID-grounded local-model claims in the ordinary product path; and renders
+six output shapes. Watch, root-scoped MCP, and the installable Agent Skill wrap that
+pipeline. A2A is deliberately absent until a real server and authorization design exist.
+The software gate is complete; independent physical proof of zero CPU spill remains
+unavailable from the current LM Studio/process telemetry and is reported separately rather
+than invented.
 
 This document makes the stack decisions and the representation concrete. It supersedes
 nothing in [`matrix.md`](matrix.md); the matrix is the menu, this is what we cook
@@ -38,8 +40,9 @@ by default.
 
 Stage 3 processes one acquired source. Stage 4 fuses two or more sources. Stage 5 adds
 bounded directory/repository/archive/doc-site acquisition, the locked Tier 3 adapters,
-and the public grounded-synthesis seam. Ordinary CLI invoke remains deterministic and
-model-off; callers opt into synthesis through the Python API or the guarded demo path.
+and the public grounded-synthesis seam. Ordinary CLI invoke now requires an explicitly
+configured loopback model and returns validated cited prose. Deterministic extraction is
+an explicit `--model off` evidence mode, not a prose-shaped silent fallback.
 
 | Concern | Implemented contract |
 | --- | --- |
@@ -444,7 +447,7 @@ on roles being reliable.
 | **5** | Complete-demo integration: Tier 2 directory/repo/archive/doc-site acquisition; all locked Tier 3 adapters; bounded evidence packing and grounded local-model TLDR synthesis | **Complete software/functional slice.** On 2026-08-31 Borealis ran 14 mixed inputs through one ZBook-local instance and accepted three cited claims with no fallback; 63 independent checks over the saved artifacts passed. Physical no-spill certification remains a separately named telemetry limitation and the certification wrapper fails closed |
 | **6** | Watch daemon | **Complete.** Polling, debounce, SHA suppression, SQLite/WAL, atomic per-file and folder artifacts |
 | **7** | `html` and `pdf` output, claim-to-source linking | **Complete.** Self-contained HTML and paginated PDF share the exact omission policy. Text shapes are byte-identical across processes; PDF byte identity holds within one process, because `pymupdf.Story` lays identical HTML out differently per process (D-027) |
-| **8** | MCP with the Tasks extension, `SKILL.md`, A2A card | **Complete.** Thin local/model-off wrappers over the public API |
+| **8** | Root-scoped MCP with the Tasks extension and installable `SKILL.md`; A2A deferred | **Complete alpha surface.** MCP and shell agents use the same product synthesis/detail policy; no nonexistent A2A service is advertised (D-031) |
 
 All eight stages have a thin working vertical slice. The measured Stage 4 engineering
 statements remain the deterministic source of truth; accepted Stage 5 model claims are

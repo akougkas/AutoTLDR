@@ -7,7 +7,18 @@ can point at specific known facts.
 
 from __future__ import annotations
 
+import os
+
 import pytest
+
+# The historical suite exercises the deterministic substrate. Product-default prose has
+# dedicated tests and requires an explicit fake local client; subprocesses inherit this
+# compatibility setting so existing extractor and renderer assertions remain isolated.
+os.environ.setdefault("AUTOTLDR_MODEL", "off")
+# Protocol tests instantiate the server in-process. Production stdio startup requires
+# explicit --root flags; this test-only root keeps historical fixtures focused on MCP
+# behavior while dedicated authorization tests use narrower roots.
+os.environ.setdefault("AUTOTLDR_MCP_ROOTS", os.path.abspath(os.sep))
 
 MARKDOWN = """\
 # Throughput Study

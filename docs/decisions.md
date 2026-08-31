@@ -10,6 +10,440 @@ that names the entry it replaces.
 
 ---
 
+## 2026-08-31 · Productization
+
+### D-044 · First users receive a bound bundle, and their gate is executable
+
+**Decided.** An invited participant receives a private-alpha bundle containing the exact
+wheel and source distribution, a guide rendered with that package version and an explicit
+support contact, security and change notes, a manifest, and checksums. The builder refuses
+overwrite and produces a deterministic ZIP for the same artifacts and contact. Five
+privacy-safe session records use a strict checked-in schema and an executable evaluator for
+the preregistered cohort and thresholds. Records contain pseudonymous IDs and aggregate
+observations, never source paths, excerpts, artifacts, or generated reports.
+
+**Why.** “Give the participant the released installation instructions” was not executable:
+the README installed a mutable checkout, no artifact bound the guide to a wheel, the support
+contact could be forgotten, and prose thresholds invited manual transcription errors. A
+release candidate is only first-user-ready when a participant can install the exact build
+and a failed session remains valid product evidence.
+
+**Rejected.** Asking participants to clone the repository; publishing to PyPI before the
+gate; relying on facilitator notes without a schema; collecting source content for
+convenience; weakening a threshold after a failed cohort; and adding background telemetry
+to replace observed consent-based sessions.
+
+**Revisit when.** A supported package registry becomes the approved private channel, the
+cohort demonstrates that the bundle itself causes onboarding friction, or a consented
+research-data system replaces local privacy-safe records.
+
+### D-043 · Structured identifiers require direct cited support
+
+**Decided.** Product synthesis drops a claim when it names a snake_case identifier that
+does not occur in any cited unit's content. The run audit records the unsupported
+identifiers, claim ID, evidence IDs, and named reason `identifier-unsupported`. The check
+does not infer support from a neighboring unit, source path, relation, or field name and
+does not alter frozen Stage 5 runs.
+
+**Why.** A live agent-output run grouped four Parquet columns in one claim while citing
+only the `accepted` column; the other citations described a SQLite foreign key and a
+NetCDF variable. All IDs were valid, but `run_id`, `error_rate_pct`, and
+`throughput_mbps` were not in the cited content. Grouped schema summaries are valuable,
+but only when the model returns every required citation.
+
+**Rejected.** Adding likely same-source citations on the model's behalf; treating one
+schema column as authority for its neighbors; dropping all identifier-bearing claims; and
+calling closed-set ID validation semantic grounding.
+
+**Revisit when.** The response protocol can request a bounded deterministic citation
+repair whose added authority is explicitly audited, or an independent entailment layer
+passes a fresh structured-data corpus.
+
+### D-042 · Number-unit quantities must be explicit in cited content
+
+**Decided.** Product synthesis drops a claim when it contains an adjacent concrete
+number-unit quantity that is absent from all content cited by that claim. A small set of
+number words and plural unit forms is normalized only for exact comparison. The audit uses
+the named reason `measurement-quantity-unsupported` and records the normalized quantities,
+claim ID, and evidence unit IDs. Frozen Stage 5 runs remain unchanged.
+
+**Why.** The final five-source agent run combined a NetCDF dimension length of three with
+the coordinate attribute `hours since 2026-08-31` and called it a “three-hour time
+dimension.” Payload values were explicitly not read, so the evidence proved three
+coordinates and their unit convention but not a three-hour span. This is the compositional
+counterpart to D-041: separately cited facts do not authorize a new measured quantity.
+
+**Rejected.** Accepting arithmetic or composition over schema metadata as source text;
+silently rewriting “three-hour” to “three-element”; rejecting every claim that contains a
+number; and claiming this narrow exact comparison is general numerical reasoning.
+
+**Revisit when.** Native adapters expose bounded coordinate ranges as addressable evidence,
+or a measured numerical-entailment layer can validate derived quantities while preserving
+their derivation and origins.
+
+### D-041 · Concrete measurement units require cited content
+
+**Decided.** After strict response and ID validation, product synthesis drops a claim
+when it names a recognized concrete measurement unit that does not occur in the content
+of any unit cited by that claim. The run audit records the claim ID, cited unit IDs,
+unsubstantiated measurement words, and named reason `measurement-unit-unsupported`. This
+disposition is additive to D-040, uses only a deliberately small normalized vocabulary,
+and does not affect frozen Stage 5 runs. If no claim survives, the ordinary invalid-
+response/fallback policy applies.
+
+**Why.** The five-source agent acceptance run described `error_rate_pct` as being “in
+percent” while citing the Parquet schema and SQLite schema but omitting the separate
+metadata unit that actually states the percent convention. The field name suggested the
+unit but did not prove it. A claim that gives a physical or reporting unit can materially
+change interpretation, so fail-closed disposition is preferable to displaying a precise
+but uncited assertion.
+
+This remains narrower than semantic entailment. It catches a measured authority failure
+whose support can be checked exactly; human entailment review remains part of the alpha
+gate.
+
+**Rejected.** Treating suffixes such as `_pct` as evidence; silently adding a citation the
+model did not return; deleting the unsupported phrase while retaining the model's claim;
+and using a broad scientific-unit parser whose false positives have not been measured.
+
+**Revisit when.** A larger first-user corpus justifies expanding or shrinking the unit
+vocabulary, the claim protocol can request and validate a deterministic repair, or an
+independent entailment validator passes a preregistered corpus.
+
+### D-040 · Product claim disposition drops unsupported signature behavior
+
+**Decided.** After strict response and ID validation, product synthesis applies one narrow
+deterministic claim disposition. If a claim cites signature-only code units and uses a
+behavioral verb that is absent from every cited non-signature unit, AutoTLDR drops that
+claim. The run audit records the dropped claim ID, cited unit IDs, behavior groups, and
+named reason `signature-behavior-unsupported`. If no claim survives, the run follows the
+ordinary invalid-response/fallback policy. Frozen Stage 5 runs do not apply this product
+disposition.
+
+**Why.** Repeated greenhouse responses ignored prompt guidance and described four function
+signatures as deriving metrics from shared raw inputs. The signatures proved names and
+parameters but not bodies, and the cited prose did not state the `derive` behavior. The
+repository invariant says an ungrounded claim is dropped, not softened. Relying on another
+prompt sentence would continue to trust the model at the exact boundary intended to
+constrain it.
+
+This is not a general entailment checker. It is a measured fail-closed disposition for one
+structurally detectable authority error. Human entailment review remains required for the
+alpha gate.
+
+**Rejected.** Returning the known unsupported claim; rewriting it into softer prose;
+rejecting all code claims; treating function names as behavioral evidence; and claiming
+this narrow filter proves semantic entailment generally.
+
+**Revisit when.** Body-level code evidence is addressable and measured, an independent
+entailment validator passes a fresh corpus, or first-user evidence shows a broader named
+disposition can meet a preregistered quality gate.
+
+### D-039 · Names and signatures do not prove behavior
+
+**Decided.** Product synthesis treats names, labels, and function signatures as evidence of
+identity, parameters, types, and declared annotations only. They do not authorize claims
+about implementation behavior, purpose, causality, or domain meaning. When one claim groups
+several units under a shared verb or qualifier, that phrase must be explicit in every cited
+unit.
+
+**Why.** After findings were structurally excluded, the greenhouse acceptance run grouped
+four function signatures as metrics derived “from raw ADC inputs.” Only one signature
+contained ADC parameters; the others accepted samples, a zone/sequence pair, or a sensor
+temperature. Every evidence ID existed, but the shared characterization was not entailed.
+This is a general source-code and schema-label authority boundary, not a greenhouse-specific
+wording preference.
+
+**Rejected.** Treating meaningful-looking names as behavioral evidence; accepting a grouped
+claim when one cited member supports the qualifier; and expanding the deterministic code
+extractor during release acceptance merely to rescue model prose.
+
+**Revisit when.** A code adapter emits addressable body-level behavioral units with measured
+quality, or an independent entailment validator reliably proves grouped claims.
+
+### D-038 · Unit-stated absence may be prose; finding-only absence may not
+
+**Decided.** Product synthesis ignores evidence-pack findings when writing claims because
+the claim schema cannot cite finding IDs. An absence or missingness statement may still be
+a prose claim when that statement is explicit in the content of a cited unit. Findings are
+always retained in the dedicated gaps surface whether or not a source unit independently
+states the same absence.
+
+**Why.** The corrected deep research-package run cited a README unit whose literal content
+said the package did not document how two assumptions were chosen. That is addressable
+source evidence and therefore valid claim authority. It differs from the earlier NetCDF
+claim, which was derived from a finding but cited variable/root units that never stated the
+missing range. Prohibiting both would suppress a well-grounded source fact merely because
+it uses negative language.
+
+**Supersedes.** This supersedes D-036's blanket prohibition on absence prose. D-036 remains
+authoritative that a finding cannot borrow arbitrary same-source units as citation support.
+
+**Rejected.** Dropping all negative statements; treating every finding as uncitable prose;
+and allowing a finding-only assertion when none of the cited unit contents state it.
+
+**Revisit when.** The claim schema supports first-class finding IDs and derived finding
+origins, or measured online entailment validation replaces this narrower authority rule.
+
+### D-037 · Detail owns a bounded deadline as well as answer shape
+
+**Decided.** Product profiles use 60/90/120-second synthesis deadlines for
+`brief`/`standard`/`deep`. Setup persists a 120-second model cap; an explicitly lower
+advanced cap still wins. Doctor remains a 30-second, one-claim synthetic conformance probe.
+Users choose detail and do not tune timeouts during ordinary invocation.
+
+**Why.** The independent five-source Markdown/XLSX/SQLite/Parquet/NetCDF acceptance package
+passed standard synthesis but the first deep run reached the old universal 60-second
+deadline before returning. Deep selects up to twice as much evidence and permits a larger
+response, so giving it the same wall-clock envelope as brief made the visible detail choice
+internally inconsistent. The deadline remains finite and recorded in the model-run audit.
+
+**Rejected.** An unbounded request; exposing `--timeout` as another first-run knob; silently
+retrying a timed-out generation; and shrinking deep evidence to preserve a timeout chosen
+before the product profiles existed.
+
+**Revisit when.** First-user latency measurements justify lower deadlines, a supported
+runtime offers safe cancellation with a different contract, or model throughput changes
+materially.
+
+### D-036 · Findings stay in the gaps surface until claims can cite findings
+
+**Decided.** Product synthesis must not turn absence, missingness, unavailability, lack of
+documentation, unsupported behavior, or impossibility into a prose claim. Findings remain
+first-class and visible in the dedicated gaps surface. A product claim may use only facts
+explicitly present in the content of its cited units; nearby evidence, relations, paths,
+and implications from field names do not count. The frozen Stage 5 prompt remains unchanged.
+
+**Why.** The five-source acceptance package contained an explicit NetCDF missing-range
+finding. Ornith wrote that gap into an otherwise useful claim but could cite only variable
+and root units because `GroundedStatement` accepts unit IDs, not finding IDs. The online
+validator proved those IDs existed but could not derive the finding's origin as claim
+authority. Showing the gap separately preserves the absence-reporting invariant without
+pretending the current citation schema proves more than it does.
+
+The same review found a Parquet claim that inferred percent/Mbps from field names while
+omitting the separate metadata-unit evidence. Requiring every factual phrase in cited unit
+content makes the model's obligation explicit. Independent human entailment review remains
+part of the alpha gate because protocol validation is not semantic verification.
+
+**Supersedes.** This supersedes D-035 only where it allowed an absence claim supported by
+an explicit finding. The detail ceilings and all other product guardrails remain in force.
+
+**Rejected.** Treating any unit from the same source as support for a finding; silently
+deriving a finding citation from uncited evidence; allowing name-based unit inference; and
+expanding the representation during release acceptance without a measured finding-citation
+design.
+
+**Revisit when.** Findings receive stable public evidence identities accepted by the claim
+schema, origins can be derived without model authority, and a fresh corpus verifies the
+new path.
+
+### D-035 · Detail means stronger selection, not proportional verbosity
+
+**Decided.** The first-user profiles are `brief` = 8 KB evidence / at most 2 claims /
+512 generation tokens, `standard` = 24 KB / at most 4 / 1,024, and `deep` = 48 KB /
+at most 6 / 1,800. Product synthesis adds recorded, detail-specific guidance and shared
+guardrails: never fill the allowance, never infer meaning from paths or IDs, never report
+absence without an explicit finding, avoid unsupported broad quantifiers, and cite every
+unit needed for a claim. The final render budget remains independent and exact.
+
+The generation allowance is larger than visible prose because strict output contains
+full evidence IDs. It is a bounded envelope, not a requested answer length. The model may
+and should stop after fewer claims when the evidence does not support more.
+
+**Why.** Live runs over a non-hero Tier 3 workbook showed the initial 3/7/15 caps produce
+2–3 useful claims at the lower levels but 12 padded claims at `deep`, including an inference
+from the repository path and an unsupported absence statement. The redesigned 2/4/6
+profiles produced 2/3/4 distinct claims at 318/414/656 completion tokens. A four-source
+Markdown/XLSX/SQLite/Parquet handoff then showed that 700 standard tokens could truncate a
+valid four-claim JSON envelope; 1,024 completed it in 818 tokens with zero reasoning tokens.
+
+The mixed result also measured a separate machine-output constraint: its provenance-rich
+JSON needed at least 54,167 bytes and fit a 65,536-byte ceiling at 64,954 bytes while
+reporting 18 omitted units and 19 omitted relations. A future compact agent projection may
+lower that floor, but it must retain resolvable claims, gaps, exact omissions, and a run
+audit rather than silently deleting provenance.
+
+**Rejected.** Treating `deep` as “ask for 15 things”; using a high maximum as a target;
+letting file paths become semantic evidence; shrinking completion tokens below the citation
+envelope; and weakening the output invariant to force audit JSON into 32 KiB.
+
+**Revisit when.** Human comprehension tests support different claim caps, a larger
+non-hero corpus establishes safer token envelopes, or an agent client demonstrates a
+compact projection that preserves the three invariants.
+
+### D-034 · Product synthesis spends its allowance on grounded prose, not hidden reasoning
+
+**Decided.** The LM Studio alpha product profiles send the qualified
+`reasoning_effort: "none"` request field for constrained synthesis. The response must use
+the existing strict JSON schema, report zero reasoning tokens, and carry an empty qualified
+reasoning channel; otherwise AutoTLDR rejects the run. The setting is recorded in both the
+resolved detail profile and model-run manifest. The lower-level `SynthesisConfig` default
+remains unset so the frozen Stage 5 request and evaluation artifacts do not change.
+
+`brief`, `standard`, and `deep` continue to differ in evidence allowance, claim allowance,
+generation allowance, and visible supporting structure. Hidden chain-of-thought is not a
+detail feature and never becomes claim authority.
+
+**Why.** Live first-user acceptance found that Ornith could consume 192, 384, and 700 token
+allowances entirely in its reasoning channel before emitting the small schema-constrained
+answer. On the same Tier 3 workbook, the exact no-reasoning field produced three valid,
+fully cited claims in 310 completion tokens and reported zero reasoning tokens. Increasing
+every cap would make a short answer slower and less predictable without improving the
+grounding contract.
+
+**Rejected.** Guessing successively larger token caps; exposing raw reasoning controls to
+users; treating truncated reasoning as a usable TLDR; accepting undocumented response
+fields without binding them into validation; and switching to a weaker native response
+envelope merely to obtain a reasoning knob.
+
+**Revisit when.** A measured synthesis corpus shows that private reasoning materially
+improves grounded claim quality enough to justify its latency and allowance, or a supported
+runtime uses a different, equally attestable control.
+
+### D-033 · Alpha setup proves an active LM Studio instance, not catalog presence
+
+**Decided.** The first alpha certifies LM Studio as its local runtime. `/v1/models` is used
+only as an OpenAI transport catalog; it is not evidence that a model is resident. Setup
+and every prose run additionally inspect LM Studio's bounded `/api/v1/models` inventory
+and require the exact configured generation instance in `loaded_instances`. Embedding rows
+are excluded. A generic OpenAI-compatible endpoint may be catalog-compatible, but setup
+fails closed until it exposes a provider adapter capable of proving active state.
+
+The configured model remains explicit user authority when multiple active instances exist.
+AutoTLDR still never loads, unloads, downloads, or selects one implicitly. `doctor` verifies
+active state again before sending its synthetic conformance request, and ordinary product
+runs verify it before reading user sources so an unloaded model cannot be auto-loaded as a
+side effect of inference.
+
+**Why.** Live inspection showed that this LM Studio version lists every downloaded model
+through `/v1/models`, including unloaded LLMs and embeddings. Treating that response as
+“served models” could persist an unloaded ID and let runtime JIT behavior violate the
+lifecycle and privacy contract. LM Studio's management API separately reports loaded
+instances and is available without shelling out to platform-specific `lms` paths.
+
+**Rejected.** Calling any catalog row “served”; probing an unloaded model and observing
+whether the runtime auto-loads it; scanning platform-specific process output during normal
+product use; and claiming generic OpenAI compatibility where active-state behavior is
+unverifiable.
+
+**Revisit when.** A llama.cpp or other local provider supplies a bounded, authenticated
+active-model/status contract and passes the same request/response conformance corpus.
+
+### D-032 · Invoke, watch, and embedders share one product-policy seam
+
+**Decided.** `apply_product_synthesis` is the one policy boundary that expands detail,
+resolves local-model configuration, enforces explicit fallback, and records the product
+run. `summarize_product` composes acquisition and rendering around it. Ordinary CLI invoke,
+per-file watch artifacts, watch folder roll-ups, and MCP all pass through that boundary.
+The lower-level deterministic `acquire` and caller-configured `summarize` APIs remain
+available for evaluation and advanced embedding, but no user-facing surface may invent a
+different default.
+
+Single sources are wrapped as one-member collections only inside the synthesis proof
+boundary. The public result restores the native source kind, because describing one XLSX
+as a “collection” would expose an internal validation requirement as product vocabulary.
+
+**Why.** Policy duplication had already made the original CLI and MCP silently model-off,
+while the only prose path lived in a guarded demo. Watch would have repeated the divergence.
+One small seam makes local prose, detail, failure behavior, manifests, and future profile
+changes consistent without turning the low-level representation API into a preference
+framework.
+
+**Rejected.** N+1 independently configured synthesis implementations; making watch remain
+evidence-only because it was implemented earlier; and leaking the internal single-member
+collection projection into output schemas.
+
+**Revisit when.** A surface has a measured need for different policy—for example a watch
+batch strategy that reduces model calls—while preserving the same visible contract and
+grounding rules.
+
+### D-031 · Agent surfaces share product policy, authorize roots, and advertise only real services
+
+**Decided.** Shell remains the primary agent API. The installed distribution carries the
+version-matched Agent Skill and exposes an explicit command to install it. MCP remains a
+local stdio service, but now calls the same `summarize_product` policy as the ordinary CLI:
+configured local prose is the default, `brief`/`standard`/`deep` have the same meaning,
+model-off evidence is explicit, and JSON requests receive the actual artifact as structured
+content. Every MCP process must start with one or more `--root` authorities, and each source
+must resolve inside one of them before acquisition or task creation.
+
+The static A2A card is removed. A card with a loopback URL still advertises a protocol
+endpoint, and no A2A server exists. A2A may return only when a real client need, running
+service, and authorization design can ship together.
+
+**Why.** An agent wrapper that silently changes synthesis policy is a second product, not a
+thin surface. Arbitrary local-path access also lets a client broaden its own authority.
+Likewise, metadata for a nonexistent service is an aspirational promise that first users
+cannot successfully call. The smallest robust alpha is shell plus an installable skill and
+one root-scoped MCP tool over the same pipeline.
+
+**Supersedes.** This supersedes D-021 and the Stage 8 implementation notes only where they
+describe MCP as model-off or the static A2A card as a completed surface. It preserves their
+protocol, task durability, local-only transport, and public-pipeline requirements.
+
+**Rejected.** Treating the process working directory or the whole filesystem as implicit
+agent authority; letting tool arguments select arbitrary endpoints or model IDs; silently
+using deterministic output when prose fails; and retaining A2A metadata as a placeholder.
+
+**Revisit when.** Root-relative naming proves too awkward for real MCP hosts, clients need a
+separate read-only capability token, or an A2A consumer supplies a concrete deployment and
+authentication requirement.
+
+### D-030 · The default product returns a local-model prose TLDR, not an IR report
+
+**Decided.** The first-user product contract is now the authority over the shape of the
+two-day MVP implementation. `autotldr SOURCE` means: acquire the source, extract its
+native semantics, fuse a collection when present, ask an explicitly configured local
+model for citation-constrained prose, validate every cited evidence ID, derive origins in
+AutoTLDR, and render a concise TLDR. Tier 3 structures are first-class synthesis evidence,
+not an expert-only diagnostic appendix.
+
+Deterministic extraction and measured fusion remain the factual substrate and the
+model-failure source of truth. They no longer define the ordinary human presentation.
+An explicit evidence/audit mode exposes the model-off representation for debugging,
+pipelines, evaluation, and recovery. If the default prose path has no usable local model
+or rejects its response, it fails with a short setup or retry instruction unless the
+caller explicitly requested evidence fallback. It never silently labels a structural
+count report as a TLDR.
+
+The user-facing generation control is `brief`, `standard`, or `deep`, with `standard` as
+the default. A detail level expands to a versioned profile controlling evidence volume,
+claim allowance, generation allowance, and supporting presentation. It does not weaken
+the independent complete-output `--budget` ceiling, citation validation, omission
+inventory, or any other invariant. Raw provider parameters remain an advanced
+configuration surface rather than ordinary CLI vocabulary.
+
+The alpha model boundary is local by default. Setup may discover supported loopback
+OpenAI-compatible runtimes, but invocation uses a persisted, explicit model profile and
+records the resolved endpoint class, exact model, detail profile, and settings. It does
+not download, load, unload, or guess among multiple models during an ordinary run. Remote
+inference requires a later explicit product decision and privacy contract.
+
+**Why.** AutoTLDR exists to tell a person what a thing means. The thin MVP proved the
+addressable representation, native adapters, fusion, constrained synthesis, and six
+renderers, but its default CLI exposed the substrate because that was what happened to be
+implemented first. Two days of source history are not a product constraint. Requiring a
+new user to understand the IR or a guarded benchmark lifecycle before receiving prose
+would turn honest implementation limits into permanent product complexity.
+
+**Supersedes.** This supersedes D-017's model-off default as the finished product
+experience and D-020's ZBook-specific first-demo boundary as a general user-interface
+assumption. It does not supersede their evidence: model-off execution remains supported,
+the Borealis proof remains accurately scoped, and the exact Stage 4 findings remain the
+fallback authority. It also narrows D-021's meaning of a complete vertical slice: the
+slice remains complete as engineering scaffolding, not as first-user productization.
+
+**Rejected.** Silently falling back to an IR-shaped “summary”; making users tune evidence
+bytes, temperature, token counts, or provider response fields on the command line;
+automatically loading or unloading an arbitrary local model during invocation; weakening
+strict citation validation to support more providers; and adding new format families
+before the default supported-format experience is useful.
+
+**Revisit when.** Real-user evaluation shows that a different detail vocabulary is more
+understandable, a local runtime needs a non-OpenAI-compatible adapter, or users authorize
+a remote inference mode with an explicit data-boundary and credential design.
+
 ## 2026-08-31 · Session 6
 
 ### D-029 · The exhaustive budget search stays, and its cost is published

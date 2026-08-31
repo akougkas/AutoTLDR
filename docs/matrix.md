@@ -46,15 +46,15 @@ autotldr meeting.m4a --out md --brief         # one paragraph
 ```
 
 Coding agents get this for free, because agents call bash. That is the entire
-integration story for the largest agent audience. MCP and A2A exist for agents that
-cannot.
+integration story for the largest agent audience. Root-scoped MCP exists for agents that
+cannot shell out; A2A waits for a real client and server need.
 
 ### Who it is for, in order
 
 1. **A developer or researcher at a terminal** who has a thing and needs to know what is
    in it. This is the primary user and every design decision serves them first.
 2. **A coding agent shelling out**, which is the same interface with `--out json`.
-3. **A non-shell agent** over MCP or A2A, which is a thin surface over the same core.
+3. **A non-shell agent** over root-scoped MCP, which is a thin surface over the same core.
 4. **A pipeline**, which is JSONL and exit codes.
 
 Design for (1) and the rest follow. Design for (3) first and you get a protocol nobody
@@ -333,8 +333,8 @@ meeting it means clicking a decision and hearing the fourteen seconds where it w
 | --- | --- | --- | --- |
 | **CLI** | Humans, coding agents via bash, pipelines | Core | Day one. This is the product |
 | **Library** (Python import) | Embedders, notebook users | Low | Day one, falls out of the CLI |
-| **MCP server** | Non-shell agents. Use the 2026-07-28 Tasks extension for Tier 4–6 jobs so a long build returns a durable handle instead of timing out | Low | After the CLI is real |
-| **A2A agent card** | Agent-to-agent ecosystems, 150+ orgs on the LF spec | Low | After MCP |
+| **MCP server** | Non-shell agents. Root-scoped stdio plus the 2026-07-28 Tasks extension gives long collection jobs a durable handle instead of timing out | Low | Alpha, after the CLI is real |
+| **A2A service and card** | Agent-to-agent ecosystems | Medium | Only with a real client need, server, and authorization design |
 | **Agent Skill** (`SKILL.md`) | Claude Code, Codex, Cursor, ~40 tools reading the same file | Trivial | Alongside MCP. It is a wrapper that teaches an agent when to shell out |
 | **Hosted API** | Users whose hardware cannot run the measured generation, vision, or speech workload locally | High | Only if demand is proven |
 | Browser extension | Clip any page | Med | Later, if ever |
@@ -400,7 +400,7 @@ tier tables above do not reorder it.
 | **5. Integrated Tiers 0–3 plus grounded synthesis** | Direct directory/repository/archive/doc-site acquisition; required Tier 3 adapters; a separately budgeted evidence pack and strictly ID-grounded synthesis through ZBook-local LM Studio | **Complete software/functional slice.** Borealis is fully grounded: 14 mixed inputs, three accepted cited claims, no fallback, all six shapes from one synthesis. Physical no-spill attestation remains explicitly unproved by current telemetry |
 | **6. Watch daemon** | Debounced watched-folder processing, stable artifacts, cache/store integration | **Complete.** Polling, SHA suppression, SQLite/WAL, atomic artifacts |
 | **7. Shareable output** | Self-contained `html` and `pdf` with source linking | **Complete.** Exact budgets and omission inventory carry through both. PDF byte identity is a within-process contract (D-027) |
-| **8. Agent surfaces** | MCP Tasks extension, `SKILL.md`, A2A card | **Complete.** Model-off/local-path wrappers over the public pipeline |
+| **8. Agent surfaces** | Root-scoped MCP Tasks extension and installable `SKILL.md`; A2A deferred | **Complete alpha surface.** Same prose/detail policy as the CLI; no nonexistent endpoint advertised (D-031) |
 
 ---
 

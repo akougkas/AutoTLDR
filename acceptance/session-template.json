@@ -1,0 +1,32 @@
+{
+  "schema": "autotldr-first-user-session-v1",
+  "participant_id": "replace-with-pseudonymous-session-id",
+  "cohort": "developer",
+  "artifact_kind": "replace-with-generic-kind-only",
+  "source_content_recorded": false,
+  "doctor_green": false,
+  "intervention_count": 0,
+  "install_to_green_doctor_seconds": null,
+  "doctor_to_useful_outcome_seconds": null,
+  "outcome": "valid-cited-tldr",
+  "claim_judgments": {
+    "useful": 0,
+    "incorrect": 0,
+    "unsupported": 0,
+    "redundant": 0
+  },
+  "citation_samples": [
+    {
+      "resolves": false,
+      "entails": false
+    }
+  ],
+  "understands_gaps": false,
+  "understands_detail": false,
+  "authority_surprise": false,
+  "would_reuse": false,
+  "first_missing_capability": {
+    "category": "none",
+    "note": ""
+  }
+}

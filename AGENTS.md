@@ -90,12 +90,12 @@ good the output looks.
 ## Commands
 
 ```bash
-uv venv && uv pip install -e ".[all]"
+uv venv --python 3.12 && uv pip install -e ".[all]"
 uv run pytest
 uv run python -m autotldr.cli FILE # try it
 uv run python -m autotldr.cli DIR --out html -o brief.html
 uv run python -m autotldr.cli watch DIR --once
-uv run python -m autotldr.cli mcp
+uv run python -m autotldr.cli mcp --root .
 ```
 
 Run the suite before committing.

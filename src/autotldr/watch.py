@@ -148,6 +148,11 @@ def run_once(
     *,
     recursive: bool = False,
     budget: int | None = None,
+    detail: str | None = None,
+    mode: str | None = None,
+    allow_evidence_fallback: bool | None = None,
+    use_config: bool = True,
+    product_config: Any | None = None,
     settle: bool = False,
     settle_interval: float = 0.25,
     settle_timeout: float = 30.0,
@@ -160,8 +165,9 @@ def run_once(
     prevent successful siblings or the folder roll-up from being published.
 
     ``budget`` is applied independently to every complete Markdown artifact by
-    the existing exact renderer.  Model synthesis is intentionally never
-    enabled here; watch mode does not load or select a model.
+    the existing exact renderer.  The ordinary path uses the same configured
+    local-model and detail policy as invoke mode. Watch never loads, unloads, or
+    selects a model; ``mode='evidence'`` is the explicit model-off path.
     """
 
     root = _validated_root(source)
@@ -171,6 +177,23 @@ def run_once(
         raise ValueError("settle_interval must be positive")
     if settle_timeout <= 0:
         raise ValueError("settle_timeout must be positive")
+    if mode is None:
+        mode = "evidence" if os.environ.get("AUTOTLDR_MODEL") == "off" else "prose"
+    if mode not in {"prose", "evidence"}:
+        raise ValueError("mode must be prose or evidence")
+    if product_config is None:
+        from .product import load_product_config
+
+        product_config = load_product_config(use_config=use_config)
+    if mode == "prose":
+        from .product import require_active_model, require_configured_model
+
+        require_active_model(require_configured_model(product_config))
+    registry = None
+    if product_config.extensions:
+        from .api import _load_product_extensions
+
+        registry = _load_product_extensions(product_config.extensions)
 
     artifact_root = root / ARTIFACT_DIRECTORY
     artifact_root.mkdir(parents=True, exist_ok=True)
@@ -246,16 +269,25 @@ def run_once(
         changed += 1
         target = artifact_path(root, candidate.relative)
         try:
-            from .api import summarize
+            from .api import acquire, apply_product_synthesis
+            from .render import render
 
-            result = summarize(
-                [stable_candidate.path],
+            base_extraction = acquire([stable_candidate.path], registry=registry)
+            completed, _synthesis = apply_product_synthesis(
+                base_extraction,
+                detail=detail,
+                mode=mode,
+                allow_evidence_fallback=allow_evidence_fallback,
+                product_config=product_config,
+            )
+            rendered = render(
+                completed,
                 output="md",
                 budget=budget,
                 cite=True,
                 color=False,
             )
-            _atomic_write(target, result.rendered)
+            _atomic_write(target, rendered)
         except Exception as exc:
             failed += 1
             message = _safe_error(exc, root)
@@ -286,7 +318,7 @@ def run_once(
             artifact_relative,
             now,
         )
-        extracted[candidate.relative] = result.extraction
+        extracted[candidate.relative] = base_extraction
         artifacts.append(target)
 
     current_paths = {candidate.relative for candidate in candidates}
@@ -308,7 +340,7 @@ def run_once(
                 try:
                     from .api import acquire
 
-                    extraction = acquire([candidate.path])
+                    extraction = acquire([candidate.path], registry=registry)
                 except Exception as exc:
                     failed += 1
                     message = _safe_error(exc, root)
@@ -330,12 +362,19 @@ def run_once(
             rollup_extractions.append(extraction)
 
         try:
-            from .api import assemble_collection
+            from .api import apply_product_synthesis, assemble_collection
             from .render import render
 
             collection = assemble_collection(
                 rollup_extractions,
                 subject=str(root),
+            )
+            collection, _synthesis = apply_product_synthesis(
+                collection,
+                detail=detail,
+                mode=mode,
+                allow_evidence_fallback=allow_evidence_fallback,
+                product_config=product_config,
             )
             rendered = render(
                 collection,
@@ -393,6 +432,11 @@ def watch(
     *,
     recursive: bool = False,
     budget: int | None = None,
+    detail: str | None = None,
+    mode: str | None = None,
+    allow_evidence_fallback: bool | None = None,
+    use_config: bool = True,
+    product_config: Any | None = None,
     debounce: float = 30.0,
     poll_interval: float = 1.0,
     settle_interval: float = 0.25,
@@ -418,6 +462,11 @@ def watch(
         root,
         recursive=recursive,
         budget=budget,
+        detail=detail,
+        mode=mode,
+        allow_evidence_fallback=allow_evidence_fallback,
+        use_config=use_config,
+        product_config=product_config,
         settle=True,
         settle_interval=settle_interval,
         settle_timeout=settle_timeout,
@@ -451,6 +500,11 @@ def watch(
             root,
             recursive=recursive,
             budget=budget,
+            detail=detail,
+            mode=mode,
+            allow_evidence_fallback=allow_evidence_fallback,
+            use_config=use_config,
+            product_config=product_config,
             settle=True,
             settle_interval=settle_interval,
             settle_timeout=settle_timeout,

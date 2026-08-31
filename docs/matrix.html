@@ -411,14 +411,14 @@ footer {
   <div class="prose">
     <p><code>file</code> tells you what something is. <code>pandoc</code> converts format A into format B. <strong>AutoTLDR tells you what something means, and renders that meaning into any shape.</strong></p>
     <p>It is a Unix tool. It reads a path, a URL, or stdin. It writes to stdout or a file. It exits non-zero and says why. It composes.</p>
-    <p>Coding agents get this for free, because agents call bash. That is the entire integration story for the largest agent audience, and it costs nothing to serve. MCP and A2A exist for the agents that cannot shell out.</p>
+    <p>Coding agents get this for free, because agents call bash. That is the entire integration story for the largest agent audience, and it costs nothing to serve. Root-scoped MCP exists for agents that cannot shell out; A2A waits for a real client and server need.</p>
   </div>
 
   <h3>Who it is for, in order</h3>
   <div class="cards">
     <div class="card"><span class="tag">Primary</span><h4>A person at a terminal</h4><p>Someone who has a thing and needs to know what is in it. Every design decision serves them first.</p></div>
     <div class="card"><span class="tag">Free</span><h4>A coding agent shelling out</h4><p>The same interface with <code>--out json</code>. No integration work on either side.</p></div>
-    <div class="card"><span class="tag">Thin surface</span><h4>A non-shell agent</h4><p>MCP or A2A over the same core. A wrapper, never a second implementation.</p></div>
+    <div class="card"><span class="tag">Thin surface</span><h4>A non-shell agent</h4><p>Root-scoped MCP over the same core. A wrapper, never a second implementation.</p></div>
     <div class="card"><span class="tag">Falls out</span><h4>A pipeline</h4><p>JSONL and exit codes. One semantic unit per line, streamable.</p></div>
   </div>
 
@@ -728,8 +728,8 @@ footer {
     <tbody>
       <tr><td class="fmt">CLI</td><td class="mean">Humans, coding agents via bash, pipelines</td><td class="how">Core</td><td class="how">Day one. This is the product</td></tr>
       <tr><td class="fmt">Library import</td><td class="mean">Embedders, notebook users</td><td class="how">Low</td><td class="how">Day one, falls out of the CLI</td></tr>
-      <tr><td class="fmt">MCP server</td><td class="mean">Non-shell agents. The 2026-07-28 Tasks extension returns a durable handle for Tier 4–6 jobs instead of timing out</td><td class="how">Low</td><td class="how">After the CLI is real</td></tr>
-      <tr><td class="fmt">A2A agent card</td><td class="mean">Agent-to-agent ecosystems, 150+ orgs on the Linux Foundation spec</td><td class="how">Low</td><td class="how">After MCP</td></tr>
+      <tr><td class="fmt">MCP server</td><td class="mean">Non-shell agents. Root-scoped stdio plus the 2026-07-28 Tasks extension gives collection jobs a durable handle instead of timing out</td><td class="how">Low</td><td class="how">Alpha, after the CLI is real</td></tr>
+      <tr><td class="fmt">A2A service and card</td><td class="mean">Agent-to-agent ecosystems</td><td class="how">Medium</td><td class="how">Only with a real client need, server and authorization design</td></tr>
       <tr><td class="fmt">Agent Skill</td><td class="mean">Claude Code, Codex, Cursor and ~40 tools reading the same SKILL.md</td><td class="how">Trivial</td><td class="how">Alongside MCP</td></tr>
       <tr><td class="fmt">Hosted API</td><td class="mean">Users whose hardware cannot run the measured generation, vision or speech workload locally</td><td class="how">High</td><td class="how">Only if demand is proven</td></tr>
       <tr><td class="fmt">Browser extension</td><td class="mean">Clip any page</td><td class="how">Med</td><td class="how">Later, if ever</td></tr>
@@ -772,7 +772,7 @@ footer {
       <tr><td class="fmt">5 · Integrated Tiers 0–3 plus grounded synthesis</td><td class="mean">Direct directory/repository/archive/doc-site acquisition; required Tier 3 adapters; separately budgeted evidence and strictly ID-grounded synthesis through ZBook-local LM Studio</td><td class="how"><strong>Complete software/functional slice.</strong> Borealis is fully grounded: 14 mixed inputs, three accepted cited claims, no fallback, all six shapes from one synthesis. Physical no-spill attestation remains explicitly unproved by current telemetry</td></tr>
       <tr><td class="fmt">6 · Watch daemon</td><td class="mean">Debounced watched-folder processing, stable artifacts and cache/store integration</td><td class="how"><strong>Complete.</strong> Polling, SHA suppression, SQLite/WAL, atomic artifacts</td></tr>
       <tr><td class="fmt">7 · Shareable output</td><td class="mean">Self-contained html and pdf with source linking</td><td class="how"><strong>Complete.</strong> Exact budgets and omission inventory carry through both. PDF byte identity is a within-process contract (D-027)</td></tr>
-      <tr><td class="fmt">8 · Agent surfaces</td><td class="mean">MCP Tasks extension, SKILL.md and A2A card</td><td class="how"><strong>Complete.</strong> Model-off/local-path wrappers over the public pipeline</td></tr>
+      <tr><td class="fmt">8 · Agent surfaces</td><td class="mean">Root-scoped MCP Tasks extension and installable SKILL.md; A2A deferred</td><td class="how"><strong>Complete alpha surface.</strong> Same prose and detail policy as the CLI; no nonexistent endpoint advertised</td></tr>
     </tbody>
   </table></div>
 </section>

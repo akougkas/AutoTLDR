@@ -5,7 +5,9 @@ https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/stdio
 https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md
 
 Only the standard library is imported until a tool executes. This module does
-not select, load, invoke, or unload a model and exposes no network listener.
+not load, unload, or select a model and exposes no network listener. Sources are
+confined to roots chosen when the server starts; prose uses the same configured
+local-model policy as the CLI.
 Modern requests use MCP 2026-07-28 per-request metadata; a narrow synchronous
 2025-11-25 ``initialize`` fallback supports hosts from the prior protocol era.
 """
@@ -23,12 +25,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, BinaryIO
 
+from ._version import __version__
+
 PROTOCOL_VERSION = "2026-07-28"
 LEGACY_PROTOCOL_VERSION = "2025-11-25"
 TASKS_EXTENSION = "io.modelcontextprotocol/tasks"
 TOOL_NAME = "autotldr_summarize"
 
-_SERVER_INFO = {"name": "autotldr", "version": "0.1.0.dev0"}
+_SERVER_INFO = {"name": "autotldr", "version": __version__}
 _SERVER_META = {"io.modelcontextprotocol/serverInfo": _SERVER_INFO}
 _TASK_TTL_MS = 86_400_000
 _TASK_POLL_MS = 250
@@ -69,6 +73,22 @@ _TOOL_INPUT_SCHEMA: dict[str, Any] = {
             "default": _DEFAULT_BUDGET,
             "description": "Hard utf8-byte-v1 ceiling for rendered AutoTLDR output.",
         },
+        "detail": {
+            "type": "string",
+            "enum": ["brief", "standard", "deep"],
+            "description": "Answer detail; omitted means the configured default.",
+        },
+        "mode": {
+            "type": "string",
+            "enum": ["prose", "evidence"],
+            "default": "prose",
+            "description": "Configured local-model prose, or explicit model-off evidence.",
+        },
+        "allowEvidenceFallback": {
+            "type": "boolean",
+            "default": False,
+            "description": "Return a labelled evidence map if prose synthesis fails.",
+        },
     },
     "required": ["sources"],
     "additionalProperties": False,
@@ -78,8 +98,8 @@ _TOOL = {
     "name": TOOL_NAME,
     "title": "Summarize local sources with AutoTLDR",
     "description": (
-        "Extract, fuse, and render grounded local files or collections with exact "
-        "origins and a hard output budget. This wrapper is local-only and model-off."
+        "Extract, fuse, and summarize root-scoped local files or collections with "
+        "exact origins, configured local-model prose, and a hard output budget."
     ),
     "inputSchema": _TOOL_INPUT_SCHEMA,
     "annotations": {
@@ -212,8 +232,9 @@ class _TaskStore:
 class MCPServer:
     """Small JSON-RPC dispatcher with modern and legacy MCP eras."""
 
-    def __init__(self) -> None:
+    def __init__(self, roots: tuple[Path, ...] | None = None) -> None:
         self._legacy_initialized = False
+        self._roots = _configured_roots() if roots is None else _validate_roots(roots)
 
     def handle(self, message: Any) -> dict[str, Any] | None:
         request_id: Any = None
@@ -294,8 +315,8 @@ class MCPServer:
                 "capabilities": {"tools": {"listChanged": False}},
                 "serverInfo": _SERVER_INFO,
                 "instructions": (
-                    "Use autotldr_summarize for bounded local sources; URLs "
-                    "are refused."
+                    "Use autotldr_summarize for configured-root local sources; "
+                    "URLs are refused. Prose is the default; evidence mode is explicit."
                 ),
             },
         )
@@ -313,8 +334,8 @@ class MCPServer:
                     "extensions": {TASKS_EXTENSION: {}},
                 },
                 "instructions": (
-                    "Summarize bounded local paths only; no remote source or "
-                    "model is invoked."
+                    "Summarize paths within configured roots only. No remote source "
+                    "or model endpoint is allowed."
                 ),
                 "ttlMs": 3_600_000,
                 "cacheScope": "public",
@@ -338,7 +359,7 @@ class MCPServer:
             )
             if params["name"] != TOOL_NAME:
                 raise _MethodNotFound(f"unknown tool {params['name']!r}")
-            arguments = _validate_arguments(params.get("arguments", {}))
+            arguments = _validate_arguments(params.get("arguments", {}), self._roots)
             if _should_defer(arguments["sources"]) and _supports_tasks(meta):
                 return _create_task(arguments)
             return _execute_tool(arguments)
@@ -387,7 +408,9 @@ class MCPServer:
             _require_keys(params, {"name", "arguments", "_meta"}, {"name"})
             if params["name"] != TOOL_NAME:
                 raise _MethodNotFound(f"unknown tool {params['name']!r}")
-            result = _execute_tool(_validate_arguments(params.get("arguments", {})))
+            result = _execute_tool(
+                _validate_arguments(params.get("arguments", {}), self._roots)
+            )
             return _legacy_tool_result(result)
         raise _MethodNotFound(method)
 
@@ -449,10 +472,27 @@ def _require_task_capability(meta: dict[str, Any]) -> None:
         raise _MissingCapability
 
 
-def _validate_arguments(arguments: Any) -> dict[str, Any]:
+def _validate_arguments(
+    arguments: Any, roots: tuple[Path, ...]
+) -> dict[str, Any]:
     if not isinstance(arguments, dict):
         raise _InvalidParams("tool arguments must be an object")
-    _require_keys(arguments, {"sources", "output", "budget"}, {"sources"})
+    _require_keys(
+        arguments,
+        {
+            "sources",
+            "output",
+            "budget",
+            "detail",
+            "mode",
+            "allowEvidenceFallback",
+        },
+        {"sources"},
+    )
+    if not roots:
+        raise _InvalidParams(
+            "the MCP server has no authorized source root; restart it with --root"
+        )
     sources = arguments["sources"]
     if not isinstance(sources, list) or not 1 <= len(sources) <= _MAX_SOURCES:
         raise _InvalidParams(
@@ -471,6 +511,7 @@ def _validate_arguments(arguments: Any) -> dict[str, Any]:
             raise _InvalidParams(
                 "remote sources are not accepted by the local MCP surface"
             )
+    sources = _authorize_sources(tuple(sources), roots)
     output = arguments.get("output", _DEFAULT_OUTPUT)
     if output not in {"ansi", "md", "json", "jsonl"}:
         raise _InvalidParams("output must be one of ansi, md, json, or jsonl")
@@ -483,30 +524,105 @@ def _validate_arguments(arguments: Any) -> dict[str, Any]:
         raise _InvalidParams(
             f"budget must be an integer between 1 and {_MAX_BUDGET}"
         )
-    return {"sources": tuple(sources), "output": output, "budget": budget}
+    detail = arguments.get("detail")
+    if detail is not None and detail not in {"brief", "standard", "deep"}:
+        raise _InvalidParams("detail must be brief, standard, or deep")
+    mode = arguments.get("mode", "prose")
+    if mode not in {"prose", "evidence"}:
+        raise _InvalidParams("mode must be prose or evidence")
+    fallback = arguments.get("allowEvidenceFallback", False)
+    if not isinstance(fallback, bool):
+        raise _InvalidParams("allowEvidenceFallback must be a boolean")
+    return {
+        "sources": sources,
+        "output": output,
+        "budget": budget,
+        "detail": detail,
+        "mode": mode,
+        "allowEvidenceFallback": fallback,
+    }
+
+
+def _validate_roots(values: tuple[Path, ...]) -> tuple[Path, ...]:
+    roots: list[Path] = []
+    for value in values:
+        try:
+            root = Path(value).expanduser().resolve(strict=True)
+        except OSError as exc:
+            raise ValueError(f"MCP source root is unavailable: {value}") from exc
+        if not root.is_dir():
+            raise ValueError(f"MCP source root is not a directory: {root}")
+        if root not in roots:
+            roots.append(root)
+    return tuple(roots)
+
+
+def _configured_roots() -> tuple[Path, ...]:
+    encoded = os.environ.get("AUTOTLDR_MCP_ROOTS")
+    if not encoded:
+        return ()
+    return _validate_roots(tuple(Path(item) for item in encoded.split(os.pathsep) if item))
+
+
+def _authorize_sources(
+    sources: tuple[str, ...], roots: tuple[Path, ...]
+) -> tuple[str, ...]:
+    authorized: list[str] = []
+    for source in sources:
+        candidate = Path(source).expanduser()
+        if candidate.is_absolute():
+            resolved = candidate.resolve(strict=False)
+        elif len(roots) == 1:
+            resolved = (roots[0] / candidate).resolve(strict=False)
+        else:
+            matches = [
+                resolved_candidate
+                for root in roots
+                if (resolved_candidate := (root / candidate).resolve(strict=False)).exists()
+            ]
+            if len(matches) != 1:
+                raise _InvalidParams(
+                    "a relative source must resolve in exactly one configured root; "
+                    "use an absolute path when roots are ambiguous"
+                )
+            resolved = matches[0]
+        if not any(resolved == root or resolved.is_relative_to(root) for root in roots):
+            raise _InvalidParams("a source resolves outside the configured MCP roots")
+        authorized.append(str(resolved))
+    if len(set(authorized)) != len(authorized):
+        raise _InvalidParams("sources resolve to duplicate paths")
+    return tuple(authorized)
 
 
 def _execute_tool(arguments: dict[str, Any]) -> dict[str, Any]:
     try:
-        from .api import summarize
+        from .api import summarize_product
 
-        result = summarize(
+        result = summarize_product(
             arguments["sources"],
+            detail=arguments["detail"],
+            mode=arguments["mode"],
+            allow_evidence_fallback=arguments["allowEvidenceFallback"],
             output=arguments["output"],
             budget=arguments["budget"],
             cite=True,
             color=False,
         )
         rendered = result.rendered
+        structured: dict[str, Any] = {
+            "format": arguments["output"],
+            "byteLength": len(rendered.encode("utf-8")),
+            "budget": arguments["budget"],
+            "estimator": "utf8-byte-v1",
+            "mode": arguments["mode"],
+            "detail": arguments["detail"],
+        }
+        if arguments["output"] == "json":
+            structured["artifact"] = json.loads(rendered)
         return {
             "resultType": "complete",
             "content": [{"type": "text", "text": rendered}],
-            "structuredContent": {
-                "format": arguments["output"],
-                "byteLength": len(rendered.encode("utf-8")),
-                "budget": arguments["budget"],
-                "estimator": "utf8-byte-v1",
-            },
+            "structuredContent": structured,
             "isError": False,
             "_meta": _SERVER_META,
         }
@@ -548,6 +664,20 @@ def _named_tool_error(exc: Exception) -> tuple[str, str]:
         return (
             "MISSING_OPTIONAL_DEPENDENCY",
             f"{dependency} is unavailable; install autotldr[{extra}].",
+        )
+    if name == "LocalModelUnavailable":
+        return (
+            "LOCAL_MODEL_UNAVAILABLE",
+            "No configured loopback model is ready; run autotldr setup and doctor.",
+        )
+    if name in {
+        "SynthesisError",
+        "SynthesisTimeoutError",
+        "InvalidModelResponse",
+    }:
+        return (
+            "SYNTHESIS_FAILED",
+            "The local model did not produce an acceptable grounded response.",
         )
     return (
         "PROCESSING_FAILED",
@@ -811,8 +941,10 @@ def _now_ms() -> int:
     return int(datetime.now(timezone.utc).timestamp() * 1000)
 
 
-def serve(stdin: BinaryIO, stdout: BinaryIO) -> None:
-    server = MCPServer()
+def serve(
+    stdin: BinaryIO, stdout: BinaryIO, *, roots: tuple[Path, ...] = ()
+) -> None:
+    server = MCPServer(roots=roots)
     while True:
         line = stdin.readline(_MAX_MESSAGE_BYTES + 1)
         if not line:
@@ -853,16 +985,34 @@ def serve(stdin: BinaryIO, stdout: BinaryIO) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
-    if argv:
-        if len(argv) == 2 and argv[0] == "--run-task":
-            try:
-                _validate_task_id(argv[1])
-            except _InvalidParams:
-                return 2
-            _run_task(argv[1])
-            return 0
-        return 2
-    serve(sys.stdin.buffer, sys.stdout.buffer)
+    if len(argv) == 2 and argv[0] == "--run-task":
+        try:
+            _validate_task_id(argv[1])
+        except _InvalidParams:
+            return 2
+        _run_task(argv[1])
+        return 0
+
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        prog="autotldr mcp",
+        description="Serve root-scoped AutoTLDR tools over local stdio MCP.",
+    )
+    parser.add_argument(
+        "--root",
+        action="append",
+        required=True,
+        type=Path,
+        metavar="DIRECTORY",
+        help="authorize one local source tree; repeat for additional roots",
+    )
+    args = parser.parse_args(argv)
+    try:
+        roots = _validate_roots(tuple(args.root))
+    except ValueError as exc:
+        parser.error(str(exc))
+    serve(sys.stdin.buffer, sys.stdout.buffer, roots=roots)
     return 0
 
 

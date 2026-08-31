@@ -216,9 +216,9 @@ def summarize(
         from .synthesis import synthesize
 
         if extraction.kind != "collection":
-            raise ValueError(
-                "grounded synthesis requires a fused collection of at least two "
-                "routed sources; single-source extraction remains deterministic"
+            extraction = assemble_collection(
+                (extraction,),
+                subject=extraction.source,
             )
         synthesis_result = synthesize(
             extraction,
@@ -253,6 +253,203 @@ def summarize(
     return AutoTLDRResult(extraction, rendered, synthesis_result)
 
 
+def apply_product_synthesis(
+    extraction: Any,
+    *,
+    detail: str | None = None,
+    mode: str = "prose",
+    allow_evidence_fallback: bool | None = None,
+    use_config: bool = True,
+    product_config: Any | None = None,
+    client: Any | None = None,
+) -> tuple[Any, Any | None]:
+    """Apply the first-user synthesis contract to one acquired representation.
+
+    This is the shared policy seam for the CLI and agent surfaces.  ``mode='prose'``
+    requires the explicitly configured loopback model; ``mode='evidence'`` records a
+    clearly labelled model-off run.  It never owns model loading or residency.
+    """
+
+    from .product import DETAIL_PROFILES, load_product_config
+
+    if mode not in {"prose", "evidence"}:
+        raise ValueError("mode must be prose or evidence")
+    config = product_config or load_product_config(use_config=use_config)
+    detail_name = detail or config.detail
+    if detail_name not in DETAIL_PROFILES:
+        raise ValueError("detail must be brief, standard, or deep")
+    if allow_evidence_fallback is not None and not isinstance(
+        allow_evidence_fallback, bool
+    ):
+        raise TypeError("allow_evidence_fallback must be a boolean or None")
+    allow_fallback = (
+        config.allow_evidence_fallback
+        if allow_evidence_fallback is None
+        else allow_evidence_fallback
+    )
+    detail_profile = DETAIL_PROFILES[detail_name]
+    resolved = config.as_manifest()
+    resolved["detail"] = detail_profile.as_manifest()
+    resolved["allow_evidence_fallback"] = allow_fallback
+
+    if mode == "evidence":
+        extraction.meta["product"] = {
+            "schema": "autotldr-product-run-v1",
+            "mode": "evidence",
+            "detail": detail_profile.as_manifest(),
+            "resolved_config": resolved,
+        }
+        return extraction, None
+
+    from .product import require_active_model, require_configured_model
+    from .synthesis import EndpointPolicy, SynthesisConfig, synthesize
+
+    model = require_configured_model(config)
+    require_active_model(model)
+    wrapped_single = extraction.kind != "collection"
+    synthesis_input = (
+        assemble_collection((extraction,), subject=extraction.source)
+        if wrapped_single
+        else extraction
+    )
+    synthesis_result = synthesize(
+        synthesis_input,
+        SynthesisConfig(
+            model=model.model,
+            endpoint=model.endpoint,
+            endpoint_policy=EndpointPolicy(),
+            evidence_budget_bytes=detail_profile.evidence_budget_bytes,
+            timeout_seconds=min(
+                float(model.timeout_seconds), detail_profile.timeout_seconds
+            ),
+            max_output_tokens=detail_profile.max_output_tokens,
+            max_claims=detail_profile.max_claims,
+            reasoning_effort=detail_profile.reasoning_effort,
+            product_detail=detail_profile.name,
+            include_findings=False,
+            fallback_on_failure=allow_fallback,
+        ),
+        **({"client": client} if client is not None else {}),
+    )
+    completed = synthesis_result.extraction
+    if wrapped_single:
+        # The collection wrapper satisfies the synthesis proof boundary; it is not the
+        # source's public type. Restore the native kind for callers and renderers.
+        from dataclasses import replace
+
+        from .unit import Extraction
+
+        completed = Extraction(
+            source=extraction.source,
+            kind=extraction.kind,
+            units=list(completed.units),
+            relations=list(completed.relations),
+            gaps=list(completed.gaps),
+            meta=dict(completed.meta),
+            summary_claims=list(completed.summary_claims),
+        )
+        try:
+            synthesis_result = replace(synthesis_result, extraction=completed)
+        except TypeError:  # lightweight compatible result used by embedders/tests
+            try:
+                synthesis_result.extraction = completed
+            except (AttributeError, TypeError):
+                pass
+    completed.meta["product"] = {
+        "schema": "autotldr-product-run-v1",
+        "mode": "evidence-fallback" if synthesis_result.used_fallback else "prose",
+        "detail": detail_profile.as_manifest(),
+        "resolved_config": resolved,
+    }
+    return completed, synthesis_result
+
+
+def summarize_product(
+    sources: Sequence[str | Path],
+    *,
+    detail: str | None = None,
+    mode: str = "prose",
+    allow_evidence_fallback: bool | None = None,
+    use_config: bool = True,
+    product_config: Any | None = None,
+    input_type: str | None = None,
+    crawl: bool = False,
+    stdin: str | bytes | None = None,
+    output: str = "ansi",
+    budget: int | None = None,
+    cite: bool = True,
+    color: bool = False,
+    registry: Any | None = None,
+    client: Any | None = None,
+) -> AutoTLDRResult:
+    """Run acquisition, the product synthesis policy, and one output projection."""
+
+    from .product import load_product_config
+
+    resolved_config = product_config or load_product_config(use_config=use_config)
+    if mode == "prose":
+        from .product import require_active_model, require_configured_model
+
+        require_active_model(require_configured_model(resolved_config))
+    if registry is not None and resolved_config.extensions:
+        raise ValueError(
+            "an explicit registry cannot be combined with configured extension imports"
+        )
+    if registry is None and resolved_config.extensions:
+        registry = _load_product_extensions(resolved_config.extensions)
+    extraction = acquire(
+        sources,
+        input_type=input_type,
+        crawl=crawl,
+        stdin=stdin,
+        registry=registry,
+    )
+    extraction, synthesis_result = apply_product_synthesis(
+        extraction,
+        detail=detail,
+        mode=mode,
+        allow_evidence_fallback=allow_evidence_fallback,
+        use_config=use_config,
+        product_config=resolved_config,
+        client=client,
+    )
+    if output == "pdf":
+        if color:
+            raise ValueError("PDF output does not support terminal color")
+        from .share import render_pdf
+
+        rendered = render_pdf(extraction, budget=budget, cite=cite)
+    else:
+        from .render import render
+
+        rendered = render(
+            extraction,
+            output=output,
+            budget=budget,
+            cite=cite,
+            color=color,
+            registry=registry,
+        )
+    return AutoTLDRResult(extraction, rendered, synthesis_result)
+
+
+def _load_product_extensions(references: Sequence[str]) -> Any:
+    """Load only imports named by resolved product configuration."""
+
+    from . import router
+    from .collection import validate_extension_registry as validate_acquisitions
+    from .extensions import ExtensionRegistry, load_extension
+    from .render import validate_extension_registry as validate_renderers
+
+    registry = ExtensionRegistry()
+    for reference in references:
+        load_extension(reference, registry)
+    router.validate_extension_registry(registry)
+    validate_acquisitions(registry)
+    validate_renderers(registry)
+    return registry
+
+
 def _acquire_collection(source: str | Path, *, registry: Any | None) -> Any:
     from .collection import acquire_collection
 
@@ -281,4 +478,11 @@ def _collection_subject(sources: Sequence[str]) -> str:
     return common or "."
 
 
-__all__ = ["AutoTLDRResult", "acquire", "assemble_collection", "summarize"]
+__all__ = [
+    "AutoTLDRResult",
+    "acquire",
+    "apply_product_synthesis",
+    "assemble_collection",
+    "summarize",
+    "summarize_product",
+]

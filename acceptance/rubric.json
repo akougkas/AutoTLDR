@@ -1,0 +1,32 @@
+{
+  "schema": "autotldr-alpha-acceptance-rubric-v1",
+  "automatic": {
+    "all_claim_evidence_ids_resolve_in_rendered_units": true,
+    "all_claims_have_derived_origins": true,
+    "complete_output_bytes_at_or_below_requested_budget": true,
+    "explicit_gaps_preserved": true,
+    "fallback_used": false,
+    "model_identity_matches_configured_identity": true,
+    "reasoning_tokens": 0,
+    "response_validation": "accepted"
+  },
+  "human_review": {
+    "broad_quantifier_has_complete_cited_support": true,
+    "claim_is_entailed_by_its_citations": true,
+    "deep_adds_distinct_supported_meaning_over_standard": true,
+    "no_claim_infers_meaning_from_a_path_or_unit_id": true,
+    "no_claim_infers_behavior_from_a_symbol_name_or_signature": true,
+    "every_named_structured_identifier_occurs_in_cited_unit_content": true,
+    "every_concrete_measurement_unit_occurs_in_cited_unit_content": true,
+    "every_number_unit_quantity_occurs_together_in_cited_unit_content": true,
+    "absence_claim_is_explicit_in_cited_unit_content_not_only_a_finding": true,
+    "standard_adds_distinct_supported_meaning_over_brief": true,
+    "tldr_answers_the_job_question_before_audit_detail": true
+  },
+  "lead_jobs": [
+    "mixed-technical-handoff",
+    "formula-workbook",
+    "research-data-package",
+    "bounded-agent-context"
+  ]
+}

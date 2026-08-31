@@ -200,7 +200,7 @@ footer { margin-top:58px; padding-top:22px; border-top:1px solid var(--line); fo
 </header>
 
 <div class="callout">
-  <p><strong>Implementation status: the thin Stage 1–8 MVP is implemented.</strong> One public pipeline acquires files, folders, archives, stdin and URLs, normalizes every supported input into the same addressable representation, applies the measured role and fusion policy, optionally accepts strictly ID-grounded local-model claims, and renders six output shapes. Watch, MCP, the Agent Skill and A2A metadata wrap that pipeline. The software gate is complete; independent physical proof of zero CPU spill remains unavailable from the current LM Studio and process telemetry, and it is reported separately rather than invented.</p>
+  <p><strong>Implementation status: the thin Stage 1–8 MVP is implemented.</strong> One public pipeline acquires files, folders, archives, stdin and URLs, normalizes every supported input into the same addressable representation, applies the measured role and fusion policy, accepts strictly ID-grounded local-model claims in the ordinary product path, and renders six output shapes. Watch, root-scoped MCP and the installable Agent Skill wrap that pipeline. A2A is deliberately absent until a real server and authorization design exist. The software gate is complete; independent physical proof of zero CPU spill remains unavailable from the current LM Studio and process telemetry, and it is reported separately rather than invented.</p>
 </div>
 
 <section>
@@ -231,7 +231,7 @@ footer { margin-top:58px; padding-top:22px; border-top:1px solid var(--line); fo
   <div class="tablewrap"><table>
     <thead><tr><th>Concern</th><th>Contract</th></tr></thead>
     <tbody>
-      <tr><td class="k">Scope</td><td class="v">Stage 3 processes one acquired source; Stage 4 fuses two or more; Stage 5 adds bounded directory, repository, archive and doc-site acquisition, the locked Tier 3 adapters, and the public grounded-synthesis seam. Ordinary CLI invoke stays deterministic and model-off; callers opt into synthesis through the Python API or the guarded demo path</td></tr>
+      <tr><td class="k">Scope</td><td class="v">Stage 3 processes one acquired source; Stage 4 fuses two or more; Stage 5 adds bounded directory, repository, archive and doc-site acquisition, the locked Tier 3 adapters, and the public grounded-synthesis seam. Ordinary CLI invoke requires an explicitly configured loopback model and returns validated cited prose; deterministic extraction is an explicit <code>--model off</code> evidence mode</td></tr>
       <tr><td class="k">Input</td><td class="v">One or more local paths, directory/repository/archive collections, <code>-</code> for stdin, or HTTP(S) URLs. <code>--crawl</code> performs a bounded same-origin documentation crawl. <code>--type</code> supplies an explicit format only when exactly one stdin or deliberately mislabeled local source is supplied</td></tr>
       <tr><td class="k">Output</td><td class="v"><code>ansi</code> by default, plus <code>md</code>, self-contained <code>html</code>, linked <code>pdf</code>, <code>json</code>, and <code>jsonl</code>; text or binary-safe output to stdout or <code>-o</code> / <code>--output</code></td></tr>
       <tr><td class="k">Citations</td><td class="v">Human output cites exact origins inline by default. <code>--no-cite</code> uses stable IDs plus a source map; structured output always retains origins</td></tr>
@@ -458,7 +458,7 @@ footer { margin-top:58px; padding-top:22px; border-top:1px solid var(--line); fo
       <tr><td class="k">5</td><td class="v">Complete-demo integration: Tier 2 directory/repo/archive/doc-site acquisition, all locked Tier 3 adapters, bounded evidence packing, and grounded local-model TLDR synthesis</td><td class="n"><strong>Complete software/functional slice.</strong> On 2026-08-31 Borealis ran 14 mixed inputs through one ZBook-local instance and accepted three cited claims with no fallback; 63 independent checks over the saved artifacts passed. Physical no-spill certification remains a separately named telemetry limitation and the certification wrapper fails closed</td></tr>
       <tr><td class="k">6</td><td class="v">Watch daemon</td><td class="n"><strong>Complete.</strong> Polling, debounce, SHA suppression, SQLite/WAL, atomic per-file and folder artifacts</td></tr>
       <tr><td class="k">7</td><td class="v">html and pdf output, claim-to-source linking</td><td class="n"><strong>Complete.</strong> Self-contained HTML and paginated PDF share the exact omission policy. Text shapes are byte-identical across processes; PDF byte identity holds within one process, because <code>pymupdf.Story</code> lays identical HTML out differently per process</td></tr>
-      <tr><td class="k">8</td><td class="v">MCP with the Tasks extension, SKILL.md, A2A card</td><td class="n"><strong>Complete.</strong> Thin local, model-off wrappers over the public API</td></tr>
+      <tr><td class="k">8</td><td class="v">Root-scoped MCP with the Tasks extension and installable SKILL.md; A2A deferred</td><td class="n"><strong>Complete alpha surface.</strong> MCP and shell agents use the same product synthesis and detail policy; no nonexistent A2A service is advertised</td></tr>
     </tbody>
   </table></div>
   <div class="callout">

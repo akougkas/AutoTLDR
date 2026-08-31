@@ -520,6 +520,26 @@ def test_evidence_pack_is_canonical_under_input_permutation_and_bounded():
     }
 
 
+def test_product_evidence_pack_excludes_finding_content_but_records_the_policy():
+    extraction = _collection()
+    gap_content = extraction.gaps[0].content
+
+    pack = build_evidence_pack(
+        extraction,
+        budget_bytes=8_000,
+        include_findings=False,
+    )
+
+    assert pack.findings == ()
+    assert pack.dropped_findings == ()
+    assert pack.include_findings is False
+    assert pack.excluded_finding_count == len(extraction.gaps)
+    assert gap_content not in pack.to_bytes().decode()
+    assert pack.record()["constraints"]["findings_included"] is False
+    assert pack.selection_record()["findings_included"] is False
+    assert pack.selection_record()["excluded_finding_count"] == len(extraction.gaps)
+
+
 def test_source_diverse_selection_resists_prior_reference_fanout():
     normal = _reference_fanout_collection()
     reversed_input = _reference_fanout_collection(reverse=True)
@@ -698,6 +718,231 @@ def test_prompt_injection_stays_once_inside_untrusted_user_evidence():
     assert request["response_format"]["json_schema"]["strict"] is True
     assert request["response_format"]["json_schema"]["schema"]["additionalProperties"] is False
     assert result.used_fallback is False
+
+
+def test_product_claim_policy_drops_behavior_not_supported_beyond_a_signature():
+    signature = _unit(
+        "controller.py",
+        "line:4",
+        "def compute_rate(raw_adc: int) -> float:",
+        modality=Modality.CODE,
+    )
+    runbook = _unit(
+        "runbook.md",
+        "line:3",
+        "The runbook says the controller consumes readings.csv.",
+    )
+    extraction = Extraction(
+        source="product-policy",
+        kind="collection",
+        units=[signature, runbook],
+        relations=[],
+        gaps=[],
+        meta=_production_meta(),
+    )
+    content = json.dumps(
+        {
+            "claims": [
+                {
+                    "content": "compute_rate derives throughput from raw input.",
+                    "evidence_unit_ids": [signature.id],
+                },
+                {
+                    "content": "The runbook says the controller consumes readings.csv.",
+                    "evidence_unit_ids": [runbook.id],
+                },
+            ]
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+
+    result = synthesize(
+        extraction,
+        _config(product_detail="standard", include_findings=False),
+        client=_StaticClient(_api_response(content)),
+    )
+
+    assert [claim.content for claim in result.extraction.summary_claims] == [
+        "The runbook says the controller consumes readings.csv."
+    ]
+    policy = result.model_run["validation"]["product_claim_policy"]
+    assert policy["dropped_claim_count"] == 1
+    assert policy["dropped_claims"][0]["reason"] == (
+        "signature-behavior-unsupported"
+    )
+    assert policy["dropped_claims"][0]["behavior_groups"] == [
+        "compute",
+        "derive",
+    ]
+    assert result.model_run["settings"]["include_findings"] is False
+
+
+def test_product_claim_policy_drops_uncited_measurement_unit_words():
+    schema = _unit(
+        "results.parquet",
+        "column:error_rate_pct",
+        "Parquet column 'error_rate_pct': physical type DOUBLE.",
+        modality=Modality.SCHEMA,
+    )
+    count = _unit(
+        "results.parquet",
+        "parquet:file",
+        "Parquet file: 3 row(s), 1 column(s).",
+        modality=Modality.SCHEMA,
+    )
+    extraction = Extraction(
+        source="product-units",
+        kind="collection",
+        units=[schema, count],
+        relations=[],
+        gaps=[],
+        meta=_production_meta(),
+    )
+    content = json.dumps(
+        {
+            "claims": [
+                {
+                    "content": "error_rate_pct is measured in percent.",
+                    "evidence_unit_ids": [schema.id],
+                },
+                {
+                    "content": "The Parquet file has 3 rows and 1 column.",
+                    "evidence_unit_ids": [count.id],
+                },
+            ]
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+
+    result = synthesize(
+        extraction,
+        _config(product_detail="standard", include_findings=False),
+        client=_StaticClient(_api_response(content)),
+    )
+
+    assert [claim.content for claim in result.extraction.summary_claims] == [
+        "The Parquet file has 3 rows and 1 column."
+    ]
+    dropped = result.model_run["validation"]["product_claim_policy"][
+        "dropped_claims"
+    ]
+    assert dropped[0]["reason"] == "measurement-unit-unsupported"
+    assert dropped[0]["measurement_units"] == ["percent"]
+
+
+def test_product_claim_policy_drops_composed_measurement_quantities():
+    dimension = _unit(
+        "forecast.nc",
+        "dimension:time",
+        "NetCDF dimension 'time' in /: length 3.",
+        modality=Modality.SCHEMA,
+    )
+    units = _unit(
+        "forecast.nc",
+        "attribute:time:units",
+        'NetCDF attribute \'units\' on /time: value "hours since 2026-08-31".',
+        modality=Modality.SCHEMA,
+    )
+    readme = _unit(
+        "README.md",
+        "line:3",
+        "Acceptance requires throughput above 2,800 Mbps.",
+    )
+    extraction = Extraction(
+        source="product-quantities",
+        kind="collection",
+        units=[dimension, units, readme],
+        relations=[],
+        gaps=[],
+        meta=_production_meta(),
+    )
+    content = json.dumps(
+        {
+            "claims": [
+                {
+                    "content": "The forecast spans a three-hour time dimension.",
+                    "evidence_unit_ids": [dimension.id, units.id],
+                },
+                {
+                    "content": "Acceptance requires throughput above 2800 Mbps.",
+                    "evidence_unit_ids": [readme.id],
+                },
+            ]
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+
+    result = synthesize(
+        extraction,
+        _config(product_detail="standard", include_findings=False),
+        client=_StaticClient(_api_response(content)),
+    )
+
+    assert [claim.content for claim in result.extraction.summary_claims] == [
+        "Acceptance requires throughput above 2800 Mbps."
+    ]
+    dropped = result.model_run["validation"]["product_claim_policy"][
+        "dropped_claims"
+    ]
+    assert dropped[0]["reason"] == "measurement-quantity-unsupported"
+    assert dropped[0]["measurement_quantities"] == ["3 hour"]
+
+
+def test_product_claim_policy_drops_uncited_structured_identifiers():
+    accepted = _unit(
+        "results.parquet",
+        "column:accepted",
+        "Parquet column 'accepted': physical type BOOLEAN.",
+        modality=Modality.SCHEMA,
+    )
+    run_id = _unit(
+        "results.parquet",
+        "column:run_id",
+        "Parquet column 'run_id': physical type INT64.",
+        modality=Modality.SCHEMA,
+    )
+    extraction = Extraction(
+        source="product-identifiers",
+        kind="collection",
+        units=[accepted, run_id],
+        relations=[],
+        gaps=[],
+        meta=_production_meta(),
+    )
+    content = json.dumps(
+        {
+            "claims": [
+                {
+                    "content": "The schema stores accepted and run_id columns.",
+                    "evidence_unit_ids": [accepted.id],
+                },
+                {
+                    "content": "The schema declares run_id as INT64.",
+                    "evidence_unit_ids": [run_id.id],
+                },
+            ]
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+
+    result = synthesize(
+        extraction,
+        _config(product_detail="standard", include_findings=False),
+        client=_StaticClient(_api_response(content)),
+    )
+
+    assert [claim.content for claim in result.extraction.summary_claims] == [
+        "The schema declares run_id as INT64."
+    ]
+    dropped = result.model_run["validation"]["product_claim_policy"][
+        "dropped_claims"
+    ]
+    assert dropped[0]["reason"] == "identifier-unsupported"
+    assert dropped[0]["identifiers"] == ["run_id"]
 
 
 @pytest.mark.parametrize(
@@ -1085,6 +1330,18 @@ def test_endpoint_policy_is_loopback_only_by_default_and_remote_is_explicit():
         SynthesisConfig(model="model", timeout_seconds=True)
     with pytest.raises(SynthesisInputError, match="temperature"):
         SynthesisConfig(model="model", temperature=True)
+    with pytest.raises(SynthesisInputError, match="reasoning_effort"):
+        SynthesisConfig(model="model", reasoning_effort="low")
+    with pytest.raises(SynthesisInputError, match="strict LM Studio"):
+        SynthesisConfig(
+            model="model",
+            reasoning_effort="none",
+            endpoint_policy=EndpointPolicy(strict_zbook_local=False),
+        )
+    with pytest.raises(SynthesisInputError, match="product_detail"):
+        SynthesisConfig(model="model", product_detail="verbose")
+    with pytest.raises(SynthesisInputError, match="include_findings"):
+        SynthesisConfig(model="model", include_findings="no")
 
 
 def _http_response(payload: bytes, *, status: str = "200 OK") -> bytes:
@@ -1601,6 +1858,45 @@ def test_exact_reasoning_token_usage_detail_is_retained_and_bounded():
             )
 
 
+def test_qualified_no_reasoning_request_is_emitted_and_verified():
+    _extraction, pack = _full_pack()
+    config = _config(reasoning_effort="none")
+    request = json.loads(build_chat_request(pack, config))
+
+    assert request["reasoning_effort"] == "none"
+
+    accepted = _api_response(
+        '{"claims":[]}',
+        message_extra={"reasoning_content": "", "tool_calls": []},
+        envelope_extra={"stats": {}},
+        usage={
+            "prompt_tokens": 100,
+            "completion_tokens": 20,
+            "total_tokens": 120,
+            "completion_tokens_details": {"reasoning_tokens": 0},
+        },
+    )
+    parsed = extract_response_content(accepted, config=config)
+    assert parsed.reasoning_tokens == 0
+
+    for reasoning, reasoning_tokens in (("hidden", 0), ("", 1)):
+        rejected = _api_response(
+            '{"claims":[]}',
+            message_extra={"reasoning_content": reasoning, "tool_calls": []},
+            envelope_extra={"stats": {}},
+            usage={
+                "prompt_tokens": 100,
+                "completion_tokens": 20,
+                "total_tokens": 120,
+                "completion_tokens_details": {
+                    "reasoning_tokens": reasoning_tokens
+                },
+            },
+        )
+        with pytest.raises(SynthesisValidationError, match="did not honor"):
+            extract_response_content(rejected, config=config)
+
+
 def test_lm_studio_extras_survive_only_as_bounded_model_run_audit():
     extraction, pack = _full_pack()
     claim = _claim("One grounded result.", [pack.unit_ids[0]])
@@ -1722,6 +2018,7 @@ def test_chat_request_uses_exact_model_and_closed_schema():
     assert request["n"] == 1
     assert request["stream"] is False
     assert request["temperature"] == 0.0
+    assert "reasoning_effort" not in request
     schema = request["response_format"]["json_schema"]["schema"]
     assert schema["additionalProperties"] is False
     assert schema["properties"]["claims"]["minItems"] == 1
@@ -1734,6 +2031,27 @@ def test_chat_request_uses_exact_model_and_closed_schema():
     assert "operating constraints or decisions" in system_prompt
     assert "component/data flow" in system_prompt
     assert "missing dependency or limitation" in system_prompt
+
+
+def test_product_detail_adds_quality_guardrails_without_changing_default_prompt():
+    _extraction, pack = _full_pack()
+    default_request = json.loads(build_chat_request(pack, _config()))
+    product_request = json.loads(
+        build_chat_request(pack, _config(product_detail="deep"))
+    )
+
+    default_prompt = default_request["messages"][0]["content"]
+    product_prompt = product_request["messages"][0]["content"]
+    assert "Do not fill the claim allowance" not in default_prompt
+    assert "Do not fill the claim allowance" in product_prompt
+    assert "file paths" in product_prompt
+    assert "findings are intentionally excluded" in product_prompt
+    assert "explicitly stated inside the content of a cited unit" in product_prompt
+    assert "Every factual phrase" in product_prompt
+    assert "field-name implications do not count" in product_prompt
+    assert "function signature proves identity" in product_prompt
+    assert "explicit in every cited unit" in product_prompt
+    assert "every claim must add distinct evidence" in product_prompt
 
 
 def test_configured_role_backend_is_preserved_in_pack_and_run_manifest():

@@ -8,7 +8,6 @@ resolution-markers = [
 
 [[package]]
 name = "autotldr"
-version = "0.1.0.dev0"
 source = { editable = "." }
 
 [package.optional-dependencies]
@@ -56,20 +55,30 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "autotldr", extras = ["code", "data", "office", "pdf", "structured", "web"], marker = "extra == 'all'" },
+    { name = "duckdb", marker = "extra == 'all'", specifier = ">=1.2" },
     { name = "duckdb", marker = "extra == 'data'", specifier = ">=1.2" },
+    { name = "h5py", marker = "extra == 'all'", specifier = ">=3.12" },
     { name = "h5py", marker = "extra == 'data'", specifier = ">=3.12" },
+    { name = "netcdf4", marker = "extra == 'all'", specifier = ">=1.7" },
     { name = "netcdf4", marker = "extra == 'data'", specifier = ">=1.7" },
+    { name = "numpy", marker = "extra == 'all'", specifier = ">=1.26" },
     { name = "numpy", marker = "extra == 'data'", specifier = ">=1.26" },
+    { name = "openpyxl", marker = "extra == 'all'", specifier = ">=3.1" },
     { name = "openpyxl", marker = "extra == 'office'", specifier = ">=3.1" },
+    { name = "pyarrow", marker = "extra == 'all'", specifier = ">=18" },
     { name = "pyarrow", marker = "extra == 'data'", specifier = ">=18" },
+    { name = "pymupdf", marker = "extra == 'all'", specifier = ">=1.24" },
     { name = "pymupdf", marker = "extra == 'pdf'", specifier = ">=1.24" },
+    { name = "pyyaml", marker = "extra == 'all'", specifier = ">=6.0" },
     { name = "pyyaml", marker = "extra == 'structured'", specifier = ">=6.0" },
+    { name = "trafilatura", marker = "extra == 'all'", specifier = ">=2.2,<3" },
     { name = "trafilatura", marker = "extra == 'web'", specifier = ">=2.2,<3" },
+    { name = "tree-sitter", marker = "extra == 'all'", specifier = ">=0.21.3,<0.22" },
     { name = "tree-sitter", marker = "extra == 'code'", specifier = ">=0.21.3,<0.22" },
+    { name = "tree-sitter-languages", marker = "extra == 'all'", specifier = "==1.10.2" },
     { name = "tree-sitter-languages", marker = "extra == 'code'", specifier = "==1.10.2" },
 ]
-provides-extras = ["pdf", "office", "structured", "code", "web", "data", "all"]
+provides-extras = ["all", "code", "data", "office", "pdf", "structured", "web"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest", specifier = ">=8.0" }]

@@ -5,7 +5,7 @@ every invocation, including ``autotldr --help``, and the startup contract in
 tests/test_startup.py enforces that.
 """
 
-__version__ = "0.1.0.dev0"
+from ._version import __version__
 
 
 def acquire(*args, **kwargs):
@@ -24,4 +24,12 @@ def summarize(*args, **kwargs):
     return _summarize(*args, **kwargs)
 
 
-__all__ = ["__version__", "acquire", "summarize"]
+def summarize_product(*args, **kwargs):
+    """Lazily run the configured first-user product pipeline."""
+
+    from .api import summarize_product as _summarize_product
+
+    return _summarize_product(*args, **kwargs)
+
+
+__all__ = ["__version__", "acquire", "summarize", "summarize_product"]
