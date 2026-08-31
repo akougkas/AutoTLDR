@@ -711,13 +711,19 @@ def _parse_fits_stream(
 
 
 def _finalize_extraction(result: Extraction) -> None:
+    # Ordering must not depend on the physical path this extractor was handed.
+    # Unit IDs are derived from the immutable snapshot's temporary directory and
+    # are rewritten to logical IDs by the router afterwards, so sorting by them
+    # would leave the list in an order that varies from run to run. Rank by the
+    # canonical unit position instead, which survives that rewrite unchanged.
     result.units.sort(
-        key=lambda unit: (unit.origin.ref, str(unit.modality), unit.content, unit.id)
+        key=lambda unit: (unit.origin.ref, str(unit.modality), unit.content)
     )
+    unit_order = {unit.id: index for index, unit in enumerate(result.units)}
     result.relations.sort(
         key=lambda relation: (
-            relation.src,
-            relation.dst,
+            unit_order.get(relation.src, 0),
+            unit_order.get(relation.dst, 0),
             str(relation.kind),
             relation.evidence,
         )
@@ -890,3 +896,8 @@ def extract_fits(path: str | Path) -> Extraction:
 def extract_astronomy(path: str | Path) -> Extraction:
     """Unified entry point for astronomy data formats."""
     return extract_fits(path)
+
+
+def extract(path: str | Path) -> Extraction:
+    """Extract metadata from a FITS astronomy data file."""
+    return extract_astronomy(path)

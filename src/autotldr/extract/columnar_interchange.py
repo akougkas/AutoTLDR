@@ -60,6 +60,20 @@ class InvalidColumnarData(ValueError):
         super().__init__(f"{self.path.name}: invalid {kind}: {self.detail}")
 
 
+class UnsupportedTier3Subtype(InvalidColumnarData):
+    """A parser opened the container but its subtype is outside the v1 lock."""
+
+    tier = 3
+
+    def __init__(self, path: Path | str, subtype: str, detail: str) -> None:
+        self.subtype = subtype
+        super().__init__(
+            path,
+            subtype,
+            f"unsupported subtype: {subtype} ({detail})",
+        )
+
+
 @dataclass(frozen=True, slots=True)
 class _ReadContext:
     path: Path
@@ -76,9 +90,14 @@ def _get_arrow_ipc() -> tuple[Any, Any]:
         import pyarrow.lib as pa_lib
 
         return ipc, pa_lib
-    except ModuleNotFoundError as exc:
-        raise ImportError(
-            "Arrow IPC support requires pyarrow; install it with: pip install pyarrow"
+    except (ImportError, ModuleNotFoundError) as exc:
+        from ..errors import MissingOptionalDependency
+
+        raise MissingOptionalDependency(
+            feature="Arrow IPC",
+            dependency="pyarrow",
+            extra="data",
+            detail="Arrow IPC support requires pyarrow",
         ) from exc
 
 
@@ -89,9 +108,14 @@ def _get_arrow_orc() -> tuple[Any, Any]:
         import pyarrow.orc as orc
 
         return orc, pa_lib
-    except ModuleNotFoundError as exc:
-        raise ImportError(
-            "ORC support requires pyarrow; install it with: pip install pyarrow"
+    except (ImportError, ModuleNotFoundError) as exc:
+        from ..errors import MissingOptionalDependency
+
+        raise MissingOptionalDependency(
+            feature="ORC",
+            dependency="pyarrow",
+            extra="data",
+            detail="ORC support requires pyarrow",
         ) from exc
 
 
@@ -455,12 +479,13 @@ def _verify_and_finish(context: _ReadContext) -> Extraction:
 
     result = context.result
     result.units.sort(
-        key=lambda unit: (unit.origin.ref, str(unit.modality), unit.content, unit.id)
+        key=lambda unit: (unit.origin.ref, str(unit.modality), unit.content)
     )
+    unit_order = {unit.id: i for i, unit in enumerate(result.units)}
     result.relations.sort(
         key=lambda relation: (
-            relation.src,
-            relation.dst,
+            unit_order.get(relation.src, 0),
+            unit_order.get(relation.dst, 0),
             str(relation.kind),
             relation.evidence,
         )
@@ -739,10 +764,10 @@ def extract_feather(path: str | Path) -> Extraction:
 
         if header.startswith(b"FEA1"):
             if size >= 8 and footer.endswith(b"FEA1"):
-                raise InvalidColumnarData(
+                raise UnsupportedTier3Subtype(
                     context.path,
-                    "feather",
-                    "unsupported subtype: Feather v1 requires table array materialization; only Feather v2 metadata inspection is supported",
+                    "Feather v1",
+                    "Feather v1 requires table array materialization; only Feather v2 metadata inspection is supported",
                 )
             raise InvalidColumnarData(
                 context.path,
@@ -845,10 +870,10 @@ def extract_columnar_interchange(path: str | Path) -> Extraction:
     path = Path(path)
     kind = detect_columnar_kind(path)
     if kind == "feather-v1":
-        raise InvalidColumnarData(
+        raise UnsupportedTier3Subtype(
             path,
-            "feather",
-            "unsupported subtype: Feather v1 requires table array materialization; only Feather v2 metadata inspection is supported",
+            "Feather v1",
+            "Feather v1 requires table array materialization; only Feather v2 metadata inspection is supported",
         )
     elif kind == "arrow-file":
         return extract_arrow_file(path)
@@ -860,3 +885,16 @@ def extract_columnar_interchange(path: str | Path) -> Extraction:
         return extract_arrow_stream(path)
     else:
         raise InvalidColumnarData(path, "columnar", f"unsupported columnar kind {kind!r}")
+
+
+def extract(path: str | Path, kind: str | None = None) -> Extraction:
+    """Extract metadata from Arrow IPC file/stream, Feather v2, or ORC."""
+    if kind == "feather":
+        return extract_feather(path)
+    if kind == "arrow-file":
+        return extract_arrow_file(path)
+    if kind == "arrow-stream":
+        return extract_arrow_stream(path)
+    if kind == "orc":
+        return extract_orc(path)
+    return extract_columnar_interchange(path)

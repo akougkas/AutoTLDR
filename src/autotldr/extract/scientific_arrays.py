@@ -206,6 +206,17 @@ def _get_dtype_info(descr: Any) -> tuple[int, bool]:
 
     try:
         import numpy as np
+    except (ImportError, ModuleNotFoundError) as exc:
+        from ..errors import MissingOptionalDependency
+
+        raise MissingOptionalDependency(
+            feature="scientific array",
+            dependency="numpy",
+            extra="data",
+            detail="numpy is required for scientific array support",
+        ) from exc
+
+    try:
         dt = np.dtype(descr)
         return int(dt.itemsize), bool(dt.hasobject)
     except (TypeError, ValueError) as exc:
@@ -626,12 +637,13 @@ def _verify_and_finish(context: _ReadContext) -> Extraction:
 
     result = context.result
     result.units.sort(
-        key=lambda unit: (unit.origin.ref, str(unit.modality), unit.content, unit.id)
+        key=lambda unit: (unit.origin.ref, str(unit.modality), unit.content)
     )
+    unit_order = {unit.id: i for i, unit in enumerate(result.units)}
     result.relations.sort(
         key=lambda relation: (
-            relation.src,
-            relation.dst,
+            unit_order.get(relation.src, 0),
+            unit_order.get(relation.dst, 0),
             str(relation.kind),
             relation.evidence,
         )
@@ -972,3 +984,8 @@ def extract_scientific_array(path: str | Path) -> Extraction:
     if kind == "npz":
         return extract_npz(path)
     return extract_npy(path)
+
+
+def extract(path: str | Path) -> Extraction:
+    """Extract metadata from an NPY array or NPZ archive."""
+    return extract_scientific_array(path)
