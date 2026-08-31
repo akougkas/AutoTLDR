@@ -187,7 +187,7 @@ footer { margin-top:58px; padding-top:22px; border-top:1px solid var(--line); fo
 <header class="hero">
   <div class="kicker">Build specification · v1 · 30 August 2026</div>
   <h1>The mixed folder,<br>fused and cited.</h1>
-  <p class="lede">Point AutoTLDR at a folder of mixed text documents and it tells you what the collection is, how the pieces relate, and where every claim came from.</p>
+  <p class="lede">The v1 target: point AutoTLDR at a folder of mixed text documents and learn what the collection is, how the pieces relate, and where every claim came from.</p>
   <div class="scope">
     <span class="pill on">Tier 0 · text-shaped</span>
     <span class="pill on">Tier 1 · document-shaped</span>
@@ -199,6 +199,10 @@ footer { margin-top:58px; padding-top:22px; border-top:1px solid var(--line); fo
   </div>
 </header>
 
+<div class="callout">
+  <p><strong>Implementation status: the thin Stage 1–8 MVP is implemented.</strong> One public pipeline acquires files, folders, archives, stdin and URLs, normalizes every supported input into the same addressable representation, applies the measured role and fusion policy, optionally accepts strictly ID-grounded local-model claims, and renders six output shapes. Watch, MCP, the Agent Skill and A2A metadata wrap that pipeline. The software gate is complete; independent physical proof of zero CPU spill remains unavailable from the current LM Studio and process telemetry, and it is reported separately rather than invented.</p>
+</div>
+
 <section>
   <div class="part">Part 1</div>
   <h2>Two modes, one engine</h2>
@@ -208,21 +212,35 @@ footer { margin-top:58px; padding-top:22px; border-top:1px solid var(--line); fo
       <h4>Invoke</h4>
       <div class="term">
 <span class="p">$</span> autotldr report.pdf
-<span class="p">$</span> autotldr ./project
-<span class="p">$</span> autotldr ./project <span class="c">--ask</span> <span class="cm">"what did we measure"</span>
-<span class="p">$</span> autotldr https://docs.example.com/guide</div>
-      <p>Synchronous. Feels like <code>cat</code> for Tier 0, a couple of seconds for Tiers 1–3. Writes to stdout by default. This is the tool.</p>
+<span class="p">$</span> printf <span class="cm">'# Notes\nhello\n'</span> | autotldr - <span class="c">--type md</span>
+<span class="p">$</span> autotldr https://docs.example.com/guide <span class="c">--out md</span>
+<span class="p">$</span> autotldr paper.pdf analysis.ipynb results.xlsx</div>
+      <p>Synchronous. Feels like <code>cat</code> for Tier 0 and remains bounded for Tier 1. Two or more explicit inputs are fused as a Stage 4 collection. Writes to stdout by default.</p>
     </div>
     <div class="mode">
       <span class="tag">Mode 2</span>
       <h4>Watch</h4>
       <div class="term">
-<span class="p">$</span> autotldr watch ./inbox <span class="c">--out</span> bundle
-<span class="p">$</span> autotldr watch <span class="c">--status</span>
-<span class="p">$</span> autotldr watch <span class="c">--stop</span> ./inbox</div>
-      <p>A daemon monitors registered folders. Drop a file in and an artifact appears without anyone asking. Re-fusion runs on a debounce, so twelve files dropped produce one rebuild. This is the service.</p>
+<span class="p">$</span> autotldr watch ./inbox <span class="c">--once</span>
+<span class="p">$</span> autotldr watch ./inbox <span class="c">--status</span>
+<span class="p">$</span> autotldr watch ./inbox <span class="c">--recursive --debounce 10</span></div>
+      <p>A foreground polling service monitors one folder. Drop a file in and a per-file artifact appears under <code>.autotldr/files/</code> without anyone asking. The fused <code>.autotldr/FOLDER.tldr.md</code> roll-up is rebuilt on a debounce, so twelve files dropped produce one rebuild. This is the service.</p>
     </div>
   </div>
+  <h3>Stage 3–5 invoke contract — implemented</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Concern</th><th>Contract</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Scope</td><td class="v">Stage 3 processes one acquired source; Stage 4 fuses two or more; Stage 5 adds bounded directory, repository, archive and doc-site acquisition, the locked Tier 3 adapters, and the public grounded-synthesis seam. Ordinary CLI invoke stays deterministic and model-off; callers opt into synthesis through the Python API or the guarded demo path</td></tr>
+      <tr><td class="k">Input</td><td class="v">One or more local paths, directory/repository/archive collections, <code>-</code> for stdin, or HTTP(S) URLs. <code>--crawl</code> performs a bounded same-origin documentation crawl. <code>--type</code> supplies an explicit format only when exactly one stdin or deliberately mislabeled local source is supplied</td></tr>
+      <tr><td class="k">Output</td><td class="v"><code>ansi</code> by default, plus <code>md</code>, self-contained <code>html</code>, linked <code>pdf</code>, <code>json</code>, and <code>jsonl</code>; text or binary-safe output to stdout or <code>-o</code> / <code>--output</code></td></tr>
+      <tr><td class="k">Citations</td><td class="v">Human output cites exact origins inline by default. <code>--no-cite</code> uses stable IDs plus a source map; structured output always retains origins</td></tr>
+      <tr class="hl"><td class="k">Exact budget</td><td class="v"><code>--budget N</code> caps the complete rendered UTF-8 byte stream under <code>utf8-byte-v1</code>. Framing, escaping, citations, ANSI bytes, manifests, omission records, and the final newline all count. <code>pdf</code> keeps the same atomic selection and omission inventory but counts the complete file under <code>binary-byte-v1</code></td></tr>
+      <tr><td class="k">Omissions</td><td class="v">Units and relations are atomic; every omitted unit and relation is identified concretely. If the required envelope cannot fit, no partial stdout is emitted</td></tr>
+      <tr><td class="k">Machine manifest</td><td class="v">JSON and JSONL record input source/kind/tier/bytes/SHA-256, timings, tool and representation versions, model and role backend, estimator and ID schemes, and complete selection accounting</td></tr>
+      <tr><td class="k">Named exits</td><td class="v"><code>0</code> success · <code>1</code> runtime/extraction error · <code>2</code> invalid usage · <code>3</code> unsupported format/tier · <code>4</code> not found · <code>5</code> unsatisfied budget</td></tr>
+    </tbody>
+  </table></div>
   <div class="callout">
     <p><strong>This is what the "auto" means.</strong> Invoke mode is a tool and there are other tools. Watch mode turns a directory into a self-summarizing corpus, and it is the differentiated half.</p>
   </div>
@@ -236,8 +254,8 @@ footer { margin-top:58px; padding-top:22px; border-top:1px solid var(--line); fo
 
   <h3>Language: Python, distributed with uv</h3>
   <div class="prose">
-    <p>The entire extraction ecosystem this depends on is Python: MarkItDown, Docling, openpyxl, pypdf, pymupdf, python-docx, nbformat, tree-sitter bindings, h5py, trafilatura. Rust would give a faster cold start and a static binary, and would cost most of year one reimplementing extractors that already exist and are maintained.</p>
-    <p><strong>The cost, named.</strong> Python startup is the one thing that can make this feel unlike a Unix tool, so the mitigation is not optional. Every extractor is lazy-imported; <code>autotldr notes.md</code> must never import Docling, h5py, or a tokenizer. The entry path imports argparse, pathlib and sqlite3 and nothing else until the router has decided what the input is.</p>
+    <p>The extraction ecosystem this depends on is Python: MarkItDown, Docling, openpyxl, pypdf, pymupdf, pinned tree-sitter bindings, h5py and trafilatura, alongside stdlib OOXML, JSON and HTML adapters where a smaller native parser preserves the required structure. Rust would give a faster cold start and a static binary, and would cost most of year one reimplementing extractors that already exist and are maintained.</p>
+    <p><strong>The cost, named.</strong> Python startup is the one thing that can make this feel unlike a Unix tool, so the mitigation is not optional. Every extractor is lazy-imported; <code>autotldr notes.md</code> must never import Docling, h5py, or a tokenizer. The entry path imports only standard-library argument, path and stream primitives until the router has decided what the input is.</p>
   </div>
   <div class="callout">
     <p><strong>Budget: under 120ms to first output for a Tier 0 file.</strong> A tested contract, not an aspiration. If it regresses, that is a build failure. The migration path, if it ever comes to that, is a Rust core calling Python extractors as subprocesses, and the CLI contract is designed so that swap is invisible to callers.</p>
@@ -284,38 +302,43 @@ footer { margin-top:58px; padding-top:22px; border-top:1px solid var(--line); fo
     <thead><tr><th>Input</th><th>Extractor</th><th>Why this one</th></tr></thead>
     <tbody>
       <tr><td class="k">Markdown, txt, rST</td><td class="v">Native parse</td><td class="n">Structure is already there</td></tr>
-      <tr><td class="k">Source code</td><td class="v">tree-sitter</td><td class="n">Symbols and signatures, not text</td></tr>
+      <tr><td class="k">Source code, restricted Tier 0 inventory</td><td class="v">Python stdlib AST; lazy pinned native tree-sitter pack for the published reliable languages</td><td class="n">Exact declarations and imports; every unconfigured or unreliable language routes to a named Tier 0 decline and is not counted as supported</td></tr>
       <tr><td class="k">JSON, YAML, TOML, XML</td><td class="v">Structural induction</td><td class="n">Schema is the semantics</td></tr>
-      <tr><td class="k">CSV, Parquet</td><td class="v">DuckDB profiling</td><td class="n">Zero-copy. Statistics, not rows</td></tr>
+      <tr><td class="k">CSV, TSV</td><td class="v">Native bounded stdlib profiling</td><td class="n">Streaming column schema/statistics, never rows</td></tr>
+      <tr><td class="k">Parquet</td><td class="v">Lazy PyArrow metadata/statistics profiling</td><td class="n">Schema and row-group statistics, never rows</td></tr>
       <tr class="hl"><td class="k">XLSX</td><td class="v"><strong>openpyxl on the formula layer</strong></td><td class="n"><strong>Never through a markdown converter. The formula graph is the meaning and conversion destroys it</strong></td></tr>
-      <tr><td class="k">DOCX</td><td class="v">python-docx</td><td class="n">Native structure, tracked changes, comments</td></tr>
+      <tr><td class="k">DOCX</td><td class="v">Native OOXML ZIP/XML with the stdlib</td><td class="n">Paragraphs, tables, comments and tracked revisions without <code>python-docx</code></td></tr>
       <tr><td class="k">PDF, simple</td><td class="v">pymupdf text layer</td><td class="n">Fast path. Most PDFs</td></tr>
-      <tr><td class="k">PDF, table-heavy</td><td class="v">Docling, opt-in via <code>--deep</code></td><td class="n">Accurate and slow. Earn the wait</td></tr>
-      <tr><td class="k">HTML, URL</td><td class="v">llms.txt probe, then trafilatura</td><td class="n">Check for a served summary before crawling</td></tr>
-      <tr><td class="k">Notebooks</td><td class="v">nbformat</td><td class="n">Cells, outputs, and their pairing</td></tr>
+      <tr><td class="k">PDF, table-heavy</td><td class="v">Docling, future opt-in via <code>--deep</code></td><td class="n">Accurate and slow. Earn the wait</td></tr>
+      <tr><td class="k">HTML, URL</td><td class="v">Native stdlib HTML parser with bounded HTTP(S) acquisition</td><td class="n">Addressable document structure on the Stage 3 fast path</td></tr>
+      <tr><td class="k">Notebooks</td><td class="v">Native JSON with the stdlib</td><td class="n">Cells, outputs and their pairing without <code>nbformat</code></td></tr>
       <tr><td class="k">HDF5, NetCDF</td><td class="v">h5py, netCDF4</td><td class="n">Structure and attributes, never values</td></tr>
     </tbody>
   </table></div>
+  <div class="callout">
+    <p><strong>“Source code” is not an open-ended format claim.</strong> The reliable inventory is Python via the stdlib AST, then JS/JSX, TS/TSX, C/C++, Java, Rust, Go, Ruby, PHP, Kotlin, C#, Bash, SQL, Scala, Perl (with parser evidence), R, Elixir, Haskell, and Objective-C (with parser evidence) through the pinned native tree-sitter pack. For Perl and Objective-C, evidence means an error-free native declaration or import node grounds the emitted unit; without it, the file is declined rather than treated as empty success.</p>
+    <p>Named Tier 0 declines include Lua, Swift, Zsh, Fish, Dart, Clojure/ClojureScript, F#, VB, Groovy, Vue, Svelte, and Objective-C++. Every other unconfigured or unreliable language follows the same named-decline path and is not part of the supported inventory.</p>
+  </div>
   <div class="prose">
-    <p>Two rules the router enforces. <strong>Native format beats conversion:</strong> routing an XLSX through a PDF-oriented pipeline throws away exactly the structure that carries the meaning, and the same holds for DOCX comments and notebook outputs. <strong>The fast path is the default:</strong> <code>--deep</code> opts into the slow accurate extractor, and a user who has not asked to wait does not wait.</p>
+    <p>Two routing rules govern v1. <strong>Native format beats conversion:</strong> routing an XLSX through a PDF-oriented pipeline throws away exactly the structure that carries the meaning, and the same holds for DOCX comments and notebook outputs. <strong>The fast path is the default:</strong> Stage 3 implements that path. A future <code>--deep</code> opts into the slow accurate extractor, and a user who has not asked to wait does not wait.</p>
   </div>
 
-  <h3>Models, and the one thing that must be proven first</h3>
+  <h3>Models, measured by the job they perform</h3>
   <div class="tablewrap"><table>
     <thead><tr><th>Job</th><th>v1 approach</th></tr></thead>
     <tbody>
       <tr><td class="k">Structure extraction</td><td class="v"><strong>No model.</strong> Parsers, all tiers</td></tr>
       <tr><td class="k">Schema and statistics</td><td class="v"><strong>No model.</strong> DuckDB and profiling</td></tr>
       <tr><td class="k">Formula graph</td><td class="v"><strong>No model.</strong> openpyxl dependency walk</td></tr>
-      <tr><td class="k">Role tagging</td><td class="v">Rules and heuristics first, small local model where rules fail</td></tr>
-      <tr><td class="k">Embeddings for fusion</td><td class="v">Local Qwen3-Embedding, small variant, ONNX</td></tr>
-      <tr><td class="k">Folder-level synthesis</td><td class="v">Local 3–4B, or a configured OpenAI-compatible endpoint</td></tr>
+      <tr><td class="k">Role tagging</td><td class="v">Measured routing: rules prove <code>assumption</code>; opt-in local adds <code>procedure</code>; configured frontier enrichment adds six named roles</td></tr>
+      <tr><td class="k">Embeddings for fusion</td><td class="v">Deferred. The first complete demo uses none; residency requires a separate eval proving semantic-link value</td></tr>
+      <tr><td class="k">Folder-level synthesis</td><td class="v">Implemented public seam: the ZBook-local LM Studio endpoint, using its OpenAI-compatible wire, returns strict claims over existing evidence IDs; AutoTLDR derives origins and rejects unsupported IDs and model substitutions</td></tr>
     </tbody>
   </table></div>
   <div class="callout">
-    <p><strong>The honest position on role tagging.</strong> Distinguishing a claim from a caveat from an assumption is the load-bearing capability of the whole representation, and a 3B model may simply not be reliable at it. Current guidance puts 1.5B–3B as the floor for extraction work and Qwen3.5 4B as the CPU sweet spot, but that is general guidance, not evidence about this task.</p>
-    <p>So role tagging gets an eval before it gets an implementation: 200 hand-labeled spans across five formats, scored against rules-only, a 4B local model, and a frontier model as ceiling. If rules-only lands close to the 4B, v1 ships with rules and stays fully offline and instant. If neither approaches the ceiling, the taxonomy shrinks to whatever <em>is</em> reliably extractable, and the product claim shrinks with it.</p>
-    <p><strong>Nothing in Tiers 0–3 requires a model to produce a useful result.</strong> That is why this scope was the right pick: v1 degrades to a genuinely valuable tool even with every model turned off.</p>
+    <p><strong>Stage 2 settled role tagging.</strong> On 200 exact units across five formats, a role passed only with support at least 15, at least three source groups, precision at least 0.80, and recall at least 0.70. Aggregate accuracy was not a gate.</p>
+    <p>Rules passed <code>assumption</code>; selected local Ornith passed <code>procedure</code> and the <code>unknown</code> fallback; the frontier ceiling passed <code>definition</code>, <code>procedure</code>, <code>caveat</code>, <code>example</code>, <code>decision</code>, and <code>limitation</code>. <code>claim</code>, <code>parameter</code>, and <code>result</code> passed no arm and were removed. Reliability is backend-scoped; anything the running backend did not prove remains <code>unknown</code>.</p>
+    <p><strong>Deterministic extraction and measured fusion remain useful with every model turned off.</strong> They are the fallback and source of truth. Stage 5 added the grounded model-written TLDR on top of them; ZBook evaluation loads one AutoTLDR-owned generation model at a time, requires 100% GPU offload, runs candidates sequentially, and unloads the owned model afterward. Independent certification that nothing spilled to CPU is still unavailable, and the certification wrapper fails closed rather than accept a configuration-only GPU claim.</p>
   </div>
 </section>
 
@@ -340,11 +363,14 @@ footer { margin-top:58px; padding-top:22px; border-top:1px solid var(--line); fo
     <thead><tr><th>Field</th><th>Contents</th></tr></thead>
     <tbody>
       <tr><td class="k">subject</td><td class="v">What was pointed at</td></tr>
-      <tr><td class="k">summary</td><td class="v">What this collection is, in three sentences</td></tr>
+      <tr><td class="k">summary</td><td class="v">Stage 3 structural statement; Stage 4 measured fusion findings; Stage 5 grounded semantic TLDR</td></tr>
+      <tr><td class="k">summary_claims</td><td class="v">Addressable statements with existing evidence unit IDs and origins derived by AutoTLDR</td></tr>
       <tr><td class="k">units</td><td class="v">Selected, budgeted, ordered</td></tr>
       <tr><td class="k">relations</td><td class="v">The graph among them</td></tr>
       <tr class="hl"><td class="k">gaps</td><td class="v"><strong>What the sources never documented.</strong> A first-class field, not an afterthought. "No file in this folder documents why the threshold is 0.7" is a finding</td></tr>
-      <tr><td class="k">manifest</td><td class="v">Inputs, hashes, versions, timings, model use</td></tr>
+      <tr><td class="k">manifest</td><td class="v">Inputs, hashes, timings, versions, backend and selection accounting</td></tr>
+      <tr><td class="k"><code>Unit.tokens</code></td><td class="v">Cheap <code>char4-floor-v1</code> diagnostic only; never used to enforce <code>--budget</code></td></tr>
+      <tr class="hl"><td class="k"><code>--budget</code></td><td class="v">Measured only after the complete output is rendered, using <code>utf8-byte-v1</code> over every UTF-8 byte including the final newline; <code>pdf</code> reports <code>binary-byte-v1</code> over the complete file</td></tr>
     </tbody>
   </table></div>
 </section>
@@ -354,6 +380,9 @@ footer { margin-top:58px; padding-top:22px; border-top:1px solid var(--line); fo
 <section>
   <div class="part">Part 4</div>
   <h2>Fusion, the actual wedge</h2>
+  <div class="callout">
+    <p><strong>Stage 4 is implemented and measured.</strong> It fuses two or more explicitly named sources with no model. Stage 5 then supplied what the fusion core deliberately left out: bounded directory, repository, archive and documentation-site acquisition, and the model-written semantic collection statement.</p>
+  </div>
   <div class="prose">
     <p>Per-file summarization is a commodity. <strong>Fusing a folder into one representation is what nobody does</strong>, and it is why this scope was chosen. Concretely, for a folder holding a paper, a spreadsheet of results, and the code that produced them, four linking signals run cheapest first.</p>
   </div>
@@ -361,25 +390,36 @@ footer { margin-top:58px; padding-top:22px; border-top:1px solid var(--line); fo
     <li><b>Literal reference.</b> A filename, path, URL, DOI or citation key in one file naming another. Exact, high precision, catches most real links. <span class="cost">no model</span></li>
     <li><b>Identifier co-occurrence.</b> A column header <code>tput_mbps</code>, a symbol <code>measure_throughput()</code>, and a caption "Throughput (Mb/s)". Normalized token matching over identifiers. <span class="cost">no model</span></li>
     <li><b>Structural correspondence.</b> A results table whose column count and row labels match a dataset's schema. A figure numbered to match a notebook cell's output. Cheap and surprisingly strong. <span class="cost">no model</span></li>
-    <li><b>Semantic similarity.</b> Embedding proximity across files, as the fallback for concepts sharing no tokens. The only signal that costs a model and the only one that produces false positives, so it carries the lowest confidence and is always reported as inferred. <span class="cost pay">embeddings</span></li>
+    <li><b>Semantic similarity.</b> Proposed embedding fallback for concepts sharing no tokens. It is not implemented or resident for the first complete demo and may enter only after a separate frozen eval proves value. <span class="cost pay">deferred</span></li>
   </ol>
   <div class="prose">
-    <p>Signals 1 through 3 run with no model at all. If the eval shows they carry most of the value, v1 fusion is fully offline and deterministic, which would be a real product advantage rather than a limitation.</p>
+    <p>Signals 1 through 3 run with no model. The one immutable scored run judged every output class separately; aggregate accuracy was neither computed nor used. The user-facing path applies the frozen dispositions below, while the raw analyzer remains available for future fresh-corpus evaluation.</p>
   </div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Signal / finding</th><th>Support</th><th>Precision</th><th>Recall</th><th>Production disposition</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Literal reference</td><td class="n">23</td><td class="n">1.000</td><td class="n">0.957</td><td class="v">Ship complete</td></tr>
+      <tr><td class="k">Identifier correspondence</td><td class="n">171</td><td class="n">0.850</td><td class="n">0.830</td><td class="v">Ship preregistered <code>native-native</code> only (support 63, P=.900, R=.857)</td></tr>
+      <tr><td class="k">Structural correspondence</td><td class="n">10</td><td class="n">1.000</td><td class="n">0.800</td><td class="v">Ship complete</td></tr>
+      <tr><td class="k">Strict scalar contradiction</td><td class="n">12</td><td class="n">1.000</td><td class="n">0.667</td><td class="v">Disabled; missed the frozen .70 recall gate</td></tr>
+      <tr><td class="k">Orphan absence</td><td class="n">7</td><td class="n">1.000</td><td class="n">0.571</td><td class="v">Disabled; missed the frozen .90 recall gate</td></tr>
+      <tr><td class="k">Unresolved reference</td><td class="n">9</td><td class="n">0.900</td><td class="n">1.000</td><td class="v">Ship preregistered <code>local-path</code> only (support 6, P=R=1.000)</td></tr>
+    </tbody>
+  </table></div>
 
   <h3>What fusion emits</h3>
   <div class="tablewrap"><table>
     <thead><tr><th>Output</th><th>What it is</th></tr></thead>
     <tbody>
-      <tr><td class="k">Collection statement</td><td class="v">What this folder is for, grounded in its contents</td></tr>
-      <tr><td class="k">Relation graph</td><td class="v">Which file produced which, which claim rests on which data, which code implements which method</td></tr>
-      <tr class="hl"><td class="k">Contradictions</td><td class="v"><strong>The paper says n=40, the CSV has 38 rows.</strong> The single most valuable output the tool can produce, and it falls directly out of having both in one representation</td></tr>
-      <tr><td class="k">Orphans</td><td class="v">Files nothing else references. Often the stale draft nobody deleted</td></tr>
-      <tr><td class="k">Gaps</td><td class="v">Concepts referenced but never defined anywhere in the collection</td></tr>
+      <tr><td class="k">Engineering statements</td><td class="v">Grounded collection size, emitted link classes, and measured local-path unresolved findings</td></tr>
+      <tr><td class="k">Relation graph</td><td class="v">Literal references, native/native identifier correspondences, and compatible structural correspondences</td></tr>
+      <tr><td class="k">Contradictions</td><td class="v">Raw diagnostic only. Disabled in <code>fuse()</code> after missing the frozen recall gate</td></tr>
+      <tr><td class="k">Orphans</td><td class="v">Raw diagnostic only. Disabled in <code>fuse()</code> after missing the frozen recall gate</td></tr>
+      <tr><td class="k">Gaps</td><td class="v">Only non-ambiguous unresolved local paths passed the shipping gate</td></tr>
     </tbody>
   </table></div>
   <div class="callout">
-    <p>Contradiction detection is the demo. It is also the thing that requires no clever summarization, only a shared representation and a comparison.</p>
+    <p><strong>Stage 5 closed this on 31 August 2026.</strong> It sends a bounded evidence pack to one measured local generation model, accepts only strict claims over existing unit IDs, derives origins itself, and applies the existing exact complete-output budget. The Borealis fixture routed 14 mixed inputs into 135 units, 105 relations and 15 gaps, and one ZBook-local Ornith-1.5-35B-A3B instance returned three fully cited claims with no fallback. All six output shapes came from that one synthesis, and 63 independent checks over the saved artifacts passed.</p>
   </div>
 </section>
 
@@ -391,7 +431,7 @@ footer { margin-top:58px; padding-top:22px; border-top:1px solid var(--line); fo
   <div class="tablewrap"><table>
     <thead><tr><th>Concern</th><th>Decision</th></tr></thead>
     <tbody>
-      <tr><td class="k">FS events</td><td class="v"><code>watchdog</code>, cross-platform, with a polling fallback for network mounts</td></tr>
+      <tr><td class="k">FS events</td><td class="v">Stdlib polling, deterministic on local and network filesystems</td></tr>
       <tr><td class="k">Re-trigger storms</td><td class="v">Content-hash comparison. A re-save with identical bytes does nothing</td></tr>
       <tr><td class="k">Batch drops</td><td class="v">Debounce window, default 30s. Twelve files dropped produce one fusion</td></tr>
       <tr><td class="k">Where artifacts land</td><td class="v"><code>.autotldr/</code> beside the folder, never scattered next to sources unless asked</td></tr>
@@ -411,18 +451,18 @@ footer { margin-top:58px; padding-top:22px; border-top:1px solid var(--line); fo
   <div class="tablewrap"><table>
     <thead><tr><th>Stage</th><th>Scope</th><th>Gate</th></tr></thead>
     <tbody>
-      <tr class="hl"><td class="k">0</td><td class="v">Role-tagging eval. 200 labeled spans, five formats, three arms</td><td class="n">Decides whether the role taxonomy survives, and how much of it</td></tr>
-      <tr class="hl"><td class="k">1</td><td class="v">Representation spike. A PDF paper, an XLSX model, a folder of markdown. Extraction only</td><td class="n">One representation holds all three, or it gets redesigned now</td></tr>
-      <tr><td class="k">2</td><td class="v">Invoke mode, Tiers 0 and 1. ansi, md, json, jsonl. Budget, cite, exit codes, startup contract</td><td class="n">It feels like a Unix tool</td></tr>
-      <tr><td class="k">3</td><td class="v">Fusion. Signals 1–3, collection statement, contradictions, orphans, gaps</td><td class="n">The wedge works on a real folder</td></tr>
-      <tr><td class="k">4</td><td class="v">Tiers 2 and 3. Directory and repo, XLSX formula graph, data profiling</td><td class="n">The underserved tier, and the strongest demo</td></tr>
-      <tr><td class="k">5</td><td class="v">Watch daemon</td><td class="n">The "auto" is real</td></tr>
-      <tr><td class="k">6</td><td class="v">html and pdf output, claim-to-source linking</td><td class="n">The output is shareable</td></tr>
-      <tr><td class="k">7</td><td class="v">MCP with Tasks, SKILL.md, A2A card</td><td class="n">Agents adopt it without bespoke work</td></tr>
+      <tr class="hl"><td class="k">1</td><td class="v">Representation spike. A PDF paper, an XLSX model, a folder of markdown. Extraction only</td><td class="n"><strong>Complete.</strong> One representation holds all three</td></tr>
+      <tr class="hl"><td class="k">2</td><td class="v">Role-tagging eval. 200 exact units, five formats, three arms</td><td class="n"><strong>Complete.</strong> Seven named roles survive with backend-scoped guarantees; three were removed</td></tr>
+      <tr class="hl"><td class="k">3</td><td class="v">Invoke mode, Tiers 0 and 1. Path/stdin/HTTP(S); ansi, md, json, jsonl; citations, exact rendered-byte budget, omission inventory, manifests, named exits; startup contract</td><td class="n"><strong>Complete.</strong> A bounded, addressable Unix pipeline</td></tr>
+      <tr class="hl"><td class="k">4</td><td class="v">Model-free fusion over explicit sources; separate evaluation of literal, identifier, structural, contradiction, orphan, and unresolved outputs</td><td class="n"><strong>Complete.</strong> Only passed signals and preregistered subtypes ship</td></tr>
+      <tr><td class="k">5</td><td class="v">Complete-demo integration: Tier 2 directory/repo/archive/doc-site acquisition, all locked Tier 3 adapters, bounded evidence packing, and grounded local-model TLDR synthesis</td><td class="n"><strong>Complete software/functional slice.</strong> On 2026-08-31 Borealis ran 14 mixed inputs through one ZBook-local instance and accepted three cited claims with no fallback; 63 independent checks over the saved artifacts passed. Physical no-spill certification remains a separately named telemetry limitation and the certification wrapper fails closed</td></tr>
+      <tr><td class="k">6</td><td class="v">Watch daemon</td><td class="n"><strong>Complete.</strong> Polling, debounce, SHA suppression, SQLite/WAL, atomic per-file and folder artifacts</td></tr>
+      <tr><td class="k">7</td><td class="v">html and pdf output, claim-to-source linking</td><td class="n"><strong>Complete.</strong> Self-contained HTML and paginated PDF share the exact omission policy. Text shapes are byte-identical across processes; PDF byte identity holds within one process, because <code>pymupdf.Story</code> lays identical HTML out differently per process</td></tr>
+      <tr><td class="k">8</td><td class="v">MCP with the Tasks extension, SKILL.md, A2A card</td><td class="n"><strong>Complete.</strong> Thin local, model-off wrappers over the public API</td></tr>
     </tbody>
   </table></div>
   <div class="callout">
-    <p>Stages 0 and 1 are two weeks combined, and they are the ones that decide whether the rest is worth building. Every prior plan skipped both and went straight to specifying architecture, which is why there were six plans and no code.</p>
+    <p><strong>All eight stages have a thin working vertical slice.</strong> The measured Stage 4 engineering statements remain the deterministic source of truth; accepted Stage 5 model claims are separately manifested, and model failure never silently becomes uncited prose. Independent zero-CPU-spill residency certification is still unavailable, and the certification wrapper fails closed rather than accept a configuration-only GPU claim.</p>
   </div>
 </section>
 
@@ -430,27 +470,27 @@ footer { margin-top:58px; padding-top:22px; border-top:1px solid var(--line); fo
 
 <section>
   <div class="part">Part 7</div>
-  <h2>Open forks</h2>
-  <div class="prose"><p>Two decisions made provisionally, both cheap to settle now and expensive to reverse later.</p></div>
+  <h2>Decisions locked</h2>
+  <div class="prose"><p>Two decisions that were expensive to reverse, both now settled and shipped.</p></div>
   <div class="forks">
     <div class="fork">
-      <span class="tag">Fork 1</span>
-      <h4>Is the watch daemon in the first release?</h4>
+      <span class="tag">Decision 1</span>
+      <h4>The watch daemon ships in v1</h4>
       <p>It is the differentiated half and roughly two weeks that overlap with nothing else. Invoke-only ships a usable tool in five weeks; including watch makes it seven and makes the first release tell a complete story.</p>
-      <p><strong>I lean toward including it</strong>, because "auto" is in the name and a tool without it is a worse version of things that already exist.</p>
+      <p><strong>It is in</strong>, because "auto" is in the name and a tool without it is a worse version of things that already exist. Stage 6 delivered it.</p>
     </div>
     <div class="fork">
-      <span class="tag">Fork 2</span>
-      <h4>What artifact does a watched folder produce?</h4>
-      <p>A single rolling <code>FOLDER.tldr.md</code> that gets rewritten; a per-file artifact plus a folder roll-up; or a versioned history so you can see how the collection's story changed as files arrived.</p>
-      <p><strong>I lean toward per-file plus roll-up</strong> for v1, with versioning deferred. The third is the most interesting and the most work.</p>
+      <span class="tag">Decision 2</span>
+      <h4>A watched folder produces a per-file artifact plus a roll-up</h4>
+      <p>The options were a single rolling <code>FOLDER.tldr.md</code> that gets rewritten; a per-file artifact plus a folder roll-up; or a versioned history so you can see how the collection's story changed as files arrived.</p>
+      <p><strong>Per-file plus roll-up won</strong> for v1, with versioning deferred. Each dropped file gets its own artifact and <code>FOLDER.tldr.md</code> holds the fused view, rewritten on debounce. The third option is the most interesting and the most work.</p>
     </div>
   </div>
 </section>
 
 <footer>
-  Spec source at SPEC-v1.md · capability matrix at MATRIX.md · six prior plans preserved untracked in archive/<br>
-  Stack research: SurrealDB 3.0 GA Feb 2026 · DuckDB and Lance integration · Docling, MarkItDown and Unstructured comparisons · Qwen3.5 and Gemma 4 CPU-local guidance
+  Spec source at docs/spec-v1.md · capability matrix at docs/matrix.md · prior plans preserved untracked in archive/<br>
+  Stack research: SurrealDB 3.0 GA Feb 2026 · DuckDB and Lance integration · Docling, MarkItDown and Unstructured comparisons · Stage 2 role benchmark in benchmarks/roles/
 </footer>
 
 </div>

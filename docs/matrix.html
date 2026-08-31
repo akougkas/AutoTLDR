@@ -397,9 +397,13 @@ footer {
 <span class="p">$</span> autotldr paper.pdf <span class="c">--out</span> html <span class="f">&gt;</span> brief.html    <span class="cm"># share it</span>
 <span class="p">$</span> autotldr ./repo <span class="c">--ask</span> <span class="f">"how does auth work"</span>    <span class="cm"># task-conditioned</span>
 <span class="p">$</span> autotldr model.xlsx <span class="c">--out</span> mermaid            <span class="cm"># the formula graph</span>
-<span class="p">$</span> autotldr *.pdf <span class="c">--out</span> jsonl <span class="f">|</span> jq <span class="f">'.claims[]'</span>   <span class="cm"># pipeline</span>
+<span class="p">$</span> autotldr *.pdf <span class="c">--out</span> jsonl <span class="f">|</span> jq <span class="f">'.units[]'</span>    <span class="cm"># pipeline</span>
 <span class="p">$</span> autotldr standup.m4a <span class="c">--brief</span>                 <span class="cm"># decisions and owners</span></div>
 </header>
+
+<div class="callout">
+  <p><strong>Status and authority.</strong> This page is the broad capability menu and long-range roadmap, not the implementation contract. <a href="spec-v1.html">Spec v1</a> is authoritative, and later entries in <a href="decisions.md">Decisions</a> supersede both. The complete thin Stage 1–8 MVP is implemented: locked Tier 0/1 extraction, bounded Tier 2 collections, the required Tier 3 adapters, measured fusion, strict grounded synthesis through ZBook-local LM Studio over its OpenAI-compatible wire, watch, HTML/PDF, and local agent surfaces (D-018 through D-020). The functional localhost inference proof is distinct from independent physical no-CPU-spill certification, which current telemetry cannot provide.</p>
+</div>
 
 <section>
   <div class="part">Part 0</div>
@@ -492,7 +496,7 @@ footer {
     <tbody>
       <tr><td class="fmt"><code>content</code></td><td class="mean">The text or structured payload</td></tr>
       <tr><td class="fmt"><code>modality</code></td><td class="mean">prose · code · table · figure · equation · utterance · record · schema</td></tr>
-      <tr><td class="fmt"><code>role</code></td><td class="mean"><strong>The differentiator.</strong> claim · definition · procedure · parameter · caveat · result · example · decision · assumption · limitation</td></tr>
+      <tr><td class="fmt"><code>role</code></td><td class="mean">Measured live v1 vocabulary: definition · procedure · caveat · example · decision · assumption · limitation · unknown</td></tr>
       <tr><td class="fmt"><code>origin</code></td><td class="mean">Addressable back-pointer: <code>page:12</code>, <code>Sheet2!C4:C40</code>, <code>src/a.py:88</code>, <code>00:14:32</code>, <code>/group/dataset</code></td></tr>
       <tr><td class="fmt"><code>structure</code></td><td class="mean">Position in the source's own hierarchy: outline, tree, sheet, chapter, scene</td></tr>
       <tr><td class="fmt"><code>relations</code></td><td class="mean">supports · contradicts · implements · derives-from · exemplifies</td></tr>
@@ -503,7 +507,8 @@ footer {
   </table></div>
 
   <div class="prose">
-    <p>The <code>role</code> field is the bet within the bet. A tool that knows a sentence is a <em>caveat</em> rather than a <em>claim</em> can build outputs no keyword-based tool can. Everything downstream depends on roles being extractable and reliable.</p>
+    <p>Stage 2 measured this field rather than assuming it. Seven named tags survived—<code>definition</code>, <code>procedure</code>, <code>caveat</code>, <code>example</code>, <code>decision</code>, <code>assumption</code> and <code>limitation</code>—plus mandatory <code>unknown</code>. <code>claim</code>, <code>parameter</code> and <code>result</code> passed no evaluated arm and are not live v1 roles.</p>
+    <p>Reliability is backend-scoped. Deterministic rules may prove <code>assumption</code>; the selected local enrichment backend adds <code>procedure</code>; a configured frontier backend may add the six roles it passed. Everything else remains <code>unknown</code>, and the manifest records which backend ran.</p>
   </div>
 
   <h3>The invariant contract</h3>
@@ -511,7 +516,7 @@ footer {
   <ol class="probs">
     <li><b>Every claim is addressable.</b> No output sentence exists without an origin pointing back into the source. A claim that cannot be grounded is dropped, not softened.</li>
     <li><b>Absence is reported.</b> If a source documents no rationale, the output says so instead of inventing it. "This spreadsheet has no documentation for its assumptions" is a finding, not a failure.</li>
-    <li><b>The budget is honored exactly.</b> <code>--budget 4000</code> returns at most 4000 tokens and states what it dropped and why.</li>
+    <li><b>The budget is honored exactly.</b> <code>--budget 4000</code> returns at most 4000 named portable tokens and states exactly what it dropped and why. Stage 3 defines one <code>utf8-byte-v1</code> portable token as one byte of the complete canonical UTF-8 output.</li>
   </ol>
 </section>
 
@@ -521,7 +526,7 @@ footer {
   <div class="part">Part 3</div>
   <h2>Input surface</h2>
   <div class="prose">
-    <p>Fifty-odd formats, tiered by <strong>extraction difficulty</strong> rather than popularity. The tiers are the build order.</p>
+    <p>Fifty-odd formats, tiered by <strong>extraction difficulty</strong> rather than popularity. This is a capability menu, not a claim that every row has an adapter. The authoritative eight-stage build order is in Part 7. “Local” describes feasibility, not current implementation status.</p>
     <p>The column that matters is the second one. <strong>"Summarize" means something different for every modality</strong>, and that is precisely why generic retrieval fails on most of this list.</p>
   </div>
 
@@ -536,7 +541,7 @@ footer {
     <button class="chip" data-t="5" aria-pressed="false">5</button>
     <button class="chip" data-t="6" aria-pressed="false">6</button>
     <button class="chip tog" id="localonly" aria-pressed="false">RUNS LOCAL ONLY</button>
-    <span class="count" id="count">51 formats</span>
+    <span class="count" id="count">53 formats</span>
   </div>
 
   <div class="tier" data-tier="0" style="--tc: var(--t0)">
@@ -580,6 +585,7 @@ footer {
   <div class="tier" data-tier="2" style="--tc: var(--t2)">
     <div class="tierhead"><span class="tno">TIER 2</span><span class="tname">Collection-shaped</span></div>
     <p class="tnote">The unit is the corpus, not the file. Selection under budget is mandatory because the whole thing never fits.</p>
+    <p class="tnote"><strong>Current status:</strong> implemented for bounded directory and repository traversal, ZIP/TAR archives, and bounded same-origin documentation crawling. Members that fail become named typed declines and do not erase successful siblings.</p>
     <div class="tablewrap"><table>
       <thead><tr><th>Source</th><th>What the TLDR actually is</th><th>Extraction</th><th>Local</th><th>Difficulty</th></tr></thead>
       <tbody>
@@ -598,6 +604,7 @@ footer {
   <div class="tier" data-tier="3" style="--tc: var(--t3)">
     <div class="tierhead"><span class="tno">TIER 3</span><span class="tname">Data-shaped</span></div>
     <p class="tnote">You never summarize the values. You summarize the structure, the statistics and the relationships. This tier holds the largest capability gap in the market.</p>
+    <p class="tnote"><strong>Current status:</strong> the locked v1 rows are implemented: XLSX/XLSM formula graphs, Parquet metadata and statistics, SQLite and DuckDB schemas, and HDF5/NetCDF structure and attributes. Metadata-only NumPy NPY/NPZ, Arrow/Feather/ORC and FITS science adapters ship alongside them and do not broaden the locked v1 gate. Zarr, GeoJSON/shapefile and time series have no adapter yet.</p>
     <div class="tablewrap"><table>
       <thead><tr><th>Format</th><th>What the TLDR actually is</th><th>Extraction</th><th>Local</th><th>Difficulty</th></tr></thead>
       <tbody>
@@ -668,12 +675,15 @@ footer {
 <section>
   <div class="part">Part 4</div>
   <h2>Output surface</h2>
-  <div class="prose"><p>The same representation, rendered for whoever is asking.</p></div>
+  <div class="prose">
+    <p>The same representation, rendered for whoever is asking.</p>
+    <p><strong>Current status:</strong> core production output is <code>ansi</code>, <code>md</code>, self-contained <code>html</code>, deterministic linked <code>pdf</code>, <code>json</code> and <code>jsonl</code>. The remaining shapes are roadmap entries.</p>
+  </div>
 
   <div class="tablewrap"><table>
     <thead><tr><th><code>--out</code></th><th>Consumer</th><th>Shape</th><th>Notes</th></tr></thead>
     <tbody>
-      <tr><td class="fmt"><code>ansi</code> <span class="how">default</span></td><td class="how">Human, terminal</td><td class="mean">Progressive, syntax-aware, folded sections</td><td class="how">Streams as it works. Never dumps a wall</td></tr>
+      <tr><td class="fmt"><code>ansi</code> <span class="how">default</span></td><td class="how">Human, terminal</td><td class="mean">Compact deterministic sections, optional TTY color</td><td class="how">Stage 3 writes a complete budgeted projection; live progressive folding is later work</td></tr>
       <tr><td class="fmt"><code>md</code></td><td class="how">Human editing, coding agent</td><td class="mean">Clean markdown with source anchors</td><td class="how">The lingua franca</td></tr>
       <tr><td class="fmt"><code>html</code></td><td class="how">Human reading and sharing</td><td class="mean">Single self-contained file, navigable, links into source spans</td><td class="how">The shareable artifact</td></tr>
       <tr><td class="fmt"><code>pdf</code></td><td class="how">Human archiving, citing</td><td class="mean">Paginated, numbered, references section</td><td class="how">Rendered from the HTML</td></tr>
@@ -691,7 +701,7 @@ footer {
     <thead><tr><th>Flag</th><th>Effect</th></tr></thead>
     <tbody>
       <tr><td class="fmt"><code>--ask "&lt;question&gt;"</code></td><td class="mean">Task-conditions the selection. The pack answers <em>this</em>, not everything</td></tr>
-      <tr><td class="fmt"><code>--budget N</code></td><td class="mean">Hard token ceiling, and it reports what was dropped</td></tr>
+      <tr><td class="fmt"><code>--budget N</code></td><td class="mean">Hard complete-output <code>utf8-byte-v1</code> ceiling, with a concrete inventory of every dropped unit and relation</td></tr>
       <tr><td class="fmt"><code>--brief</code>, <code>--depth 1..5</code></td><td class="mean">One paragraph through exhaustive</td></tr>
       <tr><td class="fmt"><code>--dimensions</code></td><td class="mean">Which of memory, reasoning, examples to emit</td></tr>
       <tr><td class="fmt"><code>--cite</code></td><td class="mean">Span citations on every claim. On by default</td></tr>
@@ -721,7 +731,7 @@ footer {
       <tr><td class="fmt">MCP server</td><td class="mean">Non-shell agents. The 2026-07-28 Tasks extension returns a durable handle for Tier 4–6 jobs instead of timing out</td><td class="how">Low</td><td class="how">After the CLI is real</td></tr>
       <tr><td class="fmt">A2A agent card</td><td class="mean">Agent-to-agent ecosystems, 150+ orgs on the Linux Foundation spec</td><td class="how">Low</td><td class="how">After MCP</td></tr>
       <tr><td class="fmt">Agent Skill</td><td class="mean">Claude Code, Codex, Cursor and ~40 tools reading the same SKILL.md</td><td class="how">Trivial</td><td class="how">Alongside MCP</td></tr>
-      <tr><td class="fmt">Hosted API</td><td class="mean">Users who cannot run a 7B vision model or Whisper locally</td><td class="how">High</td><td class="how">Only if Tier 4–5 demand is proven</td></tr>
+      <tr><td class="fmt">Hosted API</td><td class="mean">Users whose hardware cannot run the measured generation, vision or speech workload locally</td><td class="how">High</td><td class="how">Only if demand is proven</td></tr>
       <tr><td class="fmt">Browser extension</td><td class="mean">Clip any page</td><td class="how">Med</td><td class="how">Later, if ever</td></tr>
       <tr><td class="fmt">GUI</td><td class="mean">Non-terminal users</td><td class="how">High</td><td class="how">Not this product</td></tr>
     </tbody>
@@ -737,10 +747,10 @@ footer {
   <div class="part">Part 6</div>
   <h2>The hard problems, stated honestly</h2>
   <ol class="probs">
-    <li><b>The representation is the bet, and it must be validated across dissimilar modalities early.</b> Building ten text-shaped extractors teaches nothing, because they all fit any schema. Build a PDF, a spreadsheet and an audio file in the first month. If one representation holds a claim from a paper, a formula dependency from a model and a decision from a meeting, the design is sound. If it does not, better to know in week four.</li>
-    <li><b>Role extraction is unproven at this scale.</b> Distinguishing a claim from a caveat from an assumption is easy for a strong model and unreliable for a 7B local one. The whole role field, and everything built on it, depends on this working. It needs an eval before it needs an implementation.</li>
+    <li><b>The representation is the bet, and each new modality must validate it again.</b> Stage 1 already proved that one representation can hold dissimilar PDF, XLSX and folder-derived units. That is evidence for the representation, not permission to flatten future visual, temporal or scientific formats into text and call them supported.</li>
+    <li><b>Role extraction is measured, backend-scoped and deliberately smaller than the original menu.</b> Stage 2 retained seven named tags plus <code>unknown</code>; <code>claim</code>, <code>parameter</code> and <code>result</code> were removed. The remaining problem is preserving each backend's measured guarantees and leaving unsupported units <code>unknown</code>, not choosing a nominal model size.</li>
     <li><b>Tiers 4 and 5 break the latency contract.</b> <code>autotldr paper.pdf</code> should feel like <code>cat</code>. A one-hour video cannot. Two interaction models are required: synchronous for Tiers 0–3, and a job with a durable handle for Tiers 4–6. Deciding that at CLI-design time is cheap now and expensive in six months.</li>
-    <li><b>Local inference is the cost wall, not a feature.</b> Tiers 0–3 need no model at all for structure and a small one for roles. Tiers 4–5 need a vision model and ASR that many users cannot run. This is the natural free-versus-paid boundary, and it falls out of physics rather than from an arbitrary paywall.</li>
+    <li><b>Local inference is a measured workload, not a parameter-count product tier.</b> Tiers 0–3 need no model for deterministic extraction, but D-019/D-020 require a ZBook-local generation model for the first complete grounded TLDR; OpenAI-compatible names the localhost wire, not a hosted endpoint. There is no parameter-count eligibility ceiling: the selected model must pass the synthesis task and fit the user's hardware. Grounded synthesis is implemented as a strict opt-in seam over existing evidence IDs. Vision and speech remain later, hardware-dependent workloads.</li>
     <li><b>Some semantics require domain knowledge.</b> A climate model spreadsheet and a financial model spreadsheet have different meanings for the same formula graph. This needs a plugin point for domain packs. It should exist as a seam from the beginning even if it stays empty for a year.</li>
     <li><b>Quality will vary enormously by modality, and hiding that would be fatal.</b> A tool that is excellent on markdown and mediocre on scanned PDFs, and says so per result, is trustworthy. One that presents both with equal confidence is not.</li>
   </ol>
@@ -750,32 +760,30 @@ footer {
 
 <section>
   <div class="part">Part 7</div>
-  <h2>Build order</h2>
-  <div class="prose"><p>Each stage is independently useful and shippable. Nothing here is throwaway.</p></div>
+  <h2>Authoritative eight-stage build order</h2>
+  <div class="prose"><p>The stage sequence comes from Spec v1 as superseded by D-018 through D-020. The broad tier tables above do not reorder it.</p></div>
   <div class="tablewrap"><table>
-    <thead><tr><th>Stage</th><th>Scope</th><th>What it proves</th><th>Weeks</th></tr></thead>
+    <thead><tr><th>Stage</th><th>Scope</th><th>Current status / gate</th></tr></thead>
     <tbody>
-      <tr><td class="fmt">0 · Spike the representation</td><td class="mean">Three deliberately dissimilar inputs: a PDF paper, an XLSX model, a WAV meeting. Extraction only, no renderers</td><td class="how">The representation survives contact with dissimilar modalities. Kill or redesign here</td><td class="flag">2</td></tr>
-      <tr><td class="fmt">1 · The Unix tool</td><td class="mean">Tiers 0 and 1 complete. ansi, md, json, jsonl. Budget and cite. Exit codes</td><td class="how">It feels like a real tool, and someone uses it twice</td><td class="flag">3</td></tr>
-      <tr><td class="fmt">2 · Make it shareable</td><td class="mean">html and pdf output. Claim-to-source linking</td><td class="how">The output is something people send to each other</td><td class="flag">2</td></tr>
-      <tr><td class="fmt">3 · Collections</td><td class="mean">Tier 2. Selection under budget. <code>--ask</code>. Adapters for Repomix, crawl4ai, gitingest</td><td class="how">Selection works when the corpus never fits</td><td class="flag">3</td></tr>
-      <tr><td class="fmt">4 · Data</td><td class="mean">Tier 3. Formula graph, schema profiling, scientific formats</td><td class="how">The most underserved tier, and the strongest demo</td><td class="flag">3</td></tr>
-      <tr><td class="fmt">5 · Agents</td><td class="mean">MCP with Tasks, SKILL.md, A2A card, bundle output</td><td class="how">Agents adopt it without a bespoke integration</td><td class="flag">2</td></tr>
-      <tr><td class="fmt">6 · Heavy modalities</td><td class="mean">Tiers 4 and 5. Async jobs, confidence reporting</td><td class="how">The vision, and the paid tier's justification</td><td class="flag">6+</td></tr>
+      <tr><td class="fmt">1 · Representation spike</td><td class="mean">Dissimilar PDF, XLSX and folder inputs; extraction and units before roles or renderers</td><td class="how"><strong>Complete.</strong> One addressable representation held all three</td></tr>
+      <tr><td class="fmt">2 · Role-tagging eval</td><td class="mean">200 exact units, five formats, rules/local/frontier arms and per-role gates</td><td class="how"><strong>Complete.</strong> Seven named roles plus <code>unknown</code>; backend-scoped guarantees</td></tr>
+      <tr><td class="fmt">3 · Invoke mode</td><td class="mean">One Tier 0/1 source from path/stdin/HTTP(S); ansi, md, json, jsonl; citations, exact output budget, omissions, manifests and named exits</td><td class="how"><strong>Complete.</strong> Bounded Unix pipeline</td></tr>
+      <tr><td class="fmt">4 · Measured fusion</td><td class="mean">Repeated explicitly named sources; model-free literal, identifier and structural signals; grounded collection findings</td><td class="how"><strong>Complete.</strong> D-018 ships literal and structural, native/native identifiers and local-path unresolved gaps; failed contradiction/orphan signals remain disabled and named</td></tr>
+      <tr><td class="fmt">5 · Integrated Tiers 0–3 plus grounded synthesis</td><td class="mean">Direct directory/repository/archive/doc-site acquisition; required Tier 3 adapters; separately budgeted evidence and strictly ID-grounded synthesis through ZBook-local LM Studio</td><td class="how"><strong>Complete software/functional slice.</strong> Borealis is fully grounded: 14 mixed inputs, three accepted cited claims, no fallback, all six shapes from one synthesis. Physical no-spill attestation remains explicitly unproved by current telemetry</td></tr>
+      <tr><td class="fmt">6 · Watch daemon</td><td class="mean">Debounced watched-folder processing, stable artifacts and cache/store integration</td><td class="how"><strong>Complete.</strong> Polling, SHA suppression, SQLite/WAL, atomic artifacts</td></tr>
+      <tr><td class="fmt">7 · Shareable output</td><td class="mean">Self-contained html and pdf with source linking</td><td class="how"><strong>Complete.</strong> Exact budgets and omission inventory carry through both. PDF byte identity is a within-process contract (D-027)</td></tr>
+      <tr><td class="fmt">8 · Agent surfaces</td><td class="mean">MCP Tasks extension, SKILL.md and A2A card</td><td class="how"><strong>Complete.</strong> Model-off/local-path wrappers over the public pipeline</td></tr>
     </tbody>
   </table></div>
-  <div class="callout">
-    <p>Stage 0 is the one that must not be skipped. Every prior plan skipped it and specified the architecture instead, which is why there are six plans and no code.</p>
-  </div>
 </section>
 
 <hr class="rule">
 
 <section>
   <div class="part">Part 8</div>
-  <h2>The open question</h2>
+  <h2>Capability wedges</h2>
   <div class="prose">
-    <p>Everything above describes a category. Categories do not get adopted; specific wins do. The one decision I cannot make from the material is <strong>which single capability makes someone install this and tell a colleague</strong>. Each candidate changes the build order.</p>
+    <p>Everything above describes a category. Categories do not get adopted; specific wins do. These are product angles inside the roadmap, not alternatives that change the settled eight-stage build order. D-019 requires the first complete demo to integrate Tiers 0–3 and grounded synthesis rather than presenting any one wedge as the whole product.</p>
   </div>
 
   <div class="cards">
@@ -783,13 +791,13 @@ footer {
       <span class="tag">Candidate 1 · recommended</span>
       <h4>The spreadsheet nobody can read</h4>
       <p><code>autotldr model.xlsx</code> returns the formula dependency graph, the assumptions, and the hardcoded override someone buried in row 400.</p>
-      <p><strong>Why:</strong> semantics fully recoverable without a model, the demo is immediate and visual, the pain is universal among analysts and scientists, and no competitor is close. It also validates the representation against the least text-shaped thing in Tiers 0–3, which is exactly what Stage 0 needs.</p>
+      <p><strong>Why:</strong> semantics fully recoverable without a model, the demo is immediate and visual, the pain is universal among analysts and scientists, and no competitor is close. XLSX already validates the representation against a non-text-shaped source.</p>
     </div>
     <div class="card">
       <span class="tag">Candidate 2</span>
       <h4>The meeting that becomes decisions</h4>
       <p><code>autotldr standup.m4a --brief</code> returns four decisions with owners and clickable timestamps.</p>
-      <p><strong>Trade:</strong> everyone has the pain, but the space is crowded and it lands in Tier 5, the slowest and most expensive tier, on day one.</p>
+      <p><strong>Trade:</strong> everyone has the pain, but the space is crowded and Tier 5 remains later roadmap work.</p>
     </div>
     <div class="card">
       <span class="tag">Candidate 3</span>
@@ -806,13 +814,13 @@ footer {
   </div>
 
   <div class="callout">
-    <p>My read, stated once: <strong>the spreadsheet</strong>. It is the only candidate where the semantics are fully recoverable without a model, where the demo needs no explanation, and where nothing on the market is close. That is a recommendation, not a decision.</p>
+    <p><strong>The spreadsheet remains the clearest individual demonstration.</strong> It is now one required part of the D-019 Stage 5 mixed-collection demo, not a substitute for Tier 2 acquisition, the remaining Tier 3 adapters or grounded synthesis.</p>
   </div>
 </section>
 
 <footer>
-  51 input formats across 7 tiers · 10 output shapes · 8 distribution surfaces.<br>
-  Matrix source at MATRIX.md. Six prior plans and the CLIO-framed analysis preserved untracked in archive/.
+  53 input formats across 7 tiers · 10 output shapes · 8 distribution surfaces.<br>
+  Matrix source at matrix.md. Six prior plans and the CLIO-framed analysis preserved untracked in archive/.
 </footer>
 
 </div>
@@ -841,7 +849,7 @@ footer {
       var any = t.querySelectorAll("tbody tr[data-local]:not(.hidden)").length > 0;
       t.classList.toggle("hidden", !any);
     });
-    countEl.textContent = shown + (localOnly || activeTier !== "ALL" ? " of 51 formats" : " formats");
+    countEl.textContent = shown + (localOnly || activeTier !== "ALL" ? " of 53 formats" : " formats");
     chips.forEach(function (c) { c.setAttribute("aria-pressed", String(c.dataset.t === activeTier)); });
     localBtn.setAttribute("aria-pressed", String(localOnly));
   }

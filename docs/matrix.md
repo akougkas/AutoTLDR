@@ -2,9 +2,19 @@
 
 Point it at anything. Get back what it means, in the shape you asked for.
 
-This document replaces the six prior plans and the CLIO-framed analysis, both archived
-under `archive/`. It is written from a clean slate: no assumed ecosystem, no incumbent
-codebase, no obligation to any prior architecture.
+This document began as the broad capability map that replaced the six prior plans and
+the CLIO-framed analysis archived under `archive/`. It remains the product menu and
+long-range roadmap; it is not the implementation contract.
+
+> **Status and authority.** [`spec-v1.md`](spec-v1.md) defines the authoritative v1
+> contract, and [`decisions.md`](decisions.md) supersedes both documents when a later
+> decision is recorded. The complete thin Stage 1–8 MVP is implemented: locked Tier
+> 0/1 extraction, bounded Tier 2 collections, the required Tier 3 adapters, measured
+> fusion, strict grounded synthesis, watch, HTML/PDF, and local agent surfaces. The
+> functional localhost inference proof is distinct from independent physical
+> no-CPU-spill certification, which current telemetry cannot provide. The tier, output, and
+> distribution tables below describe capability direction unless a current stage says
+> otherwise.
 
 ---
 
@@ -31,7 +41,7 @@ It exits non-zero when it fails and says why. It composes:
 autotldr paper.pdf                            # human reads it, in the terminal
 autotldr paper.pdf --out html > brief.html    # human shares it
 autotldr ./repo --ask "how does auth work"    # task-conditioned
-autotldr *.xlsx --out jsonl | jq '.claims[]'  # pipeline
+autotldr *.xlsx --out jsonl | jq '.units[]'   # pipeline
 autotldr meeting.m4a --out md --brief         # one paragraph
 ```
 
@@ -109,7 +119,7 @@ the IR is wrong, nothing else matters.
 | --- | --- |
 | `content` | The text or structured payload |
 | `modality` | prose, code, table, figure, equation, utterance, record, schema |
-| `role` | **The differentiator.** claim, definition, procedure, parameter, caveat, result, example, decision, assumption, limitation |
+| `role` | Measured live v1 vocabulary: definition, procedure, caveat, example, decision, assumption, limitation, plus mandatory unknown |
 | `origin` | Addressable back-pointer: `page:12`, `Sheet2!C4:C40`, `src/a.py:88`, `00:14:32`, `/group/dataset` |
 | `structure` | Position in the source's own hierarchy: outline, tree, sheet, chapter, scene |
 | `relations` | Supports, contradicts, implements, derives-from, exemplifies |
@@ -117,9 +127,13 @@ the IR is wrong, nothing else matters.
 | `confidence` | How sure the extractor is, per modality |
 | `tokens` | Cost to include it |
 
-The `role` field is the bet within the bet. A tool that knows a sentence is a *caveat*
-rather than a *claim* can build an output no keyword-based tool can. Every downstream
-feature depends on roles being extractable and reliable.
+Stage 2 measured this field rather than assuming it. Seven named tags survived:
+`definition`, `procedure`, `caveat`, `example`, `decision`, `assumption`, and
+`limitation`, plus the mandatory `unknown` fallback. `claim`, `parameter`, and `result`
+passed no evaluated arm and are not live v1 roles. Reliability is backend-scoped:
+deterministic rules may prove `assumption`; the selected local enrichment backend adds
+`procedure`; a configured frontier backend may add the six roles it passed. Everything
+else stays `unknown`, and the manifest records which backend ran.
 
 ### The invariant contract
 
@@ -130,15 +144,18 @@ Three rules that hold for every modality, and are the product's actual promise:
 2. **Absence is reported.** If a source documents no rationale, the output says so
    instead of inventing it. "This spreadsheet has no documentation for its assumptions"
    is a finding.
-3. **The budget is honored exactly.** `--budget 4000` returns at most 4000 tokens and
-   says what it dropped and why.
+3. **The budget is honored exactly.** `--budget 4000` returns at most 4000 named
+   portable tokens and says exactly what it dropped and why. Stage 3 defines one
+   `utf8-byte-v1` portable token as one byte of the complete canonical UTF-8 output.
 
 ---
 
 ## Part 3: Input surface
 
-Fifty-odd formats, tiered by **extraction difficulty**, not by popularity. The tiers are
-the build order.
+Fifty-odd formats, tiered by **extraction difficulty**, not by popularity. This is a
+capability menu, not a statement that every row has an adapter. The authoritative
+eight-stage build order is in Part 7. In these tables, “Local?” describes feasibility,
+not current implementation status.
 
 The column that matters is the second one. **"Summarize" means something different for
 every modality**, and that is precisely why generic RAG fails on most of this list.
@@ -180,6 +197,10 @@ Structure is recoverable but layout introduces ambiguity.
 The unit is the corpus, not the file. Selection under budget is mandatory because the
 whole thing never fits.
 
+**Current status:** implemented for bounded directory/repository traversal, ZIP/TAR
+archives, and bounded same-origin documentation crawling. Failed members remain named
+gaps and do not erase successful siblings.
+
 | Source | What the TLDR actually is | Extraction | Local? | Hard? |
 | --- | --- | --- | --- | --- |
 | Git repo, local | Architecture, entry points, the golden path, hazards | Repomix + tree-sitter + selection | Yes | Med |
@@ -195,6 +216,10 @@ whole thing never fits.
 
 **You never summarize the values. You summarize the structure, the statistics, and the
 relationships.** This tier is where the largest capability gap in the market sits.
+
+**Current status:** the locked v1 rows are implemented: XLSX/XLSM formula graphs,
+Parquet metadata/statistics, SQLite and DuckDB schemas, and HDF5/NetCDF structure and
+attributes. Additional metadata-only science adapters do not broaden the locked v1 gate.
 
 | Format | What the TLDR actually is | Extraction | Local? | Hard? |
 | --- | --- | --- | --- | --- |
@@ -257,11 +282,14 @@ The honest tier. Partial answers, clearly labeled.
 
 The same IR, rendered for whoever is asking.
 
+**Current status:** core production output is `ansi`, `md`, self-contained `html`,
+deterministic linked `pdf`, `json`, and `jsonl`. The remaining shapes are roadmap entries.
+
 ### Formats
 
 | `--out` | Consumer | Shape | Notes |
 | --- | --- | --- | --- |
-| `ansi` (default) | Human, terminal | Progressive, syntax-aware, folded sections | Streams as it works. Never dumps a wall |
+| `ansi` (default) | Human, terminal | Compact deterministic sections, optional TTY color | Stage 3 writes a complete budgeted projection; live progressive folding is later work |
 | `md` | Human editing, coding agent | Clean markdown with source anchors | The lingua franca |
 | `html` | Human reading and sharing | Single self-contained file, navigable, links to source spans | The shareable artifact |
 | `pdf` | Human archiving, citing | Paginated, page-numbered, references section | Via HTML render |
@@ -277,7 +305,7 @@ The same IR, rendered for whoever is asking.
 | Flag | Effect |
 | --- | --- |
 | `--ask "<question>"` | Task-conditions the selection. The pack answers *this*, not everything |
-| `--budget N` | Hard token ceiling. Reports what was dropped |
+| `--budget N` | Hard complete-output `utf8-byte-v1` ceiling. Concretely inventories every dropped unit and relation |
 | `--brief` / `--depth 1..5` | One paragraph through exhaustive |
 | `--dimensions memory,reasoning,examples` | Which slices to emit |
 | `--cite` / `--no-cite` | Span citations on every claim, on by default |
@@ -308,7 +336,7 @@ meeting it means clicking a decision and hearing the fourteen seconds where it w
 | **MCP server** | Non-shell agents. Use the 2026-07-28 Tasks extension for Tier 4–6 jobs so a long build returns a durable handle instead of timing out | Low | After the CLI is real |
 | **A2A agent card** | Agent-to-agent ecosystems, 150+ orgs on the LF spec | Low | After MCP |
 | **Agent Skill** (`SKILL.md`) | Claude Code, Codex, Cursor, ~40 tools reading the same file | Trivial | Alongside MCP. It is a wrapper that teaches an agent when to shell out |
-| **Hosted API** | Users who cannot run a 7B VLM or Whisper locally | High | Only if Tier 4–5 demand is proven |
+| **Hosted API** | Users whose hardware cannot run the measured generation, vision, or speech workload locally | High | Only if demand is proven |
 | Browser extension | Clip any page | Med | Later, if ever |
 | GUI | Non-terminal users | High | Not this product |
 
@@ -321,16 +349,16 @@ market almost for free.
 
 ## Part 6: The hard problems, stated honestly
 
-**1. The IR is the bet and it must be validated across dissimilar modalities early.**
-Building ten text-shaped extractors teaches nothing, because they all fit any schema.
-Build a PDF, a spreadsheet, and an audio file in the first month. If one representation
-holds a claim from a paper, a formula dependency from a model, and a decision from a
-meeting, the design is sound. If it does not, better to know in week four.
+**1. The IR is the bet and each new modality must validate it again.** Stage 1 already
+proved that one representation can hold dissimilar PDF, XLSX, and folder-derived units.
+That is evidence for the representation, not permission to flatten future visual,
+temporal, or scientific formats into text and call them supported.
 
-**2. Role extraction is unproven at this scale.** Distinguishing a claim from a caveat
-from an assumption is easy for a strong model and unreliable for a 7B local one. The
-whole `role` field, and everything built on it, depends on this working. It needs an
-eval before it needs an implementation.
+**2. Role extraction is measured, backend-scoped, and deliberately smaller than the
+original menu.** Stage 2 retained seven named tags plus `unknown`; `claim`, `parameter`,
+and `result` were removed. The remaining problem is not choosing a nominal model size,
+but preserving each backend's measured guarantees and leaving unsupported units
+`unknown`.
 
 **3. Tier 4 and 5 break the latency contract.** `autotldr paper.pdf` should feel like
 `cat`. A one-hour video cannot. Two different interaction models are required: the
@@ -338,10 +366,14 @@ synchronous one for Tiers 0–3, and a job with a durable handle for Tiers 4–6
 this at the CLI-design level rather than retrofitting it later is cheap now and
 expensive in six months.
 
-**4. Local inference is the cost wall, not a feature.** Tiers 0–3 need no model at all
-for structure, and a small one for roles. Tiers 4–5 need a VLM and ASR that many users
-cannot run. This is the natural free-versus-paid boundary, and it falls out of physics
-rather than from an arbitrary paywall.
+**4. Local inference is a measured workload, not a parameter-count product tier.**
+Tiers 0–3 need no model for deterministic extraction, but D-019 requires a configured
+ZBook-local generation model for the first complete grounded TLDR. OpenAI-compatible
+names the localhost wire protocol, not a hosted endpoint.
+There is no parameter-count eligibility ceiling: the selected model must pass the actual
+synthesis task and fit the user's hardware. Grounded synthesis is implemented as a
+strict opt-in seam over existing evidence IDs. Vision and speech workloads remain later
+and hardware-dependent.
 
 **5. Some semantics require domain knowledge.** A climate model spreadsheet and a
 financial model spreadsheet have different meanings for the same formula graph. This
@@ -354,32 +386,32 @@ trustworthy. One that presents both with equal confidence is not.
 
 ---
 
-## Part 7: Build order
+## Part 7: Authoritative eight-stage build order
 
-Each stage is independently useful and shippable. Nothing here is throwaway.
+The stage sequence comes from `spec-v1.md` as superseded by D-018 through D-020. The broad
+tier tables above do not reorder it.
 
-| Stage | Scope | Proves | Weeks |
-| --- | --- | --- | --- |
-| **0. Spike the IR** | Three deliberately dissimilar inputs: a PDF paper, an XLSX model, a WAV meeting. Extraction only, no renderers. | The representation survives contact with dissimilar modalities. Kill or redesign here | 2 |
-| **1. The Unix tool** | Tier 0 and 1 complete. `--out ansi/md/json/jsonl`. Budget and cite. Exit codes. | It feels like a real tool and someone uses it twice | 3 |
-| **2. Make it shareable** | `--out html` and `pdf`. Claim-to-source linking. | The output is something people send to each other | 2 |
-| **3. Collections** | Tier 2. Selection under budget. `--ask`. Adapters for Repomix, crawl4ai, gitingest. | Selection works when the corpus never fits | 3 |
-| **4. Data** | Tier 3. Formula graph, schema profiling, scientific formats. | The most underserved tier, and the strongest demo | 3 |
-| **5. Agents** | MCP with Tasks, `SKILL.md`, A2A card. `bundle` output. | Agents adopt it without a bespoke integration | 2 |
-| **6. Heavy modalities** | Tiers 4 and 5. Async jobs, confidence reporting. | The vision, and the paid tier's justification | 6+ |
-
-Stage 0 is the one that must not be skipped. Every prior plan skipped it and specified
-the architecture instead.
+| Stage | Scope | Current status / gate |
+| --- | --- | --- |
+| **1. Representation spike** | Dissimilar PDF, XLSX, and folder inputs; extraction and units before roles or renderers | **Complete.** One addressable representation held all three |
+| **2. Role-tagging eval** | 200 exact units, five formats, rules/local/frontier arms, per-role gates | **Complete.** Seven named roles plus `unknown`; backend-scoped guarantees |
+| **3. Invoke mode** | One Tier 0/1 source from path/stdin/HTTP(S); `ansi`, `md`, `json`, `jsonl`; citations, exact output budget, omissions, manifests, named exits | **Complete.** Bounded Unix pipeline |
+| **4. Measured fusion** | Repeated explicitly named sources; model-free literal, identifier, and structural signals; grounded collection findings | **Complete.** D-018 ships literal and structural, native/native identifiers, and local-path unresolved gaps; failed contradiction/orphan signals remain disabled and named |
+| **5. Integrated Tiers 0–3 plus grounded synthesis** | Direct directory/repository/archive/doc-site acquisition; required Tier 3 adapters; a separately budgeted evidence pack and strictly ID-grounded synthesis through ZBook-local LM Studio | **Complete software/functional slice.** Borealis is fully grounded: 14 mixed inputs, three accepted cited claims, no fallback, all six shapes from one synthesis. Physical no-spill attestation remains explicitly unproved by current telemetry |
+| **6. Watch daemon** | Debounced watched-folder processing, stable artifacts, cache/store integration | **Complete.** Polling, SHA suppression, SQLite/WAL, atomic artifacts |
+| **7. Shareable output** | Self-contained `html` and `pdf` with source linking | **Complete.** Exact budgets and omission inventory carry through both. PDF byte identity is a within-process contract (D-027) |
+| **8. Agent surfaces** | MCP Tasks extension, `SKILL.md`, A2A card | **Complete.** Model-off/local-path wrappers over the public pipeline |
 
 ---
 
-## Part 8: The open question
+## Part 8: Capability wedges
 
 Everything above describes a category. Categories do not get adopted; specific wins do.
-The one decision I cannot make from the material is **which single capability makes
-someone install this and tell a colleague**.
+These are product angles inside the roadmap, not alternatives that change the settled
+eight-stage build order. D-019 requires the first complete demo to integrate Tiers 0–3
+and grounded synthesis rather than presenting any one wedge as the whole product.
 
-Four candidates, each of which changes the build order:
+Four candidate wedges:
 
 1. **The spreadsheet nobody can read.** `autotldr model.xlsx` returns the formula
    dependency graph, the assumptions, the hardcoded overrides someone buried in row 400.
@@ -395,9 +427,8 @@ Four candidates, each of which changes the build order:
    against the version in your lockfile, not the docs site's latest. Narrow, deeply
    useful to the agent audience, and directly attacks a real bug source.
 
-My read, stated once: **(1)**. It is the only one where the semantics are fully
-recoverable without a model, the demo is immediate and visual, the pain is universal
-among analysts and scientists, and no competitor is close. It also validates the IR
-against the least text-shaped thing in Tier 0–3, which is exactly what Stage 0 needs.
-
-That is a recommendation, not a decision.
+The spreadsheet remains the clearest individual demonstration: its structure is
+recoverable without a model, the output is immediately visual, and XLSX already
+validates the representation against a non-text-shaped source. It is now one required
+part of the D-019 Stage 5 mixed-collection demo, not a substitute for Tier 2 acquisition,
+the remaining Tier 3 adapters, or grounded synthesis.

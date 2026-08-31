@@ -53,9 +53,9 @@ text is why generic retrieval fails on most of them.
 | --- | --- |
 | A spreadsheet | The formula dependency graph. Inputs, assumptions, derived values, circular references, the number hardcoded into a formula in row 400 |
 | A dataset | Schema, units, distributions, gaps. Never the values |
-| A paper | Claims, the evidence under them, the method, the limitations |
+| A paper | Addressable units and structure; typed procedures, caveats, and limitations only when an evaluated enrichment backend supports them |
 | A repo | Architecture, entry points, hazards |
-| A meeting | Decisions, owners, deadlines. Not a transcript |
+| A meeting | Decisions, owners, and deadlines when the configured enrichment backend can recover them. Never an ungrounded rewrite of the transcript |
 | A folder of several | How they relate, and where they disagree |
 
 The per-modality semantic contract is the defensible part. It is documented in
@@ -77,6 +77,22 @@ renderers. A new output costs one renderer and zero extractors.
 
 **The representation is the whole company.** Adapters are replaceable and
 renderers are cosmetic. If it is right, AutoTLDR outlives every tool it wraps.
+
+### Role labels are measured claims
+
+A unit is useful even when its role is `unknown`: it still has exact content,
+structure, modality, relations, and an addressable origin. v1 does not pretend
+that every semantic distinction can be tagged universally. Stage 2 retained
+seven named roles (`definition`, `procedure`, `caveat`, `example`, `decision`,
+`assumption`, and `limitation`) because at least one preregistered backend
+recovered each; it removed `claim`, `parameter`, and `result` because none did.
+
+Reliability is backend-scoped. The instant deterministic path proves
+`assumption`; opt-in local enrichment additionally proves `procedure`; a
+configured frontier-class endpoint can prove six named prose roles. Anything a
+running backend did not demonstrate remains `unknown`. The product would rather
+preserve an addressable untyped unit than attach a confident-looking label that
+the evidence does not support.
 
 ## The three invariants
 

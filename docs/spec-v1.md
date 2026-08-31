@@ -1,7 +1,16 @@
 # AutoTLDR v1 — Technical Specification
 
-**Scope locked:** the mixed folder, text-only, Tiers 0 through 3. No images, no audio, no
-video. Point AutoTLDR at a file or a folder and get back one fused context bundle.
+**Scope target locked:** the mixed folder, text-only, Tiers 0 through 3. No images, no
+audio, no video. The v1 target is to point AutoTLDR at a file or folder and get back one
+fused context bundle.
+
+**Implementation status:** the complete thin Stage 1–8 MVP is implemented. One public
+pipeline acquires files, folders, archives, stdin, and URLs; normalizes every supported
+input into the same addressable representation; applies the measured role/fusion policy;
+optionally accepts strictly ID-grounded local-model claims; and renders six output shapes.
+Watch, MCP, the Agent Skill, and A2A metadata wrap that pipeline. The software gate is
+complete; independent physical proof of zero CPU spill remains unavailable from the
+current LM Studio/process telemetry and is reported separately rather than invented.
 
 This document makes the stack decisions and the representation concrete. It supersedes
 nothing in [`matrix.md`](matrix.md); the matrix is the menu, this is what we cook
@@ -16,26 +25,48 @@ Two execution modes over one engine.
 ### Mode 1 — Invoke
 
 ```bash
-autotldr report.pdf                       # one file
-autotldr ./project                        # one folder, fused
-autotldr ./project --ask "what did we measure"
-autotldr https://docs.example.com/guide   # one URL
+autotldr report.pdf                                  # one local path
+printf '# Notes\nhello\n' | autotldr - --type md    # stdin
+autotldr https://docs.example.com/guide --out md     # one HTTP(S) URL
+autotldr paper.pdf analysis.ipynb results.xlsx       # explicit collection
 ```
 
-Synchronous. Feels like `cat` for Tier 0, a couple of seconds for Tier 1–3. Writes to
-stdout by default.
+Synchronous. Feels like `cat` for Tier 0 and remains bounded for Tier 1. Writes to stdout
+by default.
+
+#### Stage 3–5 invoke contract — implemented
+
+Stage 3 processes one acquired source. Stage 4 fuses two or more sources. Stage 5 adds
+bounded directory/repository/archive/doc-site acquisition, the locked Tier 3 adapters,
+and the public grounded-synthesis seam. Ordinary CLI invoke remains deterministic and
+model-off; callers opt into synthesis through the Python API or the guarded demo path.
+
+| Concern | Implemented contract |
+| --- | --- |
+| Input | One or more local paths, directory/repository/archive collections, `-` for stdin, or HTTP(S) URLs. `--crawl` performs a bounded same-origin documentation crawl. `--type` supplies an explicit format only for one stdin or deliberately mislabeled local source |
+| Output | `ansi` by default, plus `md`, self-contained `html`, linked `pdf`, `json`, and `jsonl`; text or binary-safe output to stdout or `-o` / `--output` |
+| Citations | Human output cites exact origins inline by default. `--no-cite` uses stable IDs plus a source map instead. Structured output always retains origins |
+| Budget | `--budget N` is a hard ceiling over the complete rendered UTF-8 byte stream under the named `utf8-byte-v1` estimator. Framing, escaping, citations, ANSI bytes, the manifest, omission records, and the final newline all count |
+| Omissions | Units and relations are atomic. Every omitted unit and relation is identified concretely in the selection report; an impossible required envelope produces no partial stdout |
+| Machine manifest | JSON and JSONL record input source/kind/tier/byte count/SHA-256, acquisition and extraction timings, AutoTLDR and representation versions, model and role backend, estimator and ID schemes, and selection accounting |
+| Exit status | `0` success; `1` runtime or extraction error; `2` invalid CLI usage; `3` unsupported format or tier; `4` input not found; `5` budget cannot be satisfied |
+
+`Unit.tokens` does not enforce `--budget`. It is a cheap `char4-floor-v1` diagnostic for
+inspection and ranking; only the final `utf8-byte-v1` rendered-stream measurement decides
+whether output fits.
 
 ### Mode 2 — Watch
 
 ```bash
-autotldr watch ./inbox --out bundle       # register a smart folder
-autotldr watch --status                   # what is registered, what is stale
-autotldr watch --stop ./inbox
+autotldr watch ./inbox --once             # deterministic foreground pass
+autotldr watch ./inbox --status           # persisted file/folder state
+autotldr watch ./inbox --recursive --debounce 10
 ```
 
-A background daemon monitors registered folders. Drop a file in, and an artifact appears
-beside it without anyone asking. Re-fusion of the folder-level bundle happens on a debounce
-so that dropping twelve files produces one rebuild, not twelve.
+A foreground polling service monitors one folder. Drop a file in and an artifact appears
+under `.autotldr/files/`; the fused `.autotldr/FOLDER.tldr.md` roll-up is rebuilt after a
+debounce. SQLite/WAL stores status, SHA-256 suppresses unchanged content, writes are atomic,
+and one failing file is contained and reported without stalling siblings.
 
 **This is what the "auto" means.** The invoke mode is a tool. The watch mode is a service
 that turns a directory into a self-summarizing corpus, and it is the differentiated half.
@@ -53,7 +84,7 @@ Everything here is text-derivable and needs no vision or speech model.
 
 | Tier | Formats in v1 |
 | --- | --- |
-| 0 | txt, markdown, rST, source code, JSON, JSONL, YAML, TOML, XML, CSV, TSV |
+| 0 | txt, markdown, rST, the published source-language inventory below, JSON, JSONL, YAML, TOML, XML, CSV, TSV |
 | 1 | PDF with a text layer, DOCX, HTML and URLs, Jupyter notebooks, LaTeX, EPUB |
 | 2 | Directory trees, git repos, archives, doc sites |
 | 3 | XLSX, Parquet, SQLite, DuckDB files, HDF5, NetCDF |
@@ -69,18 +100,19 @@ AutoTLDR meets one, it says so by name and moves on rather than failing the run.
 
 **Decision:** Python 3.12+, packaged for `uvx autotldr` and `uv tool install`.
 
-The entire extraction ecosystem this product depends on is Python: MarkItDown, Docling,
-openpyxl, pypdf, pymupdf, python-docx, nbformat, tree-sitter bindings, h5py, trafilatura.
-Rust would give a faster cold start and a single static binary, and would cost most of
-year one reimplementing extractors that already exist and are maintained.
+The extraction ecosystem this product depends on is Python: MarkItDown, Docling, openpyxl,
+pypdf, pymupdf, pinned tree-sitter bindings, h5py, and trafilatura, alongside stdlib OOXML,
+JSON, and HTML adapters where a smaller native parser preserves the required structure.
+Rust would give a faster cold start and a single static binary, and would cost most of year
+one reimplementing extractors that already exist and are maintained.
 
 **The cost, named:** Python startup is the one thing that can make this feel unlike a Unix
 tool. The mitigation is not optional.
 
 - Every format extractor is lazy-imported. `autotldr notes.md` must never import Docling,
   h5py, or a tokenizer.
-- The CLI entry path imports argparse, pathlib, and sqlite3 and nothing else until the
-  format router has decided what the input is.
+- The CLI entry path imports only standard-library argument, path, and stream primitives
+  until the format router has decided what the input is.
 - Budget: **under 120ms** to first output for a Tier 0 file. This is a tested contract,
   not an aspiration. If it regresses, that is a build failure.
 
@@ -159,24 +191,37 @@ So AutoTLDR routes.
 | Input | Extractor | Why this one |
 | --- | --- | --- |
 | Markdown, txt, rST | Native parse | Structure is already there |
-| Source code | tree-sitter | Symbols and signatures, not text |
+| Source code, restricted inventory | Python stdlib AST; lazy pinned native tree-sitter pack for the published reliable languages | Exact declarations and imports; every unconfigured or unreliable language routes to a named Tier 0 decline and is not counted as supported |
 | JSON, YAML, TOML, XML | Structural induction over samples | Schema is the semantics |
-| CSV, Parquet | DuckDB profiling | Zero-copy, statistics not rows |
+| CSV, TSV | Native bounded stdlib profiling | Streaming column schema/statistics, never rows |
+| Parquet | Lazy PyArrow metadata/statistics profiling | Schema and row-group statistics, never rows |
 | **XLSX** | **openpyxl on the formula layer** | **Never through a markdown converter. The formula graph is the meaning and conversion destroys it** |
-| DOCX | python-docx | Native structure, tracked changes, comments |
+| DOCX | Native OOXML ZIP/XML with the stdlib | Native paragraphs, tables, comments, and tracked revisions without `python-docx` |
 | PDF, simple | pymupdf text layer | Fast path, most PDFs |
-| PDF, table-heavy | Docling, opt-in via `--deep` | Accurate and slow. Earn the wait |
-| HTML, URL | llms.txt probe, then trafilatura | Check for a served summary before crawling |
-| Notebooks | nbformat | Cells, outputs, and their pairing |
+| PDF, table-heavy | Docling, future opt-in via `--deep` | Accurate and slow. Earn the wait |
+| HTML, URL | Native stdlib HTML parser with bounded HTTP(S) acquisition | Addressable document structure on the Stage 3 fast path |
+| Notebooks | Native JSON with the stdlib | Cells, outputs, and their pairing without `nbformat` |
 | HDF5, NetCDF | h5py, netCDF4 | Structure and attributes, never values |
 
-Two rules the router enforces:
+“Source code” in Tier 0 is deliberately not an open-ended format claim. The published
+reliable inventory is Python via the stdlib AST, then JS/JSX, TS/TSX, C/C++, Java, Rust,
+Go, Ruby, PHP, Kotlin, C#, Bash, SQL, Scala, Perl (with parser evidence), R, Elixir,
+Haskell, and Objective-C (with parser evidence) through the pinned native tree-sitter pack.
+For Perl and Objective-C, “with evidence” means an error-free native declaration or import
+node grounds the emitted unit; a parse without that evidence is declined rather than
+treated as empty success.
+
+Named Tier 0 declines include Lua, Swift, Zsh, Fish, Dart, Clojure/ClojureScript, F#, VB,
+Groovy, Vue, Svelte, and Objective-C++. Any other unconfigured or unreliable language
+follows the same named-decline path and is not part of the supported inventory.
+
+Two routing rules govern v1:
 
 1. **Native format beats conversion.** Routing an XLSX through a PDF-oriented pipeline
    throws away exactly the structure that carries the meaning. Same for DOCX comments and
    notebook outputs.
-2. **The fast path is the default.** `--deep` opts into the slow, accurate extractor. A
-   user who has not asked to wait does not wait.
+2. **The fast path is the default.** Stage 3 implements that path. A future `--deep`
+   opts into the slow, accurate extractor; a user who has not asked to wait does not wait.
 
 ### 3.5 Models
 
@@ -185,26 +230,41 @@ Two rules the router enforces:
 | Structure extraction | **No model.** Parsers, all tiers |
 | Schema and statistics | **No model.** DuckDB and profiling |
 | Formula graph | **No model.** openpyxl dependency walk |
-| Role tagging | Rules and heuristics first, small local model where rules fail |
-| Embeddings for fusion | Local Qwen3-Embedding, small variant, ONNX |
-| Folder-level synthesis | Local 3–4B, or a configured OpenAI-compatible endpoint |
+| Role tagging | Measured backend routing: rules prove `assumption`; opt-in local adds `procedure`; configured frontier enrichment adds six named roles |
+| Embeddings for fusion | Deferred. The first complete demo uses none; an embedding resident is allowed only after a separate eval proves semantic-link value |
+| Folder-level synthesis | Implemented public seam: the ZBook-local LM Studio endpoint, using its OpenAI-compatible wire, returns strict claims over existing evidence IDs; AutoTLDR derives origins and rejects unsupported IDs/model substitutions |
 
-**The honest position on role tagging.** Distinguishing a claim from a caveat from an
-assumption is the load-bearing capability of the whole representation, and a 3B model may
-simply not be reliable at it. Current guidance puts 1.5B–3B as the floor for extraction
-work and Qwen3.5 4B as the CPU sweet spot, but that is general guidance, not evidence about
-this task.
+**Stage 2 settled the honest question on role tagging.** The frozen diagnostic set contains
+200 exact extractor units across five formats and 20 real source groups. A role passed only
+with support >=15, at least three source groups, precision >=0.80, and recall >=0.70.
+Aggregate accuracy was not a gate. The full per-role table, format slices, and confusion
+matrices live in [`benchmarks/roles/report.md`](../benchmarks/roles/report.md); D-013 records
+the product decision.
 
-So: **role tagging gets an eval before it gets an implementation.** Two hundred hand-labeled
-spans across five formats, scored against rules-only, a 4B local model, and a frontier model
-as ceiling. If rules-only lands close to the 4B model, v1 ships with rules and stays fully
-offline and instant. If neither approaches the ceiling, the role taxonomy needs to shrink to
-whatever *is* reliably extractable, and the product claim shrinks with it. Finding that out
-in week two is cheap.
+- Deterministic rules passed `assumption` only.
+- The selected ZBook-local Ornith-1.5-35B-A3B arm passed `procedure` and correctly
+  recognized the `unknown` fallback.
+- The frontier ceiling passed `definition`, `procedure`, `caveat`, `example`, `decision`,
+  and `limitation`.
+- `claim`, `parameter`, and `result` passed no arm and are removed from the v1 taxonomy.
 
-Nothing in Tiers 0 through 3 requires a model to produce a *useful* result. That is the
-reason this scope was the right pick: v1 degrades to a genuinely valuable tool even if every
-model in it is turned off.
+The live vocabulary is therefore seven named roles plus `unknown`, but reliability is
+backend-scoped. The fast path emits a named role only for a structurally proven
+`assumption`; every other unit stays `unknown` unless an enabled enrichment backend passed
+that specific role. Model use belongs in the bundle manifest so a downstream consumer can
+tell which guarantee applies. A model's parameter count is not an eligibility ceiling.
+Local evaluation instead enforces one ZBook-local resident at a time, 100% GPU offload,
+and sequential load/run/unload without touching LM Link peers.
+
+The labels were independently reviewed and adjudicated by AI agents, with 91.5% reviewer
+agreement and Cohen's kappa .906. That is sufficient for the v1 engineering gate, not a
+substitute for a later human domain-expert audit.
+
+Extraction and measured fusion across Tiers 0 through 3 remain useful with every model
+turned off; that deterministic representation is the fallback and source of truth. The
+first demo described as the AutoTLDR product nevertheless requires a grounded model-written
+TLDR. On ZBook, evaluation loads one AutoTLDR-owned generation model at a time, requires
+100% GPU offload, runs candidates sequentially, and unloads the owned model after the run.
 
 ---
 
@@ -214,18 +274,22 @@ model in it is turned off.
 
 ```
 Unit
-  id            content hash, stable across runs
+  id            full origin/modality/content digest, stable across runs
   source_id     which file this came from
   modality      prose | code | table | record | schema | equation | reference
-  role          claim | definition | procedure | parameter | caveat | result
-                | example | decision | assumption | limitation | unknown
+  role          definition | procedure | caveat | example | decision
+                | assumption | limitation | unknown
   content       the text or structured payload
   origin        addressable back-pointer, see below
   structure     path in the source's own hierarchy
   salience      0..1, why this survived selection
   confidence    0..1, how sure the extractor is
-  tokens        cost to include
+  tokens        cheap diagnostic estimate; never --budget enforcement
 ```
+
+`Unit.tokens` currently names the `char4-floor-v1` diagnostic estimate. Exact CLI budget
+enforcement instead measures the complete rendered UTF-8 output with `utf8-byte-v1`, after
+formatting, citations, manifests, omission accounting, and the final newline are present.
 
 `origin` is the invariant that makes the whole thing trustworthy, and it is format-specific
 by design:
@@ -248,6 +312,7 @@ Relation
   from_unit, to_unit
   kind        supports | contradicts | implements | derives-from
               | exemplifies | describes | produced-by | references
+              | corresponds
   evidence    what grounds this link
   confidence  0..1
 ```
@@ -262,11 +327,13 @@ What a run emits.
 ```
 Bundle
   subject       what was pointed at
-  summary       what this collection is, in three sentences
+  summary       Stage 3 structural statement; Stage 4 measured fusion findings;
+                Stage 5 grounded semantic synthesis
+  summary_claims addressable statements with evidence unit IDs and derived origins
   units         selected, budgeted, ordered
   relations     the graph among them
   gaps          what the sources never documented
-  manifest      inputs, hashes, versions, timings, model use
+  manifest      inputs, hashes, timings, versions, backend and selection accounting
 ```
 
 `gaps` is a first-class field, not an afterthought. "No file in this folder documents why
@@ -275,6 +342,11 @@ the threshold is 0.7" is a finding, and emitting it is the second invariant from
 ---
 
 ## Part 5: Fusion, the actual wedge
+
+**Stage 4 is implemented and measured.** Its core accepts already extracted sources, and
+the CLI exposes it for two or more explicitly named inputs. It deliberately does not acquire
+a directory or write the model-generated semantic collection statement; those are the
+integrated Stage 5 gate.
 
 Per-file summarization is a commodity. **Fusing a folder into one representation is what
 nobody does**, and it is the reason this scope was chosen. Concretely, for a folder holding
@@ -290,28 +362,46 @@ a paper, a spreadsheet of results, and the code that produced them:
 3. **Structural correspondence.** A results table whose column count and row labels match a
    dataset's schema. A figure caption numbered to match a notebook cell's output. Cheap,
    surprisingly strong.
-4. **Semantic similarity.** Embedding proximity between units across files, as the fallback
-   for concepts that share no tokens. The only signal that costs a model, and the only one
-   that produces false positives, so it carries the lowest confidence and is always
-   reported as inferred.
+4. **Semantic similarity.** Embedding proximity between units across files was proposed as
+   a fallback for concepts that share no tokens. It is not implemented or resident in the
+   first complete demo. It may enter only after a separate frozen eval proves value beyond
+   the first three signals.
 
-Signals 1 through 3 run with no model at all. If the eval shows they carry most of the
-value, v1 fusion is fully offline and deterministic, which would be a real product
-advantage.
+Signals 1 through 3 run with no model. The Stage 4 scored run evaluated every output class
+separately; aggregate accuracy was neither computed nor used. The production path follows
+the frozen dispositions exactly:
+
+| Signal or finding | Support | Precision | Recall | Production disposition |
+| --- | ---: | ---: | ---: | --- |
+| Literal reference | 23 | 1.000 | 0.957 | Ship complete |
+| Identifier correspondence | 171 | 0.850 | 0.830 | Ship only preregistered `native-native` (support 63, P=.900, R=.857) |
+| Structural correspondence | 10 | 1.000 | 0.800 | Ship complete |
+| Strict scalar contradiction | 12 | 1.000 | 0.667 | Disabled; missed the frozen .70 recall gate |
+| Orphan absence | 7 | 1.000 | 0.571 | Disabled; missed the frozen .90 recall gate |
+| Unresolved reference | 9 | 0.900 | 1.000 | Ship only preregistered `local-path` (support 6, P=R=1.000) |
+
+The raw diagnostic analyzer is retained for new-corpus evaluation. The user-facing fusion
+path emits only the rows and subtypes marked to ship, records every disabled signal in the
+manifest, and never converts “disabled” into a claim that no contradiction or orphan
+exists. D-018 and `benchmarks/fusion/report.md` hold the frozen details.
 
 ### 5.2 What fusion emits
 
-- **A collection statement.** What this folder is for, grounded in its contents.
-- **A relation graph.** Which file produced which, which claim rests on which data, which
-  code implements which method.
-- **Contradictions.** The paper says n=40, the CSV has 38 rows. This is the single most
-  valuable output the tool can produce and it falls directly out of having both in one
-  representation.
-- **Orphans.** Files nothing else references. Often the stale draft nobody deleted.
-- **Gaps.** Concepts referenced but never defined anywhere in the collection.
+- **Grounded engineering statements.** Stage 4 reports the collection size, the measured
+  emitted link classes, and measured local-path unresolved findings with evidence IDs.
+- **A conservative relation graph.** Literal references, native/native identifier
+  correspondences, and compatible structural correspondences that passed their gates.
+- **Measured gaps.** Non-ambiguous local paths referenced but unresolved. Other proposed
+  unresolved subtypes remain outside the shipping claim.
+- **No production contradiction or orphan claim yet.** Both detectors remain visible to
+  diagnostics but failed their frozen recall gates and are filtered from `fuse()`.
 
-Contradiction detection is the demo. It is also the thing that requires no clever
-summarization, only a shared representation and a comparison.
+Stage 5 adds the actual concise statement of what the collection means. The model receives
+only a bounded canonical evidence pack, returns strict structured claims containing existing
+unit IDs, and cannot create origins, roles, relations, contradictions, or gaps. AutoTLDR
+validates IDs, derives `GroundedStatement` origins itself, and applies the existing exact
+complete-output budget. An invalid model response falls back deterministically or fails
+explicitly; it never becomes uncited repaired prose.
 
 ---
 
@@ -323,7 +413,7 @@ autotldr watch ./inbox [--out bundle|md|html] [--debounce 30s] [--recursive]
 
 | Concern | Decision |
 | --- | --- |
-| FS events | `watchdog`, cross-platform, with a polling fallback for network mounts |
+| FS events | Stdlib polling, deterministic on local and network filesystems |
 | Re-trigger storms | Content-hash comparison. A re-save with identical bytes does nothing |
 | Batch drops | Debounce window, default 30s. Twelve files dropped produce one fusion |
 | Where artifacts land | `.autotldr/` beside the folder by default, never scattered next to sources unless asked |
@@ -347,17 +437,18 @@ on roles being reliable.
 
 | Stage | Scope | Gate |
 | --- | --- | --- |
-| **1** | Representation spike. Three dissimilar inputs: a PDF paper, an XLSX model, a folder of markdown. Extraction and units only, no roles, no renderers | One representation holds all three, or it gets redesigned now |
-| **2** | Role-tagging eval. 200 spans labeled from Stage 1 output, five formats, three arms: rules-only, 4B local, frontier ceiling | Decides whether the role taxonomy survives, and how much of it |
-| **3** | Invoke mode, Tiers 0 and 1. `ansi`, `md`, `json`, `jsonl`. Budget, cite, exit codes. Startup contract enforced | It feels like a Unix tool |
-| **4** | Fusion. Signals 1 through 3, collection statement, contradictions, orphans, gaps | The wedge works on a real folder |
-| **5** | Tiers 2 and 3. Directory and repo, XLSX formula graph, data profiling | The underserved tier, and the strongest demo |
-| **6** | Watch daemon | The "auto" is real |
-| **7** | `html` and `pdf` output, claim-to-source linking | The output is shareable |
-| **8** | MCP with the Tasks extension, `SKILL.md`, A2A card | Agents adopt it without bespoke work |
+| **1** | Representation spike. Three dissimilar inputs: a PDF paper, an XLSX model, a folder of markdown. Extraction and units only, no roles, no renderers | **Complete.** One addressable representation holds all three |
+| **2** | Role-tagging eval. 200 exact units, five formats, three arms: rules-only, selected local, frontier ceiling | **Complete.** Seven named roles survive with backend-scoped guarantees; three were removed (D-013) |
+| **3** | Invoke mode, Tiers 0 and 1. Path/stdin/HTTP(S); `ansi`, `md`, `json`, `jsonl`; citations, exact rendered-byte budget, omission inventory, manifests, named exits; startup contract enforced | **Complete.** It behaves as a bounded, addressable Unix pipeline |
+| **4** | Model-free fusion over two or more explicit sources; separate evaluation of literal, identifier, structural, contradiction, orphan, and unresolved outputs | **Complete.** Only the signal/subtype surfaces that passed are emitted (D-018) |
+| **5** | Complete-demo integration: Tier 2 directory/repo/archive/doc-site acquisition; all locked Tier 3 adapters; bounded evidence packing and grounded local-model TLDR synthesis | **Complete software/functional slice.** On 2026-08-31 Borealis ran 14 mixed inputs through one ZBook-local instance and accepted three cited claims with no fallback; 63 independent checks over the saved artifacts passed. Physical no-spill certification remains a separately named telemetry limitation and the certification wrapper fails closed |
+| **6** | Watch daemon | **Complete.** Polling, debounce, SHA suppression, SQLite/WAL, atomic per-file and folder artifacts |
+| **7** | `html` and `pdf` output, claim-to-source linking | **Complete.** Self-contained HTML and paginated PDF share the exact omission policy. Text shapes are byte-identical across processes; PDF byte identity holds within one process, because `pymupdf.Story` lays identical HTML out differently per process (D-027) |
+| **8** | MCP with the Tasks extension, `SKILL.md`, A2A card | **Complete.** Thin local/model-off wrappers over the public API |
 
-Stages 1 and 2 are roughly two weeks combined and they are the ones that decide whether the
-rest is worth building. Every prior plan skipped both.
+All eight stages have a thin working vertical slice. The measured Stage 4 engineering
+statements remain the deterministic source of truth; accepted Stage 5 model claims are
+separately manifested, and model failure never silently becomes uncited prose.
 
 ---
 

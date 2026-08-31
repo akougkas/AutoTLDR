@@ -9,7 +9,16 @@ or a URL and it returns what the thing *means*, rendered into the shape the
 caller asked for. `autotldr model.xlsx` returns the formula dependency graph, not
 a grid of numbers.
 
-Pre-alpha. Stage 1 of 8 is complete.
+Pre-alpha. The thin Stage 1–8 MVP is complete. The same public pipeline now
+acquires a file/folder/archive/URL, fuses its addressable representation,
+optionally accepts strictly grounded local-model claims, and renders ANSI,
+Markdown, HTML, PDF, JSON, or JSONL. Watch and agent surfaces wrap that pipeline;
+they do not reimplement it.
+
+The locked Tier 0/1 inventory, bounded Tier 2 directory/repository/archive/doc-
+site acquisition, and the required Tier 3 XLSX, Parquet, SQLite, DuckDB, HDF5,
+and NetCDF adapters are implemented. Additional science adapters are present,
+but format-universe expansion is not the current sprint.
 
 ## Read in this order
 
@@ -45,21 +54,48 @@ good the output looks.
   module scope. `tests/test_startup.py` fails the build if pymupdf, openpyxl,
   numpy, a tokenizer, or a runtime enters the import graph. Import inside the
   function that needs it.
-- **Cold start is under 120ms** for a tier 0 file, enforced as a test.
+- **Cold start is under 120ms** for a tier 0 file, enforced as a test. The test
+  takes the best of repeated runs, so measure it on an otherwise idle machine.
+- **Ordering never depends on the snapshot path.** Extraction runs against an
+  immutable private snapshot whose directory name changes every invocation, and
+  the router rewrites unit IDs to logical ones afterwards. Rank by canonical
+  unit position, never by `Unit.id` (D-026).
+- **Warnings fail the build.** `filterwarnings` is `error` plus one documented
+  message-specific exception (D-028). A new warning is a defect, not noise.
 - **Native format beats conversion.** XLSX goes to `openpyxl` on the formula
   layer, never through a markdown converter. The formula graph is the meaning.
 - **Decline by name.** An unsupported format reports which format it was and
   which tier owns it. Never return an empty success.
-- **Extractors emit `Role.UNKNOWN`** rather than guessing. Role reliability is
-  unmeasured until Stage 2.
+- **Rules emit a named role only when Stage 2 proved it.** The deterministic
+  extractor path may emit `Role.ASSUMPTION` for structurally proven spreadsheet
+  inputs; everything else is `Role.UNKNOWN`. Local/frontier enrichment may emit
+  only the backend-specific roles recorded in D-013.
+- **Stage 4 dispositions are frozen.** Production fusion ships all literal and
+  structural matches, the preregistered `native-native` identifier subtype, and
+  the preregistered `local-path` unresolved-reference subtype. Strict scalar
+  contradictions and orphan findings are disabled because they missed recall;
+  the raw analyzer retains them only for diagnostics and fresh evaluation.
+- **Model claims are constrained, not trusted.** Synthesis sees a bounded
+  canonical evidence pack and may return only claim text plus existing unit IDs.
+  AutoTLDR derives origins and rejects unknown IDs, model substitutions, invalid
+  envelopes, and unsupported provider fields. The exact Stage 4 claims remain
+  the model-off/failure source of truth.
+- **Local model work is ZBook-only.** Evaluation uses
+  `http://127.0.0.1:1234`, one AutoTLDR-owned generation model at a time, 100%
+  GPU offload, and sequential estimate/load/run/unload. Never load, invoke, or
+  unload a Dynamo/LM Link row. An embedding resident remains disabled until its
+  value is separately measured.
 - Local imports use relative paths within the package. Tests use `pytest`.
 
 ## Commands
 
 ```bash
 uv venv && uv pip install -e ".[all]"
-uv run pytest                      # 27 tests
+uv run pytest
 uv run python -m autotldr.cli FILE # try it
+uv run python -m autotldr.cli DIR --out html -o brief.html
+uv run python -m autotldr.cli watch DIR --once
+uv run python -m autotldr.cli mcp
 ```
 
 Run the suite before committing.
