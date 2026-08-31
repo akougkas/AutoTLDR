@@ -20,7 +20,10 @@ _BARE_URL = re.compile(r"(?<![(\w])(https?://[^\s<>\"')]+)")
 # A path-ish token with a known-ish extension. Deliberately conservative: a false
 # reference is worse than a missed one, because fusion reports references as
 # observed rather than inferred.
-_PATH_REF = re.compile(r"(?<![\w/])((?:\.{1,2}/)?[\w.\-]+(?:/[\w.\-]+)*\.[A-Za-z0-9]{1,6})(?![\w/])")
+_PATH_REF = re.compile(
+    r"(?<![\w/])((?:\.{1,2}/)?[\w.\-]+(?:/[\w.\-]+)*"
+    r"\.[A-Za-z][A-Za-z0-9]{0,7})(?![\w/])"
+)
 
 _DEFINITION = re.compile(r"^\s*(?:[-*]\s+)?\*\*([^*]+)\*\*\s*[:—-]\s+\S")
 _CAVEAT_CUE = re.compile(
@@ -31,18 +34,37 @@ _CAVEAT_CUE = re.compile(
 
 
 def extract(path: Path) -> Extraction:
-    text = path.read_text(encoding="utf-8", errors="replace")
-    source = str(path)
-    is_markdown = path.suffix.lower() in {".md", ".markdown"}
+    data = path.read_bytes()
+    try:
+        # Decode the bytes directly.  TextIO's universal-newline translation
+        # would make a CRLF citation point into a different string than the
+        # source that was actually read.
+        text = data.decode("utf-8", errors="strict")
+    except UnicodeDecodeError as exc:
+        raise ValueError(
+            f"{path.name}: text input is not strict UTF-8 at byte {exc.start}"
+        ) from exc
+    kind = "markdown" if path.suffix.lower() in {".md", ".markdown"} else "text"
+    return extract_text(text, source=str(path), kind=kind)
 
-    lines = text.splitlines()
-    line_offsets = _line_offsets(text, lines)
 
-    result = Extraction(source=source, kind="markdown" if is_markdown else "text")
+def extract_text(text: str, *, source: str, kind: str = "text") -> Extraction:
+    """Extract already-acquired text while preserving its logical source.
+
+    stdin and HTTP acquisition must not leak a temporary filename into origins
+    or stable unit IDs.  They enter through this function; path invocation keeps
+    the small wrapper above.
+    """
+
+    is_markdown = kind == "markdown"
+
+    lines, line_offsets = _source_lines(text)
+
+    result = Extraction(source=source, kind=kind)
     heading_stack: list[tuple[int, str]] = []
     section_unit_by_path: dict[tuple[str, ...], str] = {}
 
-    for block in _blocks(lines, is_markdown):
+    for block in _blocks(lines, is_markdown, line_offsets, len(text)):
         structure = tuple(title for _, title in heading_stack)
 
         if block.kind == "heading":
@@ -58,19 +80,32 @@ def extract(path: Path) -> Extraction:
                 block,
                 line_offsets,
                 structure=structure,
-                role=Role.DEFINITION if len(structure) > 1 else Role.UNKNOWN,
+                role=Role.UNKNOWN,
                 salience=max(0.4, 1.0 - 0.1 * level),
-                meta={"heading_level": level},
+                meta={
+                    "heading": True,
+                    "heading_level": level,
+                    "definition_cue": len(structure) > 1,
+                },
             )
             result.units.append(unit)
             section_unit_by_path[structure] = unit.id
             continue
 
-        body = "\n".join(block.lines).strip()
-        if not body:
-            continue
-
-        if block.kind != "code":
+        if block.kind == "code":
+            # D-012's exact-code promise means exactly the characters between
+            # the opening fence's line ending and the closing fence's first
+            # character.  Consequently a newline immediately before the
+            # closing fence is retained, while no newline is synthesized at
+            # EOF for an unterminated fence.
+            assert block.char_span is not None
+            body = text[slice(*block.char_span)]
+            if not body.strip():
+                continue
+        else:
+            body = "\n".join(block.lines).strip()
+            if not body:
+                continue
             body = _unwrap(body)
 
         if block.kind == "code":
@@ -81,9 +116,9 @@ def extract(path: Path) -> Extraction:
                 block,
                 line_offsets,
                 structure=structure,
-                role=Role.EXAMPLE,
+                role=Role.UNKNOWN,
                 salience=0.7,
-                meta={"language": block.info or None},
+                meta={"language": block.info or None, "example_cue": True},
             )
         else:
             unit = _unit(
@@ -93,8 +128,9 @@ def extract(path: Path) -> Extraction:
                 block,
                 line_offsets,
                 structure=structure,
-                role=_prose_role(body),
+                role=Role.UNKNOWN,
                 salience=0.5,
+                meta=_prose_cues(body),
             )
 
         result.units.append(unit)
@@ -133,7 +169,15 @@ def extract(path: Path) -> Extraction:
 
 
 class _Block:
-    __slots__ = ("kind", "lines", "start", "end", "heading", "info")
+    __slots__ = (
+        "kind",
+        "lines",
+        "start",
+        "end",
+        "heading",
+        "info",
+        "char_span",
+    )
 
     def __init__(
         self,
@@ -143,6 +187,7 @@ class _Block:
         end: int,
         heading: tuple[int, str] | None = None,
         info: str = "",
+        char_span: tuple[int, int] | None = None,
     ) -> None:
         self.kind = kind
         self.lines = lines
@@ -150,9 +195,15 @@ class _Block:
         self.end = end  # 1-indexed, inclusive
         self.heading = heading
         self.info = info
+        self.char_span = char_span
 
 
-def _blocks(lines: list[str], is_markdown: bool):
+def _blocks(
+    lines: list[str],
+    is_markdown: bool,
+    offsets: list[int],
+    text_length: int,
+):
     """Split into headings, fenced code, and paragraphs.
 
     Fences are tracked explicitly so that a ``#`` inside a shell snippet is never
@@ -164,6 +215,8 @@ def _blocks(lines: list[str], is_markdown: bool):
     in_fence = False
     fence_marker = ""
     fence_info = ""
+    fence_content_start = 0
+    fence_content_line = 0
 
     def flush(end: int):
         nonlocal buf, buf_start
@@ -179,10 +232,21 @@ def _blocks(lines: list[str], is_markdown: bool):
                 in_fence = True
                 fence_marker = marker
                 fence_info = m.group(2).strip()
-                buf_start = idx
+                fence_content_line = idx + 1
+                fence_content_start = (
+                    offsets[idx + 1] if idx + 1 < len(offsets) else text_length
+                )
+                buf_start = fence_content_line
                 buf = []
-            elif marker == fence_marker:
-                yield _Block("code", buf, buf_start, idx, info=fence_info)
+            elif marker == fence_marker and not m.group(2).strip():
+                yield _Block(
+                    "code",
+                    buf,
+                    fence_content_line,
+                    max(fence_content_line, idx - 1),
+                    info=fence_info,
+                    char_span=(fence_content_start, offsets[idx]),
+                )
                 in_fence = False
                 buf = []
             else:
@@ -209,8 +273,16 @@ def _blocks(lines: list[str], is_markdown: bool):
         buf.append(line)
 
     if in_fence and buf:
-        # An unterminated fence still carries content worth keeping.
-        yield _Block("code", buf, buf_start, len(lines), info=fence_info)
+        # An unterminated fence still carries content worth keeping, through
+        # the real EOF and without manufacturing a terminal newline.
+        yield _Block(
+            "code",
+            buf,
+            fence_content_line,
+            len(lines),
+            info=fence_info,
+            char_span=(fence_content_start, text_length),
+        )
     else:
         yield from flush(len(lines))
 
@@ -243,19 +315,32 @@ def _unwrap(body: str) -> str:
     return "\n".join(out)
 
 
-def _line_offsets(text: str, lines: list[str]) -> list[int]:
-    """Character offset of the start of each 1-indexed line.
+_LINE_ENDINGS = frozenset("\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029")
 
-    Index 0 is unused so that ``offsets[n]`` is line ``n``, which keeps the
-    char-span arithmetic readable at the call sites.
+
+def _source_lines(text: str) -> tuple[list[str], list[int]]:
+    """Return logical lines and their exact character boundaries.
+
+    ``str.splitlines(keepends=True)`` understands mixed CRLF/LF and the other
+    Unicode line boundaries.  ``offsets[n]`` is the start of 1-indexed line
+    ``n`` and the final sentinel is the real EOF, even when there is no final
+    newline.  This makes every returned span safe to slice without clamping.
     """
+
+    raw_lines = text.splitlines(keepends=True)
+    lines: list[str] = []
     offsets = [0, 0]
     pos = 0
-    newline = 1 if "\r\n" not in text else 2
-    for line in lines:
-        pos += len(line) + newline
+    for raw in raw_lines:
+        line = raw
+        if line.endswith("\r\n"):
+            line = line[:-2]
+        elif line and line[-1] in _LINE_ENDINGS:
+            line = line[:-1]
+        lines.append(line)
+        pos += len(raw)
         offsets.append(pos)
-    return offsets
+    return lines, offsets
 
 
 def _span(offsets: list[int], start: int, end: int) -> tuple[int, int]:
@@ -284,7 +369,11 @@ def _unit(
         source=source,
         modality=modality,
         content=content,
-        origin=Origin(source, _ref(block.start, block.end), _span(offsets, block.start, block.end)),
+        origin=Origin(
+            source,
+            _ref(block.start, block.end),
+            block.char_span or _span(offsets, block.start, block.end),
+        ),
         role=role,
         structure=structure,
         salience=salience,
@@ -297,22 +386,15 @@ def _unit(
 # --------------------------------------------------------------------------- #
 
 
-def _prose_role(body: str) -> Role:
-    """Rules-only role assignment.
-
-    Stage 2's eval decides whether this is enough, whether a small model beats
-    it, and how much of the taxonomy is reliably recoverable at all. Until then
-    the honest default is UNKNOWN, and only high-precision cues promote a unit
-    out of it.
-    """
-    if _DEFINITION.match(body):
-        return Role.DEFINITION
-    if _CAVEAT_CUE.search(body):
-        return Role.CAVEAT
+def _prose_cues(body: str) -> dict[str, bool]:
+    """Observed rule cues retained without promoting unverified roles."""
     stripped = body.lstrip()
-    if stripped[:2] in {"1.", "1)"} or stripped.startswith(("- ", "* ")):
-        return Role.PROCEDURE
-    return Role.UNKNOWN
+    return {
+        "definition_cue": bool(_DEFINITION.match(body)),
+        "caveat_cue": bool(_CAVEAT_CUE.search(body)),
+        "procedure_cue": stripped[:2] in {"1.", "1)"}
+        or stripped.startswith(("- ", "* ")),
+    }
 
 
 def _references(
@@ -329,14 +411,8 @@ def _references(
     together. These are emitted as units so fusion can resolve them against the
     other files it saw, without re-parsing anything.
     """
-    seen: set[str] = set()
     units: list[Unit] = []
-
-    def add(target: str, label: str, kind: str) -> None:
-        target = target.strip()
-        if not target or target.startswith("#") or target in seen:
-            return
-        seen.add(target)
+    for target, label, kind in reference_specs(body):
         units.append(
             Unit(
                 source=source,
@@ -354,12 +430,45 @@ def _references(
             )
         )
 
+    return units
+
+
+def reference_specs(body: str) -> list[tuple[str, str, str]]:
+    """Return conservative outbound-reference facts without assigning origins.
+
+    Native container extractors such as notebooks and LaTeX already own the
+    correct cell/line address.  They reuse this lexical contract and attach
+    their own origin rather than flattening through the text extractor.
+    Numeric decimals are deliberately not path-shaped: the extension must
+    begin with an ASCII letter.
+    """
+
+    seen: set[str] = set()
+    references: list[tuple[str, str, str]] = []
+    occupied: list[tuple[int, int]] = []
+
+    def add(target: str, label: str, kind: str) -> None:
+        target = target.strip()
+        if kind == "url":
+            # Sentence punctuation is not part of a bare URL. Markdown link
+            # targets arrive without it, so this only normalizes prose URLs.
+            target = target.rstrip(".,;:")
+        if not target or target.startswith("#") or target in seen:
+            return
+        seen.add(target)
+        references.append((target, label, kind))
+
     for m in _MD_LINK.finditer(body):
         target = m.group(2)
+        occupied.append(m.span(2))
         add(target, m.group(1), "url" if target.startswith(("http://", "https://")) else "path")
     for m in _BARE_URL.finditer(body):
+        occupied.append(m.span(1))
         add(m.group(1), "", "url")
     for m in _PATH_REF.finditer(body):
+        start, end = m.span(1)
+        if any(start < occupied_end and occupied_start < end for occupied_start, occupied_end in occupied):
+            continue
         add(m.group(1), "", "path")
 
-    return units
+    return references

@@ -7,4 +7,21 @@ tests/test_startup.py enforces that.
 
 __version__ = "0.1.0.dev0"
 
-__all__ = ["__version__"]
+
+def acquire(*args, **kwargs):
+    """Lazily acquire/fuse sources through :mod:`autotldr.api`."""
+
+    from .api import acquire as _acquire
+
+    return _acquire(*args, **kwargs)
+
+
+def summarize(*args, **kwargs):
+    """Lazily run AutoTLDR's composable public pipeline."""
+
+    from .api import summarize as _summarize
+
+    return _summarize(*args, **kwargs)
+
+
+__all__ = ["__version__", "acquire", "summarize"]

@@ -109,6 +109,7 @@ def pdf_file(tmp_path):
         fontsize=10,
     )
     page2.insert_text((72, 150), "See https://example.org/runs/2026-q3", fontsize=10)
+    page2.insert_text((72, 170), "Figure 1: Throughput by node count", fontsize=10)
 
     path = tmp_path / "paper.pdf"
     doc.save(path)

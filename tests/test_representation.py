@@ -14,9 +14,33 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from autotldr.render import to_json, to_jsonl
 from autotldr.router import extract
-from autotldr.unit import Modality, RelationKind, Role
+from autotldr.unit import (
+    Extraction,
+    GroundedStatement,
+    Modality,
+    Origin,
+    Relation,
+    RelationKind,
+    Role,
+    Unit,
+)
+
+
+def test_role_taxonomy_is_the_stage_2_recoverable_subset():
+    assert tuple(role.value for role in Role) == (
+        "unknown",
+        "definition",
+        "procedure",
+        "caveat",
+        "example",
+        "decision",
+        "assumption",
+        "limitation",
+    )
 
 
 class TestMarkdown:
@@ -30,7 +54,8 @@ class TestMarkdown:
         code = result_units(md_file, Modality.CODE)
         assert len(code) == 1
         assert "def measure_throughput" in code[0].content
-        assert code[0].role is Role.EXAMPLE
+        assert code[0].role is Role.UNKNOWN
+        assert code[0].meta["example_cue"] is True
 
     def test_hash_inside_fence_is_not_a_heading(self, tmp_path):
         path = tmp_path / "f.md"
@@ -45,21 +70,61 @@ class TestMarkdown:
         assert "bench/measure.py" in targets
         assert any(t.startswith("https://example.org") for t in targets)
 
-    def test_caveat_cue_promotes_role(self, md_file):
-        caveats = [u for u in extract(md_file).units if u.role is Role.CAVEAT]
+    def test_decimal_literals_are_not_filenames(self, tmp_path):
+        path = tmp_path / "measurements.md"
+        path.write_text(
+            "cutoff_voltage_v = 2.80\n\nRead limits.toml for the limit.\n",
+            encoding="utf-8",
+        )
+
+        targets = {
+            unit.meta["target"]
+            for unit in result_units(path, Modality.REFERENCE)
+        }
+
+        assert targets == {"limits.toml"}
+
+    def test_url_subpaths_are_not_second_local_references(self, tmp_path):
+        path = tmp_path / "sources.md"
+        path.write_text(
+            "The DOI https://doi.org/10.5555/example.external is external.\n",
+            encoding="utf-8",
+        )
+
+        references = result_units(path, Modality.REFERENCE)
+
+        assert [(unit.meta["ref_kind"], unit.meta["target"]) for unit in references] == [
+            ("url", "https://doi.org/10.5555/example.external")
+        ]
+
+    def test_caveat_cue_is_preserved_without_promoting_role(self, md_file):
+        caveats = [u for u in extract(md_file).units if u.meta.get("caveat_cue")]
         assert any("power analysis" in u.content for u in caveats)
+        assert all(u.role is Role.UNKNOWN for u in caveats)
 
     def test_hard_wrapped_paragraphs_are_unwrapped(self, md_file):
         # A wrap point is not meaning. Leaving it in breaks every phrase and
         # identifier match fusion depends on.
         units = extract(md_file).units
         assert any("power analysis" in u.content for u in units)
-        assert any(u.role is Role.CAVEAT and "power analysis" in u.content for u in units)
+        assert any(u.meta.get("caveat_cue") and "power analysis" in u.content for u in units)
 
     def test_list_structure_survives_unwrapping(self, md_file):
-        procedures = [u for u in extract(md_file).units if u.role is Role.PROCEDURE]
+        procedures = [u for u in extract(md_file).units if u.meta.get("procedure_cue")]
         assert procedures, "numbered list was not recognized"
+        assert all(u.role is Role.UNKNOWN for u in procedures)
         assert procedures[0].content.count("\n") == 2, "list items were joined together"
+
+    def test_headings_preserve_definition_cues_without_promoting_roles(self, md_file):
+        headings = [u for u in extract(md_file).units if u.meta.get("heading")]
+        assert headings
+        assert any(u.meta.get("definition_cue") for u in headings)
+        assert all(u.role is Role.UNKNOWN for u in headings)
+
+    def test_definition_syntax_is_preserved_as_a_cue(self, md_file):
+        definitions = [u for u in extract(md_file).units if u.meta.get("definition_cue")]
+        assert any("middle value" in u.content for u in definitions)
+        assert all(u.role is Role.UNKNOWN for u in definitions)
 
     def test_origin_char_span_round_trips_to_the_source(self, md_file):
         text = md_file.read_text(encoding="utf-8")
@@ -97,6 +162,12 @@ class TestSpreadsheet:
         assert {"Model!B7", "Model!B8", "Model!B9"} <= derived
         assert not inputs & derived
 
+        # RESULT did not survive Stage 2. Formula identity remains explicit
+        # rather than being hidden in an unreliable role tag.
+        formula_units = [u for u in units if u.meta.get("formula")]
+        assert all(u.role is Role.UNKNOWN for u in formula_units)
+        assert all(u.meta.get("derived") is True for u in formula_units)
+
     def test_labels_inputs_from_the_cell_to_their_left(self, xlsx_file):
         by_cell = {u.meta.get("cell"): u for u in extract(xlsx_file).units}
         assert by_cell["Model!B2"].meta["label"] == "Node count"
@@ -107,6 +178,9 @@ class TestSpreadsheet:
         assert any("0.87" in gap for gap in result.gaps), (
             "the hardcoded override in B9 was not reported"
         )
+        finding = next(gap for gap in result.gaps if "0.87" in gap)
+        assert finding.origin.source == str(xlsx_file)
+        assert finding.origin.ref == "Model!B9"
 
     def test_follows_cross_sheet_references(self, xlsx_file):
         result = extract(xlsx_file)
@@ -121,21 +195,36 @@ class TestSpreadsheet:
         assert "Summary!B1" in terminals
         assert "Model!B7" not in terminals
 
+    def test_sheet_summaries_preserve_definition_cues(self, xlsx_file):
+        summaries = [u for u in extract(xlsx_file).units if u.meta.get("sheet_summary")]
+        assert {u.meta["sheet"] for u in summaries} == {"Model", "Summary"}
+        assert all(u.meta.get("definition_cue") is True for u in summaries)
+        assert all(u.role is Role.UNKNOWN for u in summaries)
+
 
 class TestPdf:
     def test_headings_come_from_relative_font_size(self, pdf_file):
-        headings = [u.content for u in extract(pdf_file).units if u.meta.get("heading")]
-        assert "Throughput Under Contention" in headings
+        headings = [u for u in extract(pdf_file).units if u.meta.get("heading")]
+        assert "Throughput Under Contention" in {u.content for u in headings}
+        assert all(u.meta.get("definition_cue") is True for u in headings)
+        assert all(u.role is Role.UNKNOWN for u in headings)
 
     def test_units_carry_page_origins(self, pdf_file):
         refs = [u.origin.ref for u in extract(pdf_file).units]
         assert all(r.startswith("page:") for r in refs)
         assert any(r.startswith("page:2") for r in refs)
 
-    def test_cue_words_promote_roles(self, pdf_file):
+    def test_cue_words_are_preserved_without_promoting_roles(self, pdf_file):
         units = extract(pdf_file).units
-        assert any(u.role is Role.CAVEAT and "does not isolate" in u.content for u in units)
-        assert any(u.role is Role.RESULT and "12 percent" in u.content for u in units)
+        caveats = [u for u in units if u.meta.get("caveat_cue")]
+        assert any("does not isolate" in u.content for u in caveats)
+        assert all(u.role is Role.UNKNOWN for u in caveats)
+        examples = [u for u in units if u.meta.get("example_cue")]
+        assert any("Figure 1" in u.content for u in examples)
+        assert all(u.role is Role.UNKNOWN for u in examples)
+        findings = [u for u in units if u.meta.get("result_cue")]
+        assert any("12 percent" in u.content for u in findings)
+        assert all(u.role is Role.UNKNOWN for u in findings)
 
     def test_declines_a_scanned_pdf_by_name(self, scanned_pdf):
         result = extract(scanned_pdf)
@@ -153,6 +242,7 @@ class TestOneRepresentation:
             for unit in result.units:
                 assert isinstance(unit.modality, Modality)
                 assert isinstance(unit.role, Role)
+                assert unit.role in {Role.UNKNOWN, Role.ASSUMPTION}
                 assert unit.origin.source == str(path)
                 assert unit.origin.ref
                 assert unit.tokens > 0
@@ -173,6 +263,42 @@ class TestOneRepresentation:
             assert first == second
             assert len(set(first)) == len(first), f"{path.name}: duplicate unit ids"
 
+    def test_semantically_distinct_units_at_one_origin_have_distinct_ids(self):
+        source = "https://example.test/#only-link"
+        origin = Origin(source, source)
+        prose = Unit(source, Modality.PROSE, source, origin)
+        reference = Unit(source, Modality.REFERENCE, source, origin)
+
+        assert prose.id != reference.id
+
+    def test_legacy_string_gaps_are_upgraded_to_addressed_findings(self):
+        result = Extraction(source="notes.txt", kind="text")
+        result.gaps.append("no headings were present")
+
+        assert result.gaps[0].content == "no headings were present"
+        assert result.gaps[0].origin == Origin("notes.txt", "source")
+
+    def test_semantic_identity_fields_reject_whitespace_only_values(self):
+        with pytest.raises(ValueError, match="origin ref"):
+            Origin("notes.txt", " \t")
+        with pytest.raises(ValueError, match="unit content"):
+            Unit(
+                "notes.txt",
+                Modality.PROSE,
+                " \n",
+                Origin("notes.txt", "line:1"),
+            )
+        with pytest.raises(ValueError, match="extraction source and kind"):
+            Extraction(source="notes.txt", kind="   ")
+        with pytest.raises(ValueError, match="relation endpoints"):
+            Relation(" ", "unit-id", RelationKind.DESCRIBES)
+        with pytest.raises(ValueError, match="evidence unit ids"):
+            GroundedStatement(
+                content="Grounded claim.",
+                origins=(Origin("notes.txt", "line:1"),),
+                evidence_unit_ids=(" \t",),
+            )
+
     def test_origin_schemes_differ_per_format(self, md_file, xlsx_file, pdf_file):
         schemes = {
             path.suffix: {u.origin.scheme for u in extract(path).units}
@@ -188,14 +314,16 @@ class TestOneRepresentation:
             result = extract(path)
 
             payload = json.loads(to_json(result))
-            assert payload["schema"] == 1
+            assert payload["schema"] == 2
             assert len(payload["units"]) == len(result.units)
 
             lines = to_jsonl(result).strip().splitlines()
             header = json.loads(lines[0])
             assert header["type"] == "header"
-            assert len(lines) - 1 == len(result.units)
-            for line in lines[1:]:
+            manifest = json.loads(lines[-1])
+            assert manifest["type"] == "manifest"
+            assert len(lines) - 2 == len(result.units)
+            for line in lines[1:-1]:
                 assert json.loads(line)["type"] == "unit"
 
 

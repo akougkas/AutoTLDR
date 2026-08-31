@@ -34,8 +34,8 @@ _RESULT_CUE = re.compile(
 )
 
 
-def extract(path: Path) -> Extraction:
-    source = str(path)
+def extract(path: Path, *, source: str | None = None) -> Extraction:
+    source = source or str(path)
     result = Extraction(source=source, kind="pdf")
 
     with pymupdf.open(path) as doc:
@@ -67,10 +67,15 @@ def extract(path: Path) -> Extraction:
                         modality=Modality.PROSE,
                         content=text,
                         origin=origin,
-                        role=Role.DEFINITION,
+                        role=Role.UNKNOWN,
                         structure=section,
                         salience=0.85,
-                        meta={"page": page_no, "font_size": round(size, 1), "heading": True},
+                        meta={
+                            "page": page_no,
+                            "font_size": round(size, 1),
+                            "heading": True,
+                            "definition_cue": True,
+                        },
                     )
                     result.units.append(unit)
                     section_unit = unit.id
@@ -81,13 +86,18 @@ def extract(path: Path) -> Extraction:
                     modality=Modality.PROSE,
                     content=text,
                     origin=origin,
-                    role=_role(text),
+                    role=Role.UNKNOWN,
                     structure=section,
                     salience=0.65 if _CAPTION.match(text) else 0.5,
                     meta={
                         "page": page_no,
                         "font_size": round(size, 1),
                         "caption": bool(_CAPTION.match(text)),
+                        "example_cue": bool(_CAPTION.match(text)),
+                        "caveat_cue": bool(_CAVEAT_CUE.search(text)),
+                        # RESULT did not survive the Stage 2 taxonomy gate, but
+                        # downstream consumers still need the observed cue.
+                        "result_cue": bool(_RESULT_CUE.search(text)),
                     },
                 )
                 result.units.append(unit)
@@ -185,16 +195,6 @@ def _is_heading(text: str, size: float, sizes: _Sizes) -> bool:
     if size >= sizes.heading:
         return True
     return bool(_HEADING_NUM.match(text)) and len(text) < 80
-
-
-def _role(text: str) -> Role:
-    if _CAPTION.match(text):
-        return Role.EXAMPLE
-    if _CAVEAT_CUE.search(text):
-        return Role.CAVEAT
-    if _RESULT_CUE.search(text):
-        return Role.RESULT
-    return Role.UNKNOWN
 
 
 def _references(source: str, text: str, origin: Origin, section: tuple[str, ...]) -> list[Unit]:

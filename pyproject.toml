@@ -9,17 +9,31 @@ authors = [{ name = "Anthony Kougkas" }]
 
 # The base install stays deliberately tiny. Anything a single format needs lives
 # in an extra, and is lazy-imported at the point of use. `autotldr notes.md` must
-# never pay for a PDF parser it will not call. See docs/startup-contract.md.
+# never pay for a PDF parser it will not call. See tests/test_startup.py.
 dependencies = []
 
 [project.optional-dependencies]
 pdf = ["pymupdf>=1.24"]
 office = ["openpyxl>=3.1"]
+structured = ["PyYAML>=6.0"]
+code = [
+  "tree-sitter>=0.21.3,<0.22",
+  "tree-sitter-languages==1.10.2",
+]
+web = ["trafilatura>=2.2,<3"]
+data = [
+  "duckdb>=1.2",
+  "pyarrow>=18",
+  "numpy>=1.26",
+  "h5py>=3.12",
+  "netCDF4>=1.7",
+]
 # Everything a full desktop install wants.
-all = ["autotldr[pdf,office]"]
+all = ["autotldr[code,data,office,pdf,structured,web]"]
 
 [project.scripts]
 autotldr = "autotldr.cli:main"
+autotldr-mcp = "autotldr.mcp:main"
 
 [dependency-groups]
 dev = ["pytest>=8.0"]
@@ -33,3 +47,19 @@ packages = ["src/autotldr"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Warnings are build failures. The one exception below is an upstream artifact
+# of a stable-ABI wheel, not an AutoTLDR defect, and is silenced by its exact
+# message so any other warning still fails.
+#
+# netCDF4 1.7.4 ships `_netCDF4.abi3.so` (cp311-abi3). Under the limited API its
+# Cython type check reads `numpy.ndarray.__basicsize__` (96) and compares it
+# against `sizeof(PyArrayObject)` as numpy 2 declares it in the public header,
+# where the struct is opaque and therefore 16 bytes. Runtime-larger-than-header
+# is Cython's benign `CheckSize_Warn` case: netCDF4 reaches arrays only through
+# the public numpy C-API and never allocates the struct itself. The warning
+# surfaces only when netCDF4 is imported through the dynamically loaded
+# benchmark modules, which is why it appears exclusively in the full-suite run.
+filterwarnings = [
+  "error",
+  "ignore:numpy\\.ndarray size changed:RuntimeWarning",
+]

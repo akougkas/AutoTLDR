@@ -89,12 +89,15 @@ def _extract_workbook(result: Extraction, wb, values_wb, source: str) -> None:
             modality=Modality.RECORD,
             content=_describe(label, addr, formula, value),
             origin=Origin(source, key),
-            role=Role.RESULT,
+            # A formula's derivation is explicit in metadata and relations;
+            # RESULT did not survive the Stage 2 role-recoverability gate.
+            role=Role.UNKNOWN,
             structure=(sheet,),
             salience=0.75 if key not in referenced else 0.6,
             meta={
                 "cell": key,
                 "formula": formula,
+                "derived": True,
                 "value": value,
                 "label": label or None,
                 "functions": sorted(_FUNC.findall(formula.upper())),
@@ -106,9 +109,10 @@ def _extract_workbook(result: Extraction, wb, values_wb, source: str) -> None:
         unit_by_cell[key] = unit
 
         if literals:
-            result.gaps.append(
+            result.add_gap(
                 f"{key} hardcodes {', '.join(literals)} inside its formula "
-                f"instead of referencing a named input"
+                f"instead of referencing a named input",
+                ref=key,
             )
 
     for key in sorted(referenced - set(formula_cells)):
@@ -194,11 +198,13 @@ def _sheet_unit(source: str, ws, grid: dict[str, object]) -> Unit:
         modality=Modality.SCHEMA,
         content=summary,
         origin=Origin(source, f"{ws.title}!A1:{get_column_letter(max(ws.max_column, 1))}{ws.max_row}"),
-        role=Role.DEFINITION,
+        role=Role.UNKNOWN,
         structure=(ws.title,),
         salience=0.9,
         meta={
             "sheet": ws.title,
+            "sheet_summary": True,
+            "definition_cue": True,
             "rows": ws.max_row,
             "columns": ws.max_column,
             "populated": len(grid),
